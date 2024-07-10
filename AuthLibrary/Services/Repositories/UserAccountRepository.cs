@@ -1,23 +1,17 @@
 ﻿using AuthLibrary.DTO;
 using AuthLibrary.Models;
 using AuthLibrary.Services.Interfaces;
-using AuthLibrary.Services.Responses;
 using BaiSol.Server.Models.Email;
 using BaseLibrary.Services.Interfaces;
 using DataLibrary.Data;
 using DataLibrary.Models;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
-using System;
-using System.Collections.Generic;
 using System.IdentityModel.Tokens.Jwt;
-using System.Linq;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
-using System.Threading.Tasks;
 using static AuthLibrary.Services.Responses.AuthResponse;
 
 namespace AuthLibrary.Services.Repositories
@@ -379,6 +373,22 @@ namespace AuthLibrary.Services.Repositories
 
             var saved = await _dataContext.SaveChangesAsync();
             return saved > 0 ? true : false;
+        }
+
+        public async Task<bool> ResendOTP(string email)
+        {
+
+            // Get user from the database
+            var user = await _userManager.FindByEmailAsync(email);
+
+            // Generate OTP token for 2FA using email
+            var tokenOTP = await _userManager.GenerateTwoFactorTokenAsync(user, "Email");
+
+            // Send OTP via email
+            var message = new EmailMessage(new string[] { email }, "OTP Confirmation", tokenOTP);
+            _emailRepository.SendEmail(message);
+
+            return true;
         }
     }
 }

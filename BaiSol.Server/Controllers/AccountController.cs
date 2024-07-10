@@ -17,8 +17,7 @@ namespace BaiSol.Server.Controllers
     public class AccountController(IUserAccount _userAccount,
         UserManager<AppUsers> _userManager,
         IEmailRepository _emailRepository,
-        SignInManager<AppUsers> _signInManager,
-        RoleManager<IdentityRole> _roleManager
+        IConfiguration _config
         ) : ControllerBase
 
     {
@@ -31,8 +30,8 @@ namespace BaiSol.Server.Controllers
             {
                 // Add Token to Verify the email
                 var token = await _userManager.GenerateEmailConfirmationTokenAsync(addAdmin.AppUsers);
-
-                var confirmationLink = Url.Action(nameof(ConfirmEmail), "Account", new { token, addAdmin.AppUsers.Email }, Request.Scheme);
+                var reactAppUrl = _config["FrontEnd_Url"];
+                var confirmationLink = $"{reactAppUrl}/Confirm-Email?token={token}&email={addAdmin.AppUsers.Email}";
 
                 var message = new EmailMessage(new string[] { addAdmin.AppUsers.Email! }, "Confirmation email link", $"Please confirm your account by clicking this link: <a href='{confirmationLink}'>Confirmation Link</a>");
                 _emailRepository.SendEmail(message);
@@ -51,7 +50,7 @@ namespace BaiSol.Server.Controllers
                 var result = await _userManager.ConfirmEmailAsync(user, token);
                 if (result.Succeeded)
                 {
-                    return Ok("Admin Account Verified");
+                    return Ok("Your Email Account Verified");
                 }
             }
 
@@ -78,28 +77,44 @@ namespace BaiSol.Server.Controllers
             return Ok(login);
         }
 
+        [HttpPost("ResendOTP")]
+        public async Task<IActionResult> ResendOTP([FromBody] string email)
+        {
+            var resend = await _userAccount.ResendOTP(email);
+            if (resend)
+            {
+                return Ok(new { message = "We've resent you a new OTP" });
+            }
+            return BadRequest();
+        }
+
+
         [HttpPost("ForgotPassword")]
         [AllowAnonymous]
-        public async Task<IActionResult> ForgotPassword([Required] string email)
+        public async Task<IActionResult> ForgotPassword([FromBody] string email)
         {
             var user = await _userManager.FindByEmailAsync(email);
             if (user != null)
             {
                 var token = await _userManager.GeneratePasswordResetTokenAsync(user);
-                var forgotPasswordLink = Url.Action(nameof(ResetPassword), "Account", new { token, user.Email }, Request.Scheme);
+                var reactAppUrl = _config["FrontEnd_Url"];
+                var forgotPasswordLink = $"{reactAppUrl}/change-password?token={token}&email={user.Email}";
+                //var forgotPasswordLink = Url.Action(nameof(ResetPassword), "Account", new { token, user.Email }, Request.Scheme);
 
                 var message = new EmailMessage(new string[] { user.Email! }, "Forgot Password Link", $"Click this link to reset password: <a href='{forgotPasswordLink}'>Reset Password</a>");
                 _emailRepository.SendEmail(message);
-                return Ok($"Password changed request is sent on Email {user.Email}. Please open your email & click the link.");
+                return Ok($"Password changed request is sent on your email. Please open your email & click the link.");
             }
-            return BadRequest("Couldn\'t send link to email, please try again.");
+
+
+            ModelState.AddModelError("", "Couldn't send link to email, please try again.");
+            return StatusCode(500, ModelState);
         }
 
         [HttpGet("Reset-Password")]
         public async Task<IActionResult> ResetPassword(string token, string email)
         {
-            var modelDto = new ResetPasswordDto { Token = token, Email = email };
-            return Ok(modelDto);
+            return Ok(new { Token = token, Email = email });
         }
 
         [HttpPost("New-Password")]
@@ -118,7 +133,7 @@ namespace BaiSol.Server.Controllers
                     }
                     return StatusCode(500, ModelState);
                 }
-                return Ok("Password has been changed!");
+                return Ok("Password has been successfully changed!");
             }
             return BadRequest("Couldn\'t send link to email, please try again.");
         }

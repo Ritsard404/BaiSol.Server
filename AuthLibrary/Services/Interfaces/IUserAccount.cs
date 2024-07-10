@@ -11,6 +11,7 @@ namespace AuthLibrary.Services.Interfaces
         Task<GeneralResponse> LoginAccount(LoginDto loginDto);
         Task<LoginResponse> Login2FA(string code, string email);
         Task<LoginResponse> RefreshToken(Token token);
+        Task<bool> ResendOTP(string email);
         Task<bool> IsUserExist(string email);
         Task<bool> SuspendUser(string id);
         Task<bool> UnSuspendUser(string id);
