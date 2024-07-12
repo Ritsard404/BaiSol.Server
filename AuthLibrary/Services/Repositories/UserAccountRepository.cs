@@ -1,29 +1,202 @@
 ﻿using AuthLibrary.DTO;
 using AuthLibrary.Models;
 using AuthLibrary.Services.Interfaces;
-using BaiSol.Server.Models.Email;
-using BaseLibrary.Services.Interfaces;
+using AuthLibrary.Services.Responses;
 using DataLibrary.Data;
 using DataLibrary.Models;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.Extensions.Configuration;
-using Microsoft.IdentityModel.Tokens;
-using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
-using System.Security.Cryptography;
-using System.Text;
+using Microsoft.EntityFrameworkCore;
 using static AuthLibrary.Services.Responses.AuthResponse;
 
 namespace AuthLibrary.Services.Repositories
 {
-    public class UserAccountRepository(UserManager<AppUsers> _userManager,
-        RoleManager<IdentityRole> _roleManager,
-        SignInManager<AppUsers> _signInManager,
-        IEmailRepository _emailRepository,
-        IConfiguration _config,
-        DataContext _dataContext
+    public class UserAccountRepository(DataContext _dataContext,
+        UserManager<AppUsers> _userManager,
+        RoleManager<IdentityRole> _roleManager
         ) : IUserAccount
     {
+        public async Task<ICollection<AdminUsersDto>> GetAdminUsers()
+        {
+            var users = await _dataContext.Users.ToListAsync();
+            var adminList = new List<AdminUsersDto>();
+
+            foreach (var user in users)
+            {
+                var roles = await _userManager.GetRolesAsync(user);
+                if (await _userManager.IsEmailConfirmedAsync(user))
+                {
+                    if (UserRoles.Admin == roles.FirstOrDefault())
+                    {
+                        adminList.Add(new AdminUsersDto
+                        {
+                            Id = user.Id,
+                            Email = user.Email,
+                            UserName = user.NormalizedUserName,
+                            IsActive = user.IsActive,
+                            IsSuspend = user.IsSuspend,
+                        });
+                    }
+                }
+            }
+
+            return adminList;
+        }
+
+        public async Task<ICollection<UsersDto>> GetUsersAsync()
+        {
+            var users = await _dataContext.Users.ToListAsync();
+            var userList = new List<UsersDto>();
+
+            foreach (var user in users)
+            {
+                var roles = await _userManager.GetRolesAsync(user);
+                userList.Add(new UsersDto
+                {
+                    Id = user.Id,
+                    Email = user.Email,
+                    UserName = user.NormalizedUserName,
+                    Role = roles.FirstOrDefault(),
+                    IsActive = user.IsActive,
+                    IsSuspend = user.IsSuspend,
+                });
+            }
+
+            return userList;
+        }
+
+        public async Task<ICollection<UsersDto>> GetUsersByRole(string role)
+        {
+            var users = await _dataContext.Users
+                .Include(user => user.Client)
+                //.Where(user => user.EmailConfirmed) // Consider re-enabling if needed
+                .ToListAsync();
+
+            var userList = new List<UsersDto>();
+
+            foreach (var user in users)
+            {
+                var roles = await _userManager.GetRolesAsync(user);
+                if (roles.FirstOrDefault() == role)
+                {
+                    var userDto = new UsersDto
+                    {
+                        Id = user.Id,
+                        Email = user.Email,
+                        UserName = user.NormalizedUserName,
+                        Role = roles.FirstOrDefault(),
+                        AdminEmail = user.AdminEmail,
+                        IsActive = user.IsActive,
+                        IsSuspend = user.IsSuspend,
+                    };
+
+                    if (role == UserRoles.Client)
+                    {
+                        userDto.ClientAddress = user.Client?.ClientAddress;
+                        userDto.ClientMonthlyElectricBill = user.Client?.ClientMonthlyElectricBill;
+                    }
+
+                    userList.Add(userDto);
+                }
+            }
+
+            return userList;
+        }
+
+        public async Task<bool> SuspendUser(string id)
+        {
+            var user = await _userManager.FindByEmailAsync(id);
+
+            if (user != null)
+            {
+                // Update suspension logic
+                user.IsSuspend = true;
+                user.UpdatedAt = DateTimeOffset.UtcNow;
+
+                // Update user in the database
+                var result = await _userManager.UpdateAsync(user);
+
+                if (result.Succeeded)
+                {
+                    return await Save();
+                }
+            }
+
+            return false; // User not found
+        }
+
+        public async Task<bool> UnSuspendUser(string id)
+        {
+            var user = await _userManager.FindByEmailAsync(id);
+
+            if (user != null)
+            {
+                // Update suspension logic
+                user.IsSuspend = false;
+                user.UpdatedAt = DateTimeOffset.UtcNow;
+
+                // Update user in the database
+                var result = await _userManager.UpdateAsync(user);
+
+                if (result.Succeeded)
+                {
+                    return await Save();
+                }
+            }
+
+            return false; // User not found
+        }
+
+        public async Task<bool> DeactivateUser(string id)
+        {
+            var user = await _userManager.FindByIdAsync(id);
+
+            if (user != null)
+            {
+                // Update suspension logic
+                user.IsActive = false;
+                user.UpdatedAt = DateTimeOffset.UtcNow;
+
+                // Update user in the database
+                var result = await _userManager.UpdateAsync(user);
+
+                if (result.Succeeded)
+                {
+                    return await Save();
+                }
+            }
+
+            return false; // User not found
+        }
+
+        public async Task<bool> ActivateUser(string id)
+        {
+            var user = await _userManager.FindByEmailAsync(id);
+
+            if (user != null)
+            {
+                // Update suspension logic
+                user.IsActive = true;
+                user.UpdatedAt = DateTimeOffset.UtcNow;
+
+                // Update user in the database
+                var result = await _userManager.UpdateAsync(user);
+
+                if (result.Succeeded)
+                {
+                    return await Save();
+                }
+            }
+
+            return false; // User not found
+        }
+
+        public async Task<bool> Save()
+        {
+
+            var saved = await _dataContext.SaveChangesAsync();
+            return saved > 0 ? true : false;
+        }
+
         public async Task<RegisterResponse> CreateAdminAccount(AdminDto adminDto)
         {
             // Check if the provided adminDto is null and return a response if it is.
@@ -79,316 +252,120 @@ namespace AuthLibrary.Services.Repositories
             }
         }
 
-        public string GenerateRefreshToken()
+        public async Task<RegisterResponse> CreateFacilitatorAccount(FacilitatorDto facilitatorDto)
         {
-            var ranNum = new Byte[64];
-            var generator = RandomNumberGenerator.Create();
-            generator.GetBytes(ranNum);
-            return Convert.ToBase64String(ranNum);
-        }
+            // Check if the provided adminDto is null and return a response if it is.
+            if (facilitatorDto is null) return new RegisterResponse("Model is empty", false, null);
 
-        public string GenerateAccessToken(UserSession user)
-        {
-            var authSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_config["Jwt:Key"]!));
-            var credential = new SigningCredentials(authSigningKey, SecurityAlgorithms.HmacSha256);
-            var userClaims = new[]
+            // Check the creator email.
+            var adminCreator = await _userManager.FindByEmailAsync(facilitatorDto.Email);
+            if (adminCreator == null) return new RegisterResponse("Admin not exist!", false, null);
+
+            // Create a new AppUsers object using the data from the provided adminDto.
+            AppUsers newFacilitatorUser = new AppUsers()
             {
-                new Claim(ClaimTypes.NameIdentifier, user.Id!.ToString()),
-                new Claim(ClaimTypes.Name, user.Name!),
-                new Claim(ClaimTypes.Email, user.Email!),
-                new Claim(ClaimTypes.Role, user.Role!),
+                UserName = facilitatorDto.FirstName + "_" + facilitatorDto.LastName, // Create a username by concatenating first and last names.
+                Email = facilitatorDto.Email,
+                PasswordHash = facilitatorDto.Password,
+                TwoFactorEnabled = true,
+                AdminEmail = facilitatorDto.AdminEmail
             };
 
-            var token = new JwtSecurityToken(
-                    issuer: _config["Jwt:Issuer"],
-                    audience: _config["Jwt:Audience"],
-                    claims: userClaims,
-                    expires: DateTime.Now.AddMinutes(15),
-                    signingCredentials: credential
-                );
+            // Check if an facilitator user with the same email already exists.
+            var facilitatorUser = await _userManager.FindByEmailAsync(newFacilitatorUser.Email);
+            if (facilitatorUser != null) return new RegisterResponse("Facilitator already exist!", false, null);
 
-            return new JwtSecurityTokenHandler().WriteToken(token);
+            // Check if an facilitator user with the same username already exists.
+            var facilitatorName = await _userManager.FindByNameAsync(newFacilitatorUser.UserName);
+            if (facilitatorName != null) return new RegisterResponse("Username already exist!", false, null);
+
+            // Attempt to create the new admin user.
+            var createFacilitatorUser = await _userManager.CreateAsync(newFacilitatorUser!, facilitatorDto.Password);
+            if (!createFacilitatorUser.Succeeded)
+            {
+                // If user creation failed, collect all error messages and return a response.
+                var errors = string.Join(", ", createFacilitatorUser.Errors.Select(e => e.Description));
+                return new RegisterResponse("Error occurred: " + errors, false, null);
+            }
+
+            // If the Admin role not exists, add the roles.
+            if (await _roleManager.RoleExistsAsync(UserRoles.Admin))
+            {
+                // Ensure the roles exists in the system.
+                await EnsureRoleExists(UserRoles.Admin);
+                await EnsureRoleExists(UserRoles.Client);
+                await EnsureRoleExists(UserRoles.Facilitator);
+            }
+
+            await _userManager.AddToRoleAsync(newFacilitatorUser, UserRoles.Facilitator);
+
+            // Return a success response after the admin user has been successfully created and added to the Admin role.
+            return new RegisterResponse("Admin created successfully.", true, newFacilitatorUser);
         }
 
-        public ClaimsPrincipal GetPrincipalFromExpiredToken(string token)
+        public async Task<RegisterResponse> CreateClientAccount(ClientDto clientDto)
         {
-            var secret = _config["Jwt:Key"] ?? throw new InvalidOperationException("Secret not configured");
+            // Check if the provided clientDto is null and return a response if it is.
+            if (clientDto is null) return new RegisterResponse("Model is empty", false, null);
 
-            var tokenValidationParameters = new TokenValidationParameters
+            var adminCreator = await _userManager.FindByEmailAsync(clientDto.AdminEmail);
+            if (adminCreator == null) return new RegisterResponse("Admin not exist!", false, null);
+
+            Client newClient = new Client()
             {
-                ValidateIssuer = true,
-                ValidateAudience = true,
-                ValidateIssuerSigningKey = true,
-                ValidIssuer = _config["Jwt:Issuer"],
-                ValidAudience = _config["Jwt:Audience"],
-                IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secret)),
-                ValidateLifetime = false
+                ClientAddress = clientDto.ClientAddress,
+                ClientMonthlyElectricBill = clientDto.ClientMonthlyElectricBill
             };
 
-
-            try
+            // Create a new AppUsers object using the data from the provided clientDto.
+            AppUsers newClientUser = new AppUsers()
             {
-                var tokenHandler = new JwtSecurityTokenHandler();
-                var principal = tokenHandler.ValidateToken(token, tokenValidationParameters, out SecurityToken securityToken);
+                UserName = clientDto.FirstName + "_" + clientDto.LastName, // Create a username by concatenating first and last names.
+                Email = clientDto.Email,
+                PasswordHash = clientDto.Password,
+                TwoFactorEnabled = true,
+                AdminEmail = clientDto.AdminEmail,
+                Client = newClient
+            };
 
-                if (securityToken is not JwtSecurityToken jwtSecurityToken ||
-                    !jwtSecurityToken.Header.Alg.Equals(SecurityAlgorithms.HmacSha256, StringComparison.InvariantCultureIgnoreCase))
-                {
-                    throw new SecurityTokenException("Invalid token");
-                }
+            // Check if an client user with the same email already exists.
+            var clientUser = await _userManager.FindByEmailAsync(newClientUser.Email);
+            if (clientUser != null) return new RegisterResponse("Client already exist!", false, null);
 
-                return principal;
-            }
-            catch (Exception ex)
+            // Check if an client user with the same username already exists.
+            var clientName = await _userManager.FindByNameAsync(newClientUser.UserName);
+            if (clientName != null) return new RegisterResponse("Username already exist!", false, null);
+
+
+            CreateClient(newClient);
+            // Attempt to create the new client user.
+            var createFacilitatorUser = await _userManager.CreateAsync(newClientUser!, clientDto.Password);
+            if (!createFacilitatorUser.Succeeded)
             {
-                // Log the exception and rethrow
-                throw new SecurityTokenException("Invalid token", ex);
+                // If user creation failed, collect all error messages and return a response.
+                var errors = string.Join(", ", createFacilitatorUser.Errors.Select(e => e.Description));
+                return new RegisterResponse("Error occurred: " + errors, false, null);
             }
+
+            // If the Admin role not exists, add the roles.
+            if (!await _roleManager.RoleExistsAsync(UserRoles.Admin))
+            {
+                // Ensure the roles exists in the system.
+                await EnsureRoleExists(UserRoles.Admin);
+                await EnsureRoleExists(UserRoles.Client);
+                await EnsureRoleExists(UserRoles.Facilitator);
+            }
+
+            await _userManager.AddToRoleAsync(newClientUser, UserRoles.Client);
+
+            // Return a success response after the client user has been successfully created and added to the Client role.
+            return new RegisterResponse("Admin created successfully.", true, newClientUser);
         }
 
-        public async Task<bool> IsUserExist(string email)
+        public void CreateClient(Client client)
         {
-            var user = await _userManager.FindByEmailAsync(email);
-            return user != null;
-        }
-
-        public async Task<LoginResponse> Login2FA(string code, string email)
-        {
-            // Check if code or email is empty or null
-            if (string.IsNullOrEmpty(code) || string.IsNullOrEmpty(email))
-            {
-                return new LoginResponse(null, null, "Invalid parameters");
-            }
-
-            // Find the user by email
-            var user = await _userManager.FindByEmailAsync(email);
-
-            // Attempt two-factor sign-in using email as the provider
-            var signInResult = await _userManager.VerifyTwoFactorTokenAsync(user,"Email", code);
-
-            // Check if two-factor sign-in succeeded
-            if (signInResult)
-            {
-                // If user exists
-                if (user != null)
-                {
-                    // Get user roles
-                    var getUserRoles = await _userManager.GetRolesAsync(user);
-                    var userRole = getUserRoles.FirstOrDefault();
-
-                    // Create a user session object
-                    var userSession = new UserSession(user.Id, user.UserName, user.Email, userRole);
-
-                    // Sign in the user using SignInManager
-                    await _signInManager.SignInAsync(user, isPersistent: false);
-
-                    // Generate Refresh Token
-                    var refreshToken = GenerateRefreshToken();
-                    user.RefreshToken = refreshToken;
-                    user.RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(7);
-
-                    // Update user with new refresh token
-                    await _userManager.UpdateAsync(user);
-
-                    // Generate access token
-                    var accessToken = GenerateAccessToken(userSession);
-
-                    // Return successful login response with token and refresh token
-                    return new LoginResponse(accessToken, refreshToken, "Login Successfully");
-                }
-            }
-
-            // Return unsuccessful login response
-            return new LoginResponse(null, null, $"Invalid OTP! {signInResult.ToString()}");
-        }
-
-        public async Task<GeneralResponse> LoginAccount(LoginDto loginDto)
-        {
-            // Get user from the database
-            var user = await _userManager.FindByEmailAsync(loginDto.Email);
-            if (user == null)
-            {
-                return new GeneralResponse("User not found!", false);
-            }
-
-            // Sign out any existing users
-            await _signInManager.SignOutAsync();
-            await _signInManager.PasswordSignInAsync(user, loginDto.Password, false, true);
-
-            // Check if the user's password is correct
-            var checkUserPass = await _userManager.CheckPasswordAsync(user, loginDto.Password);
-            if (!checkUserPass || user.IsSuspend || !user.IsActive)
-            {
-                return new GeneralResponse("Invalid credentials!", false);
-            }
-
-            // Check if the user's email is confirmed
-            if (!user.EmailConfirmed)
-            {
-                return new GeneralResponse("Email not confirmed. Please check your email for confirmation link.", false);
-            }
-
-            // Generate OTP token for 2FA using email
-            var tokenOTP = await _userManager.GenerateTwoFactorTokenAsync(user, "Email");
-
-            // Send OTP via email
-            var message = new EmailMessage(new string[] { loginDto.Email }, "OTP Confirmation", tokenOTP);
-            _emailRepository.SendEmail(message);
-
-            // Get user roles
-            var getUserRole = await _userManager.GetRolesAsync(user);
-            var userRole = getUserRole.FirstOrDefault();
-
-            // Create a user session object
-            var userSession = new UserSession(user.Id, user.UserName, user.Email, userRole);
-
-            // Generate access token
-            string token = GenerateAccessToken(userSession);
-
-            // Return response indicating OTP sent
-            return new GeneralResponse("We've sent you an OTP", true);
-        }
-
-        public async Task<LoginResponse> RefreshToken(Token token)
-        {
-            // Validate and retrieve principal from the expired token
-            var principal = GetPrincipalFromExpiredToken(token.AccessToken);
-
-            // Check if principal or its identity is null
-            if (principal?.Identity?.Name == null)
-            {
-                return new LoginResponse(null, null, "Unauthorized!");
-            }
-
-            // Find user by username (typically stored in token's Identity.Name)
-            var user = await _userManager.FindByNameAsync(principal.Identity.Name);
-
-            // Check if user exists, refresh token matches, and refresh token is not expired
-            if (user == null || user.RefreshToken != token.RefreshToken || user.RefreshTokenExpiryTime < DateTime.UtcNow)
-            {
-                return new LoginResponse(null, null, "Unauthorized!");
-            }
-
-            // Get user roles
-            var getUserRoles = await _userManager.GetRolesAsync(user);
-            var userRole = getUserRoles.FirstOrDefault();
-
-            // Create a user session object
-            var userSession = new UserSession(user.Id, user.UserName, user.Email, userRole);
-
-            // Generate a new access token
-            var newToken = GenerateAccessToken(userSession);
-
-            // Return successful response with new access token and existing refresh token
-            return new LoginResponse(newToken, token.RefreshToken, "Successfully refreshed token!");
-        }
-
-        public async Task<bool> SuspendUser(string id)
-        {
-            var user = await _userManager.FindByEmailAsync(id);
-
-            if (user != null)
-            {
-                // Update suspension logic
-                user.IsSuspend = true;
-
-                // Update user in the database
-                var result = await _userManager.UpdateAsync(user);
-
-                if (result.Succeeded)
-                {
-                    return await Save();
-                }
-            }
-
-            return false; // User not found
-        }
-
-
-        public async Task<bool> UnSuspendUser(string id)
-        {
-            var user = await _userManager.FindByEmailAsync(id);
-
-            if (user != null)
-            {
-                // Update suspension logic
-                user.IsSuspend = false;
-
-                // Update user in the database
-                var result = await _userManager.UpdateAsync(user);
-
-                if (result.Succeeded)
-                {
-                    return await Save();
-                }
-            }
-
-            return false; // User not found
-        }
-
-        public async Task<bool> DeactivateUser(string id)
-        {
-            var user = await _userManager.FindByIdAsync(id);
-
-            if (user != null)
-            {
-                // Update suspension logic
-                user.IsActive = false;
-
-                // Update user in the database
-                var result = await _userManager.UpdateAsync(user);
-
-                if (result.Succeeded)
-                {
-                    return await Save();
-                }
-            }
-
-            return false; // User not found
-        }
-
-        public async Task<bool> ActivateUser(string id)
-        {
-            var user = await _userManager.FindByEmailAsync(id);
-
-            if (user != null)
-            {
-                // Update suspension logic
-                user.IsActive = true;
-
-                // Update user in the database
-                var result = await _userManager.UpdateAsync(user);
-
-                if (result.Succeeded)
-                {
-                    return await Save();
-                }
-            }
-
-            return false; // User not found
-        }
-
-        public async Task<bool> Save()
-        {
-
-            var saved = await _dataContext.SaveChangesAsync();
-            return saved > 0 ? true : false;
-        }
-
-        public async Task<bool> ResendOTP(string email)
-        {
-
-            // Get user from the database
-            var user = await _userManager.FindByEmailAsync(email);
-
-            // Generate OTP token for 2FA using email
-            var tokenOTP = await _userManager.GenerateTwoFactorTokenAsync(user, "Email");
-
-            // Send OTP via email
-            var message = new EmailMessage(new string[] { email }, "OTP Confirmation", tokenOTP);
-            _emailRepository.SendEmail(message);
-
-            return true;
+            _dataContext.Client.Add(client);
+            _dataContext.SaveChanges();
         }
     }
 }

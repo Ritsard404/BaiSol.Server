@@ -14,32 +14,13 @@ namespace BaiSol.Server.Controllers
 {
     [Route("auth/[controller]")]
     [ApiController]
-    public class AccountController(IUserAccount _userAccount,
+    public class AuthController(IAuthAccount _userAccount,
         UserManager<AppUsers> _userManager,
         IEmailRepository _emailRepository,
         IConfiguration _config
         ) : ControllerBase
 
     {
-        [HttpPost("RegisterAdmin")]
-        public async Task<IActionResult> RegisterAdmin(AdminDto adminDto)
-        {
-            var addAdmin = await _userAccount.CreateAdminAccount(adminDto);
-
-            if (addAdmin.Flag)
-            {
-                // Add Token to Verify the email
-                var token = await _userManager.GenerateEmailConfirmationTokenAsync(addAdmin.AppUsers);
-                var reactAppUrl = _config["FrontEnd_Url"];
-                var confirmationLink = $"{reactAppUrl}/Confirm-Email?token={token}&email={addAdmin.AppUsers.Email}";
-
-                var message = new EmailMessage(new string[] { addAdmin.AppUsers.Email! }, "Confirmation email link", $"Please confirm your account by clicking this link: <a href='{confirmationLink}'>Confirmation Link</a>");
-                _emailRepository.SendEmail(message);
-                return Ok($"An email has been sent to {addAdmin.AppUsers.Email} for confirmation.");
-
-            }
-            return StatusCode(500, addAdmin);
-        }
 
         [HttpGet("ConfirmEmail")]
         public async Task<IActionResult> ConfirmEmail(string token, string email)
@@ -154,34 +135,6 @@ namespace BaiSol.Server.Controllers
             }
 
             return Ok(refreshTokenResponse);
-        }
-
-        [HttpPut("Suspend-User")]
-        public async Task<IActionResult> SuspendUser(string id)
-        {
-            await _userAccount.SuspendUser(id);
-            return Ok();
-        }
-
-        [HttpPut("UnSuspend-User")]
-        public async Task<IActionResult> UnSuspendUser(string id)
-        {
-            await _userAccount.UnSuspendUser(id);
-            return Ok();
-        }
-
-        [HttpPut("Activate-User")]
-        public async Task<IActionResult> ActivateUser(string id)
-        {
-            await _userAccount.ActivateUser(id);
-            return Ok();
-        }
-
-        [HttpPut("Deactivate-User")]
-        public async Task<IActionResult> DeactivateUser(string id)
-        {
-            await _userAccount.DeactivateUser(id);
-            return Ok();
         }
 
         [HttpGet("TestEmail")]

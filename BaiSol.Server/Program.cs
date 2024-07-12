@@ -38,8 +38,11 @@ namespace BaiSol.Server
             });
 
             // Add Scope of Interface and Repository
+            builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
             builder.Services.AddScoped<IEmailRepository, EmailRepository>();
             builder.Services.AddScoped<IUserAccount, UserAccountRepository>();
+            builder.Services.AddScoped<IAuthAccount, AuthAccountRepository>();
+            builder.Services.AddScoped<IPersonnel, PersonnelRepository>();
 
 
             // Add Email Config
