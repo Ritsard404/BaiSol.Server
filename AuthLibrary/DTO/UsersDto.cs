@@ -14,8 +14,7 @@ namespace AuthLibrary.DTO
         public required string UserName { get; set; }
         public required string Role { get; set; }
         public string? AdminEmail { get; set; }
-        public bool IsActive { get; set; }
-        public bool IsSuspend { get; set; }
+        public string? Status { get; set; }
         public DateTimeOffset UpdatedAt { get; set; }
         public DateTimeOffset CreatedAt { get; set; }
         public string? ClientAddress { get; set; }

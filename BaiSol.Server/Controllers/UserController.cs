@@ -126,13 +126,6 @@ namespace BaiSol.Server.Controllers
             return Ok();
         }
 
-        [HttpPut("UnSuspend-User")]
-        public async Task<IActionResult> UnSuspendUser(string id)
-        {
-            await _userAccount.UnSuspendUser(id);
-            return Ok();
-        }
-
         [HttpPut("Activate-User")]
         public async Task<IActionResult> ActivateUser(string id)
         {

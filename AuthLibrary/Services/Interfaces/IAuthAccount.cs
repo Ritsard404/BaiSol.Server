@@ -12,6 +12,8 @@ namespace AuthLibrary.Services.Interfaces
         Task<LoginResponse> RefreshToken(Token token);
         Task<bool> ResendOTP(string email);
         Task<bool> IsUserExist(string email);
+        Task<bool> IsUserSuspend(string id);
+        Task<bool> IsUserActive(string id);
         string GenerateAccessToken(UserSession user); 
         string GenerateRefreshToken();
         ClaimsPrincipal GetPrincipalFromExpiredToken(string token);

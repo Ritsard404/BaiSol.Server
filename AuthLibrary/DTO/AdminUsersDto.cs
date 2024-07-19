@@ -11,7 +11,6 @@ namespace AuthLibrary.DTO
         public string Id { get; set; }
         public string Email { get; set; }
         public string UserName { get; set; }
-        public bool IsActive { get; set; }
-        public bool IsSuspend { get; set; }
+        public string Status { get; set; }
     }
 }

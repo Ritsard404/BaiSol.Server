@@ -15,7 +15,6 @@ namespace AuthLibrary.Services.Interfaces
         Task<ICollection<AdminUsersDto>> GetAdminUsers();
         Task<ICollection<UsersDto>> GetUsersByRole(string role);
         Task<bool> SuspendUser(string id);
-        Task<bool> UnSuspendUser(string id);
         Task<bool> DeactivateUser(string id);
         Task<bool> ActivateUser(string id);
         Task<bool> Save();

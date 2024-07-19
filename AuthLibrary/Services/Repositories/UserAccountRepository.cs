@@ -32,8 +32,7 @@ namespace AuthLibrary.Services.Repositories
                             Id = user.Id,
                             Email = user.Email,
                             UserName = user.NormalizedUserName,
-                            IsActive = user.IsActive,
-                            IsSuspend = user.IsSuspend,
+                            Status = user.Status
                         });
                     }
                 }
@@ -56,8 +55,7 @@ namespace AuthLibrary.Services.Repositories
                     Email = user.Email,
                     UserName = user.NormalizedUserName,
                     Role = roles.FirstOrDefault(),
-                    IsActive = user.IsActive,
-                    IsSuspend = user.IsSuspend,
+                    Status = user.Status
                 });
             }
 
@@ -85,8 +83,7 @@ namespace AuthLibrary.Services.Repositories
                         UserName = user.NormalizedUserName,
                         Role = roles.FirstOrDefault(),
                         AdminEmail = user.AdminEmail,
-                        IsActive = user.IsActive,
-                        IsSuspend = user.IsSuspend,
+                        Status = user.Status
                     };
 
                     if (role == UserRoles.Client)
@@ -109,29 +106,7 @@ namespace AuthLibrary.Services.Repositories
             if (user != null)
             {
                 // Update suspension logic
-                user.IsSuspend = true;
-                user.UpdatedAt = DateTimeOffset.UtcNow;
-
-                // Update user in the database
-                var result = await _userManager.UpdateAsync(user);
-
-                if (result.Succeeded)
-                {
-                    return await Save();
-                }
-            }
-
-            return false; // User not found
-        }
-
-        public async Task<bool> UnSuspendUser(string id)
-        {
-            var user = await _userManager.FindByEmailAsync(id);
-
-            if (user != null)
-            {
-                // Update suspension logic
-                user.IsSuspend = false;
+                user.Status = "Suspend";
                 user.UpdatedAt = DateTimeOffset.UtcNow;
 
                 // Update user in the database
@@ -153,7 +128,7 @@ namespace AuthLibrary.Services.Repositories
             if (user != null)
             {
                 // Update suspension logic
-                user.IsActive = false;
+                user.Status = "InActive";
                 user.UpdatedAt = DateTimeOffset.UtcNow;
 
                 // Update user in the database
@@ -175,7 +150,7 @@ namespace AuthLibrary.Services.Repositories
             if (user != null)
             {
                 // Update suspension logic
-                user.IsActive = true;
+                user.Status = "Active";
                 user.UpdatedAt = DateTimeOffset.UtcNow;
 
                 // Update user in the database

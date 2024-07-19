@@ -22,7 +22,7 @@ namespace AuthLibrary.Services.Repositories
         IConfiguration _config
         ) : IAuthAccount
     {
-       
+
 
         // Generate Refresh Token as JWT
         public string GenerateRefreshToken()
@@ -117,7 +117,7 @@ namespace AuthLibrary.Services.Repositories
             var user = await _userManager.FindByEmailAsync(email);
 
             // Attempt two-factor sign-in using email as the provider
-            var signInResult = await _userManager.VerifyTwoFactorTokenAsync(user,"Email", code);
+            var signInResult = await _userManager.VerifyTwoFactorTokenAsync(user, "Email", code);
 
             // Check if two-factor sign-in succeeded
             if (signInResult)
@@ -169,7 +169,7 @@ namespace AuthLibrary.Services.Repositories
 
             // Check if the user's password is correct
             var checkUserPass = await _userManager.CheckPasswordAsync(user, loginDto.Password);
-            if (!checkUserPass || user.IsSuspend || !user.IsActive)
+            if (!checkUserPass || await IsUserSuspend(user.Id) || !await IsUserActive(user.Id))
             {
                 return new GeneralResponse("Invalid credentials!", false);
             }
@@ -249,6 +249,24 @@ namespace AuthLibrary.Services.Repositories
             _emailRepository.SendEmail(message);
 
             return true;
+        }
+
+        public async Task<bool> IsUserSuspend(string id)
+        {
+            // Get user from the database
+            var user = await _userManager.FindByIdAsync(id);
+
+            // Check if the user is suspended
+            return user?.Status == "Suspend";
+        }
+
+        public async Task<bool> IsUserActive(string id)
+        {
+            // Get user from the database
+            var user = await _userManager.FindByIdAsync(id);
+
+            // Check if the user is suspended
+            return user?.Status == "Active";
         }
     }
 }
