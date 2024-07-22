@@ -7,6 +7,7 @@ using DataLibrary.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.IdentityModel.Tokens;
 
 namespace BaiSol.Server.Controllers
 {
@@ -116,6 +117,12 @@ namespace BaiSol.Server.Controllers
                 return BadRequest(ModelState);
 
             }
+
+            if (users == null || !users.Any())
+            {
+                return StatusCode(400, "Empty Users");
+            }
+
             return Ok(users);
         }
 

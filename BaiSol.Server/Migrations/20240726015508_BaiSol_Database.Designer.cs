@@ -3,6 +3,7 @@ using System;
 using DataLibrary.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace BaiSol.Server.Migrations
 {
     [DbContext(typeof(DataContext))]
-    partial class DataContextModelSnapshot : ModelSnapshot
+    [Migration("20240726015508_BaiSol_Database")]
+    partial class BaiSol_Database
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -73,9 +76,6 @@ namespace BaiSol.Server.Migrations
                     b.Property<bool>("PhoneNumberConfirmed")
                         .HasColumnType("boolean");
 
-                    b.Property<int?>("ProjectProjId")
-                        .HasColumnType("integer");
-
                     b.Property<string>("RefreshToken")
                         .HasColumnType("text");
 
@@ -107,8 +107,6 @@ namespace BaiSol.Server.Migrations
                         .IsUnique()
                         .HasDatabaseName("UserNameIndex");
 
-                    b.HasIndex("ProjectProjId");
-
                     b.ToTable("AspNetUsers", (string)null);
                 });
 
@@ -134,55 +132,6 @@ namespace BaiSol.Server.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Client");
-                });
-
-            modelBuilder.Entity("DataLibrary.Models.Equipment", b =>
-                {
-                    b.Property<int>("EQPTId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("EQPTId"));
-
-                    b.Property<DateTimeOffset>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("EQPTCode")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("EQPTDescript")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<decimal>("EQPTPrice")
-                        .HasColumnType("numeric");
-
-                    b.Property<int>("EQPTQOH")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("EQPTStatus")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("EQPTUnit")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<int>("MyProperty")
-                        .HasColumnType("integer");
-
-                    b.Property<int?>("SupplySuppId")
-                        .HasColumnType("integer");
-
-                    b.Property<DateTimeOffset>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.HasKey("EQPTId");
-
-                    b.HasIndex("SupplySuppId");
-
-                    b.ToTable("Equipment");
                 });
 
             modelBuilder.Entity("DataLibrary.Models.Installer", b =>
@@ -222,141 +171,6 @@ namespace BaiSol.Server.Migrations
                     b.HasIndex("AdminId");
 
                     b.ToTable("Installer");
-                });
-
-            modelBuilder.Entity("DataLibrary.Models.Labor", b =>
-                {
-                    b.Property<int>("LaborId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("LaborId"));
-
-                    b.Property<decimal>("LaborCost")
-                        .HasColumnType("numeric");
-
-                    b.Property<string>("LaborDescript")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<int>("LaborNumUnit")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("LaborQOH")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("LaborUnit")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.HasKey("LaborId");
-
-                    b.ToTable("Labor");
-                });
-
-            modelBuilder.Entity("DataLibrary.Models.Material", b =>
-                {
-                    b.Property<int>("MTLId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("MTLId"));
-
-                    b.Property<DateTimeOffset>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("MTLCode")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("MTLDescript")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<decimal>("MTLPrice")
-                        .HasColumnType("numeric");
-
-                    b.Property<int>("MTLQOH")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("MTLStatus")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("MTLUnit")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<int>("MyProperty")
-                        .HasColumnType("integer");
-
-                    b.Property<int?>("SupplySuppId")
-                        .HasColumnType("integer");
-
-                    b.Property<DateTimeOffset>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.HasKey("MTLId");
-
-                    b.HasIndex("SupplySuppId");
-
-                    b.ToTable("Material");
-                });
-
-            modelBuilder.Entity("DataLibrary.Models.Project", b =>
-                {
-                    b.Property<int>("ProjId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("ProjId"));
-
-                    b.Property<DateTimeOffset>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<int?>("LaborId")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("ProjName")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<int?>("SupplySuppId")
-                        .HasColumnType("integer");
-
-                    b.Property<DateTimeOffset>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.HasKey("ProjId");
-
-                    b.HasIndex("LaborId");
-
-                    b.HasIndex("SupplySuppId");
-
-                    b.ToTable("Project");
-                });
-
-            modelBuilder.Entity("DataLibrary.Models.Supply", b =>
-                {
-                    b.Property<int>("SuppId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("SuppId"));
-
-                    b.Property<int?>("EQPTQuantity")
-                        .HasColumnType("integer");
-
-                    b.Property<int?>("MTLQuantity")
-                        .HasColumnType("integer");
-
-                    b.HasKey("SuppId");
-
-                    b.ToTable("Supply");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>
@@ -497,20 +311,7 @@ namespace BaiSol.Server.Migrations
                         .WithMany("Admin")
                         .HasForeignKey("ClientId");
 
-                    b.HasOne("DataLibrary.Models.Project", null)
-                        .WithMany("Client")
-                        .HasForeignKey("ProjectProjId");
-
                     b.Navigation("Client");
-                });
-
-            modelBuilder.Entity("DataLibrary.Models.Equipment", b =>
-                {
-                    b.HasOne("DataLibrary.Models.Supply", "Supply")
-                        .WithMany("Equipment")
-                        .HasForeignKey("SupplySuppId");
-
-                    b.Navigation("Supply");
                 });
 
             modelBuilder.Entity("DataLibrary.Models.Installer", b =>
@@ -520,30 +321,6 @@ namespace BaiSol.Server.Migrations
                         .HasForeignKey("AdminId");
 
                     b.Navigation("Admin");
-                });
-
-            modelBuilder.Entity("DataLibrary.Models.Material", b =>
-                {
-                    b.HasOne("DataLibrary.Models.Supply", "Supply")
-                        .WithMany("Material")
-                        .HasForeignKey("SupplySuppId");
-
-                    b.Navigation("Supply");
-                });
-
-            modelBuilder.Entity("DataLibrary.Models.Project", b =>
-                {
-                    b.HasOne("DataLibrary.Models.Labor", "Labor")
-                        .WithMany("Project")
-                        .HasForeignKey("LaborId");
-
-                    b.HasOne("DataLibrary.Models.Supply", "Supply")
-                        .WithMany("Project")
-                        .HasForeignKey("SupplySuppId");
-
-                    b.Navigation("Labor");
-
-                    b.Navigation("Supply");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
@@ -605,25 +382,6 @@ namespace BaiSol.Server.Migrations
             modelBuilder.Entity("DataLibrary.Models.Client", b =>
                 {
                     b.Navigation("Admin");
-                });
-
-            modelBuilder.Entity("DataLibrary.Models.Labor", b =>
-                {
-                    b.Navigation("Project");
-                });
-
-            modelBuilder.Entity("DataLibrary.Models.Project", b =>
-                {
-                    b.Navigation("Client");
-                });
-
-            modelBuilder.Entity("DataLibrary.Models.Supply", b =>
-                {
-                    b.Navigation("Equipment");
-
-                    b.Navigation("Material");
-
-                    b.Navigation("Project");
                 });
 #pragma warning restore 612, 618
         }

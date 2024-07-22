@@ -8,6 +8,7 @@ using BaseLibrary.Services.Repositories;
 using DataLibrary.Data;
 using DataLibrary.Models;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -19,6 +20,7 @@ namespace BaiSol.Server
 {
     public class Program
     {
+
         public static void Main(string[] args)
         {
             var builder = WebApplication.CreateBuilder(args);
@@ -119,9 +121,11 @@ namespace BaiSol.Server
             });
 
             // Add CORS to services
-            builder.Services.AddCors(options => {
+            builder.Services.AddCors(options =>
+            {
                 var frontEndUrl = builder.Configuration.GetValue<string>("FrontEnd_Url");
-                options.AddDefaultPolicy(builder => {
+                options.AddDefaultPolicy(builder =>
+                {
                     builder.WithOrigins(frontEndUrl)
                            .AllowAnyMethod()
                            .AllowAnyHeader();

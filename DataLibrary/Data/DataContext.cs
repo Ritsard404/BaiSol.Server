@@ -8,6 +8,11 @@ namespace DataLibrary.Data
     {
         public DbSet<Client> Client { get; set; }
         public DbSet<Installer> Installer { get; set; }
+        public DbSet<Project> Project { get; set; }
+        public DbSet<Supply> Supply { get; set; }
+        public DbSet<Equipment> Equipment { get; set; }
+        public DbSet<Material> Material { get; set; }
+        public DbSet<Labor> Labor { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

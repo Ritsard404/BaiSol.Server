@@ -22,6 +22,8 @@ namespace AuthLibrary.DTO
         public string Password { get; set; } = string.Empty;
 
         [Required]
+        [EmailAddress]
+        [DataType(DataType.EmailAddress)]
         public string AdminEmail { get; set; } = string.Empty;
     }
 }

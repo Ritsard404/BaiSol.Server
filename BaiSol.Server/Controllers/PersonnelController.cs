@@ -1,32 +1,27 @@
 ﻿using AuthLibrary.DTO;
 using AuthLibrary.Services.Interfaces;
-using AutoMapper;
 using DataLibrary.Models;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 
 namespace BaiSol.Server.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class PersonnelController(IPersonnel _personnel, IMapper _mapper) : ControllerBase
+    public class PersonnelController(IPersonnel _personnel) : ControllerBase
     {
         [HttpPost("Add-Installer")]
         public async Task<IActionResult> NewInstaller([FromBody] InstallerDto installerDto)
         {
             if (installerDto == null) return BadRequest(ModelState);
 
-            var isInstallerExist = await _personnel.IsInstallerExist(installerDto.Name);
+            // Call the repository method
+            var result = await _personnel.AddInstaller(installerDto);
 
-            if (isInstallerExist) return BadRequest("Installer Already Exist");
-
-
-            var installerMap = _mapper.Map<Installer>(installerDto);
-
-
-            if (!await _personnel.AddInstaller(installerMap))
+            if (result != null)
             {
-                ModelState.AddModelError("", "Something went wrong while saving");
+                ModelState.AddModelError("", result);
                 return StatusCode(500, ModelState);
             }
 
@@ -37,6 +32,13 @@ namespace BaiSol.Server.Controllers
         public async Task<IActionResult> GetInstallers()
         {
             var installer = await _personnel.GetInstallersInfo();
+
+
+            if (installer == null || !installer.Any())
+            {
+                return StatusCode(400, "Empty Installers");
+            }
+
             return Ok(installer);
         }
 

@@ -8,9 +8,9 @@ namespace AuthLibrary.DTO
         public required string Position { get; set; }
         public required string Status { get; set; }
         public int? AssignedProj { get; set; } // Project
-        public string? AdminEmail { get; set; }
-        public DateTimeOffset UpdatedAt { get; set; } 
-        public DateTimeOffset CreatedAt { get; set; }
+        public required string AdminEmail { get; set; }
+        public required string UpdatedAt { get; set; } 
+        public required string CreatedAt { get; set; }
 
     }
 }
