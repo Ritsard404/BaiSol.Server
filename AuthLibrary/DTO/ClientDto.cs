@@ -21,6 +21,10 @@ namespace AuthLibrary.DTO
         public string Password { get; set; } = string.Empty;
 
         [Required]
+        [DataType(DataType.PhoneNumber)]
+        public string ClientContactNum { get; set; } = string.Empty;
+
+        [Required]
         public string AdminEmail { get; set; } = string.Empty;
 
         public required string ClientAddress { get; set; }

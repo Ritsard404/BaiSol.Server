@@ -12,7 +12,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace BaiSol.Server.Migrations
 {
     [DbContext(typeof(DataContext))]
-    [Migration("20240719164325_BaiSol_Database")]
+    [Migration("20240726015508_BaiSol_Database")]
     partial class BaiSol_Database
     {
         /// <inheritdoc />
@@ -119,6 +119,10 @@ namespace BaiSol.Server.Migrations
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<string>("ClientAddress")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("ClientContactNum")
                         .IsRequired()
                         .HasColumnType("text");
 

@@ -9,7 +9,7 @@ namespace AuthLibrary.Services.Interfaces
     {
         Task<ICollection<Installer>> GetInstallers();
         Task<ICollection<GetInstallerDto>> GetInstallersInfo();
-        Task<bool> AddInstaller(Installer installer);
+        Task<string> AddInstaller(InstallerDto installerDto);
         Task<bool> IsInstallerExist(string name);
         Task<bool> UpdateInstallerStatus(int id, string status);
         Task<bool> Save();

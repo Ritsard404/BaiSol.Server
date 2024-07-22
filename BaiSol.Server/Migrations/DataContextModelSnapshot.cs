@@ -119,6 +119,10 @@ namespace BaiSol.Server.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<string>("ClientContactNum")
+                        .IsRequired()
+                        .HasColumnType("text");
+
                     b.Property<decimal>("ClientMonthlyElectricBill")
                         .HasColumnType("numeric");
 

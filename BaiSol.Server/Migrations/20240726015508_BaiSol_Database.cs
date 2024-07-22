@@ -32,6 +32,7 @@ namespace BaiSol.Server.Migrations
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    ClientContactNum = table.Column<string>(type: "text", nullable: false),
                     ClientAddress = table.Column<string>(type: "text", nullable: false),
                     ClientMonthlyElectricBill = table.Column<decimal>(type: "numeric", nullable: false)
                 },

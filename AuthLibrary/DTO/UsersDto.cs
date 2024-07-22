@@ -15,8 +15,9 @@ namespace AuthLibrary.DTO
         public required string Role { get; set; }
         public string? AdminEmail { get; set; }
         public string? Status { get; set; }
-        public DateTimeOffset UpdatedAt { get; set; }
-        public DateTimeOffset CreatedAt { get; set; }
+        public string? UpdatedAt { get; set; }
+        public string? CreatedAt { get; set; }
+        public string? ClientContactNum { get; set; }
         public string? ClientAddress { get; set; }
         public decimal? ClientMonthlyElectricBill { get; set; }
 

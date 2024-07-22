@@ -11,6 +11,7 @@ namespace DataLibrary.Models
     {
         [Key]
         public int Id { get; set; }
+        public required string ClientContactNum { get; set; }
         public required string  ClientAddress { get; set; }
         public decimal ClientMonthlyElectricBill { get; set; }
         public virtual ICollection<AppUsers>? Admin { get; set; }
