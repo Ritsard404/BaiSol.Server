@@ -1,8 +1,13 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using System;
+using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 
-namespace DataLibrary.Models
+namespace ProjectLibrary.DTO.Material
 {
-    public class Material
+    public class GetMaterialDTO
     {
         [Key]
         public int MTLId { get; set; }
@@ -12,8 +17,7 @@ namespace DataLibrary.Models
         public int MTLQOH { get; set; }
         public required string MTLUnit { get; set; }
         public string MTLStatus { get; set; } = "Good";
-        public DateTimeOffset UpdatedAt { get; set; } = DateTimeOffset.UtcNow;
-        public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
-        //public Supply? Supply { get; set; }
+        public string? UpdatedAt { get; set; }
+        public string? CreatedAt { get; set; }
     }
 }

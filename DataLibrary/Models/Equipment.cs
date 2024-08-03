@@ -15,7 +15,6 @@ namespace DataLibrary.Models
         public required string EQPTStatus { get; set; } = "Good";
         public DateTimeOffset UpdatedAt { get; set; } = DateTimeOffset.UtcNow;
         public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
-        public int MyProperty { get; set; }
-        public Supply? Supply { get; set; }
+        //public Supply? Supply { get; set; }
     }
 }

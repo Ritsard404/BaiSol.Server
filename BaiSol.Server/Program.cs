@@ -13,6 +13,8 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using ProjectLibrary.Services.Interfaces;
+using ProjectLibrary.Services.Repositories;
 using Swashbuckle.AspNetCore.Filters;
 using System.Text;
 
@@ -45,6 +47,8 @@ namespace BaiSol.Server
             builder.Services.AddScoped<IUserAccount, UserAccountRepository>();
             builder.Services.AddScoped<IAuthAccount, AuthAccountRepository>();
             builder.Services.AddScoped<IPersonnel, PersonnelRepository>();
+            builder.Services.AddScoped<IMaterial, MaterialRepository>();
+            builder.Services.AddScoped<IMaterialQuote, MaterialQuoteRepository>();
 
 
             // Add Email Config

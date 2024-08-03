@@ -169,18 +169,10 @@ namespace BaiSol.Server.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<int>("MyProperty")
-                        .HasColumnType("integer");
-
-                    b.Property<int?>("SupplySuppId")
-                        .HasColumnType("integer");
-
                     b.Property<DateTimeOffset>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
 
                     b.HasKey("EQPTId");
-
-                    b.HasIndex("SupplySuppId");
 
                     b.ToTable("Equipment");
                 });
@@ -287,18 +279,10 @@ namespace BaiSol.Server.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<int>("MyProperty")
-                        .HasColumnType("integer");
-
-                    b.Property<int?>("SupplySuppId")
-                        .HasColumnType("integer");
-
                     b.Property<DateTimeOffset>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
 
                     b.HasKey("MTLId");
-
-                    b.HasIndex("SupplySuppId");
 
                     b.ToTable("Material");
                 });
@@ -325,17 +309,12 @@ namespace BaiSol.Server.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<int?>("SupplySuppId")
-                        .HasColumnType("integer");
-
                     b.Property<DateTimeOffset>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
 
                     b.HasKey("ProjId");
 
                     b.HasIndex("LaborId");
-
-                    b.HasIndex("SupplySuppId");
 
                     b.ToTable("Project");
                 });
@@ -351,10 +330,25 @@ namespace BaiSol.Server.Migrations
                     b.Property<int?>("EQPTQuantity")
                         .HasColumnType("integer");
 
+                    b.Property<int?>("EquipmentEQPTId")
+                        .HasColumnType("integer");
+
                     b.Property<int?>("MTLQuantity")
                         .HasColumnType("integer");
 
+                    b.Property<int?>("MaterialMTLId")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("ProjectProjId")
+                        .HasColumnType("integer");
+
                     b.HasKey("SuppId");
+
+                    b.HasIndex("EquipmentEQPTId");
+
+                    b.HasIndex("MaterialMTLId");
+
+                    b.HasIndex("ProjectProjId");
 
                     b.ToTable("Supply");
                 });
@@ -504,15 +498,6 @@ namespace BaiSol.Server.Migrations
                     b.Navigation("Client");
                 });
 
-            modelBuilder.Entity("DataLibrary.Models.Equipment", b =>
-                {
-                    b.HasOne("DataLibrary.Models.Supply", "Supply")
-                        .WithMany("Equipment")
-                        .HasForeignKey("SupplySuppId");
-
-                    b.Navigation("Supply");
-                });
-
             modelBuilder.Entity("DataLibrary.Models.Installer", b =>
                 {
                     b.HasOne("DataLibrary.Models.AppUsers", "Admin")
@@ -522,28 +507,34 @@ namespace BaiSol.Server.Migrations
                     b.Navigation("Admin");
                 });
 
-            modelBuilder.Entity("DataLibrary.Models.Material", b =>
-                {
-                    b.HasOne("DataLibrary.Models.Supply", "Supply")
-                        .WithMany("Material")
-                        .HasForeignKey("SupplySuppId");
-
-                    b.Navigation("Supply");
-                });
-
             modelBuilder.Entity("DataLibrary.Models.Project", b =>
                 {
                     b.HasOne("DataLibrary.Models.Labor", "Labor")
                         .WithMany("Project")
                         .HasForeignKey("LaborId");
 
-                    b.HasOne("DataLibrary.Models.Supply", "Supply")
-                        .WithMany("Project")
-                        .HasForeignKey("SupplySuppId");
-
                     b.Navigation("Labor");
+                });
 
-                    b.Navigation("Supply");
+            modelBuilder.Entity("DataLibrary.Models.Supply", b =>
+                {
+                    b.HasOne("DataLibrary.Models.Equipment", "Equipment")
+                        .WithMany()
+                        .HasForeignKey("EquipmentEQPTId");
+
+                    b.HasOne("DataLibrary.Models.Material", "Material")
+                        .WithMany()
+                        .HasForeignKey("MaterialMTLId");
+
+                    b.HasOne("DataLibrary.Models.Project", "Project")
+                        .WithMany()
+                        .HasForeignKey("ProjectProjId");
+
+                    b.Navigation("Equipment");
+
+                    b.Navigation("Material");
+
+                    b.Navigation("Project");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
@@ -615,15 +606,6 @@ namespace BaiSol.Server.Migrations
             modelBuilder.Entity("DataLibrary.Models.Project", b =>
                 {
                     b.Navigation("Client");
-                });
-
-            modelBuilder.Entity("DataLibrary.Models.Supply", b =>
-                {
-                    b.Navigation("Equipment");
-
-                    b.Navigation("Material");
-
-                    b.Navigation("Project");
                 });
 #pragma warning restore 612, 618
         }
