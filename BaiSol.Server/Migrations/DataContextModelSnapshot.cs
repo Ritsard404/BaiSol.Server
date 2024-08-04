@@ -147,6 +147,10 @@ namespace BaiSol.Server.Migrations
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<string>("EQPTCategory")
+                        .IsRequired()
+                        .HasColumnType("text");
+
                     b.Property<string>("EQPTCode")
                         .IsRequired()
                         .HasColumnType("text");
@@ -241,7 +245,12 @@ namespace BaiSol.Server.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<int?>("ProjectProjId")
+                        .HasColumnType("integer");
+
                     b.HasKey("LaborId");
+
+                    b.HasIndex("ProjectProjId");
 
                     b.ToTable("Labor");
                 });
@@ -256,6 +265,10 @@ namespace BaiSol.Server.Migrations
 
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("MTLCategory")
+                        .IsRequired()
+                        .HasColumnType("text");
 
                     b.Property<string>("MTLCode")
                         .IsRequired()
@@ -298,9 +311,6 @@ namespace BaiSol.Server.Migrations
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<int?>("LaborId")
-                        .HasColumnType("integer");
-
                     b.Property<string>("ProjName")
                         .IsRequired()
                         .HasColumnType("text");
@@ -313,8 +323,6 @@ namespace BaiSol.Server.Migrations
                         .HasColumnType("timestamp with time zone");
 
                     b.HasKey("ProjId");
-
-                    b.HasIndex("LaborId");
 
                     b.ToTable("Project");
                 });
@@ -507,13 +515,13 @@ namespace BaiSol.Server.Migrations
                     b.Navigation("Admin");
                 });
 
-            modelBuilder.Entity("DataLibrary.Models.Project", b =>
+            modelBuilder.Entity("DataLibrary.Models.Labor", b =>
                 {
-                    b.HasOne("DataLibrary.Models.Labor", "Labor")
-                        .WithMany("Project")
-                        .HasForeignKey("LaborId");
+                    b.HasOne("DataLibrary.Models.Project", "Project")
+                        .WithMany()
+                        .HasForeignKey("ProjectProjId");
 
-                    b.Navigation("Labor");
+                    b.Navigation("Project");
                 });
 
             modelBuilder.Entity("DataLibrary.Models.Supply", b =>
@@ -596,11 +604,6 @@ namespace BaiSol.Server.Migrations
             modelBuilder.Entity("DataLibrary.Models.Client", b =>
                 {
                     b.Navigation("Admin");
-                });
-
-            modelBuilder.Entity("DataLibrary.Models.Labor", b =>
-                {
-                    b.Navigation("Project");
                 });
 
             modelBuilder.Entity("DataLibrary.Models.Project", b =>

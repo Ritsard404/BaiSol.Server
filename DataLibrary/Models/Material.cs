@@ -11,9 +11,9 @@ namespace DataLibrary.Models
         public decimal MTLPrice { get; set; }
         public int MTLQOH { get; set; }
         public required string MTLUnit { get; set; }
+        public required string MTLCategory { get; set; }
         public string MTLStatus { get; set; } = "Good";
         public DateTimeOffset UpdatedAt { get; set; } = DateTimeOffset.UtcNow;
         public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
-        //public Supply? Supply { get; set; }
     }
 }

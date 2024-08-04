@@ -9,7 +9,7 @@ namespace BaiSol.Server.Controllers.Projects
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class QuotationController(IMaterialQuote _materialQuote) : ControllerBase
+    public class QuotationController(IQuote _materialQuote) : ControllerBase
     {
         [HttpPost("Add-MaterialSuplly")]
         public async Task<IActionResult> NewMaterialSupply(MaterialQuoteDto materialQuoteDto)
@@ -25,6 +25,19 @@ namespace BaiSol.Server.Controllers.Projects
             }
 
             return Ok("New Supply Added");
+        }
+
+        [HttpGet("Get-Material-Cost")]
+        public async Task<IActionResult> GetMaterialCostQuote(int projectId)
+        {
+            var materialCost = await _materialQuote.GetMaterialCostQuote(projectId);
+
+            if (materialCost == null || !materialCost.Any())
+            {
+                return StatusCode(400, "Empty Material Cost");
+            }
+
+            return Ok(materialCost);
         }
     }
 }

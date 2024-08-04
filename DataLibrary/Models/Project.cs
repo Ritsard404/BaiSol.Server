@@ -11,7 +11,6 @@ namespace DataLibrary.Models
         public string Status { get; set; } = "OnGoing";
         public DateTimeOffset UpdatedAt { get; set; } = DateTimeOffset.UtcNow;
         public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
-        public Labor? Labor { get; set; }
         public virtual ICollection<AppUsers>? Client { get; set; }
     }
 }

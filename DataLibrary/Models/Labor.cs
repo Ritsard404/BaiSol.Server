@@ -13,6 +13,6 @@ namespace DataLibrary.Models
         public int LaborNumUnit { get; set; }
         public required string LaborUnit { get; set; }
         public decimal LaborCost { get; set; }
-        public virtual ICollection<Project>? Project { get; set; }
+        public Project? Project { get; set; }
     }
 }
