@@ -11,7 +11,7 @@ namespace ProjectLibrary.DTO.Quote
         public required string Unit { get; set; }
         public required decimal UnitCost { get; set; }
         public required int UnitNum { get; set; }
-        public int? ProjId { get; set; }
+        public string? ProjId { get; set; }
 
     }
 }

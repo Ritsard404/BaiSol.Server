@@ -84,22 +84,6 @@ namespace BaiSol.Server.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "Project",
-                columns: table => new
-                {
-                    ProjId = table.Column<int>(type: "integer", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    ProjName = table.Column<string>(type: "text", nullable: false),
-                    Status = table.Column<string>(type: "text", nullable: false),
-                    UpdatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
-                    CreatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_Project", x => x.ProjId);
-                });
-
-            migrationBuilder.CreateTable(
                 name: "AspNetRoleClaims",
                 columns: table => new
                 {
@@ -131,7 +115,6 @@ namespace BaiSol.Server.Migrations
                     CreatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
                     AdminEmail = table.Column<string>(type: "text", nullable: true),
                     ClientId = table.Column<int>(type: "integer", nullable: true),
-                    ProjectProjId = table.Column<int>(type: "integer", nullable: true),
                     UserName = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: true),
                     NormalizedUserName = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: true),
                     Email = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: true),
@@ -155,66 +138,6 @@ namespace BaiSol.Server.Migrations
                         column: x => x.ClientId,
                         principalTable: "Client",
                         principalColumn: "Id");
-                    table.ForeignKey(
-                        name: "FK_AspNetUsers_Project_ProjectProjId",
-                        column: x => x.ProjectProjId,
-                        principalTable: "Project",
-                        principalColumn: "ProjId");
-                });
-
-            migrationBuilder.CreateTable(
-                name: "Labor",
-                columns: table => new
-                {
-                    LaborId = table.Column<int>(type: "integer", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    LaborDescript = table.Column<string>(type: "text", nullable: false),
-                    LaborQOH = table.Column<int>(type: "integer", nullable: false),
-                    LaborNumUnit = table.Column<int>(type: "integer", nullable: false),
-                    LaborUnit = table.Column<string>(type: "text", nullable: false),
-                    LaborCost = table.Column<decimal>(type: "numeric", nullable: false),
-                    ProjectProjId = table.Column<int>(type: "integer", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_Labor", x => x.LaborId);
-                    table.ForeignKey(
-                        name: "FK_Labor_Project_ProjectProjId",
-                        column: x => x.ProjectProjId,
-                        principalTable: "Project",
-                        principalColumn: "ProjId");
-                });
-
-            migrationBuilder.CreateTable(
-                name: "Supply",
-                columns: table => new
-                {
-                    SuppId = table.Column<int>(type: "integer", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    MTLQuantity = table.Column<int>(type: "integer", nullable: true),
-                    EQPTQuantity = table.Column<int>(type: "integer", nullable: true),
-                    MaterialMTLId = table.Column<int>(type: "integer", nullable: true),
-                    EquipmentEQPTId = table.Column<int>(type: "integer", nullable: true),
-                    ProjectProjId = table.Column<int>(type: "integer", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_Supply", x => x.SuppId);
-                    table.ForeignKey(
-                        name: "FK_Supply_Equipment_EquipmentEQPTId",
-                        column: x => x.EquipmentEQPTId,
-                        principalTable: "Equipment",
-                        principalColumn: "EQPTId");
-                    table.ForeignKey(
-                        name: "FK_Supply_Material_MaterialMTLId",
-                        column: x => x.MaterialMTLId,
-                        principalTable: "Material",
-                        principalColumn: "MTLId");
-                    table.ForeignKey(
-                        name: "FK_Supply_Project_ProjectProjId",
-                        column: x => x.ProjectProjId,
-                        principalTable: "Project",
-                        principalColumn: "ProjId");
                 });
 
             migrationBuilder.CreateTable(
@@ -326,6 +249,84 @@ namespace BaiSol.Server.Migrations
                         principalColumn: "Id");
                 });
 
+            migrationBuilder.CreateTable(
+                name: "Project",
+                columns: table => new
+                {
+                    ProjId = table.Column<string>(type: "text", nullable: false),
+                    ProjName = table.Column<string>(type: "text", nullable: false),
+                    ProjDescript = table.Column<string>(type: "text", nullable: false),
+                    Status = table.Column<string>(type: "text", nullable: false),
+                    UpdatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    CreatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    ClientId = table.Column<string>(type: "text", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Project", x => x.ProjId);
+                    table.ForeignKey(
+                        name: "FK_Project_AspNetUsers_ClientId",
+                        column: x => x.ClientId,
+                        principalTable: "AspNetUsers",
+                        principalColumn: "Id");
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Labor",
+                columns: table => new
+                {
+                    LaborId = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    LaborDescript = table.Column<string>(type: "text", nullable: false),
+                    LaborQuantity = table.Column<int>(type: "integer", nullable: false),
+                    LaborUnit = table.Column<string>(type: "text", nullable: false),
+                    LaborUnitCost = table.Column<decimal>(type: "numeric", nullable: false),
+                    LaborNumUnit = table.Column<int>(type: "integer", nullable: false),
+                    LaborCost = table.Column<decimal>(type: "numeric", nullable: false),
+                    ProjectProjId = table.Column<string>(type: "text", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Labor", x => x.LaborId);
+                    table.ForeignKey(
+                        name: "FK_Labor_Project_ProjectProjId",
+                        column: x => x.ProjectProjId,
+                        principalTable: "Project",
+                        principalColumn: "ProjId");
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Supply",
+                columns: table => new
+                {
+                    SuppId = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    MTLQuantity = table.Column<int>(type: "integer", nullable: true),
+                    EQPTQuantity = table.Column<int>(type: "integer", nullable: true),
+                    MaterialMTLId = table.Column<int>(type: "integer", nullable: true),
+                    EquipmentEQPTId = table.Column<int>(type: "integer", nullable: true),
+                    ProjectProjId = table.Column<string>(type: "text", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Supply", x => x.SuppId);
+                    table.ForeignKey(
+                        name: "FK_Supply_Equipment_EquipmentEQPTId",
+                        column: x => x.EquipmentEQPTId,
+                        principalTable: "Equipment",
+                        principalColumn: "EQPTId");
+                    table.ForeignKey(
+                        name: "FK_Supply_Material_MaterialMTLId",
+                        column: x => x.MaterialMTLId,
+                        principalTable: "Material",
+                        principalColumn: "MTLId");
+                    table.ForeignKey(
+                        name: "FK_Supply_Project_ProjectProjId",
+                        column: x => x.ProjectProjId,
+                        principalTable: "Project",
+                        principalColumn: "ProjId");
+                });
+
             migrationBuilder.CreateIndex(
                 name: "IX_AspNetRoleClaims_RoleId",
                 table: "AspNetRoleClaims",
@@ -363,11 +364,6 @@ namespace BaiSol.Server.Migrations
                 column: "ClientId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_AspNetUsers_ProjectProjId",
-                table: "AspNetUsers",
-                column: "ProjectProjId");
-
-            migrationBuilder.CreateIndex(
                 name: "UserNameIndex",
                 table: "AspNetUsers",
                 column: "NormalizedUserName",
@@ -382,6 +378,11 @@ namespace BaiSol.Server.Migrations
                 name: "IX_Labor_ProjectProjId",
                 table: "Labor",
                 column: "ProjectProjId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Project_ClientId",
+                table: "Project",
+                column: "ClientId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Supply_EquipmentEQPTId",
@@ -430,19 +431,19 @@ namespace BaiSol.Server.Migrations
                 name: "AspNetRoles");
 
             migrationBuilder.DropTable(
-                name: "AspNetUsers");
-
-            migrationBuilder.DropTable(
                 name: "Equipment");
 
             migrationBuilder.DropTable(
                 name: "Material");
 
             migrationBuilder.DropTable(
-                name: "Client");
+                name: "Project");
 
             migrationBuilder.DropTable(
-                name: "Project");
+                name: "AspNetUsers");
+
+            migrationBuilder.DropTable(
+                name: "Client");
         }
     }
 }

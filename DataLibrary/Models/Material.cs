@@ -6,7 +6,7 @@ namespace DataLibrary.Models
     {
         [Key]
         public int MTLId { get; set; }
-        public required string MTLCode { get; set; }
+        public string MTLCode { get; set; }
         public required string MTLDescript { get; set; }
         public decimal MTLPrice { get; set; }
         public int MTLQOH { get; set; }
@@ -15,5 +15,10 @@ namespace DataLibrary.Models
         public string MTLStatus { get; set; } = "Good";
         public DateTimeOffset UpdatedAt { get; set; } = DateTimeOffset.UtcNow;
         public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
+
+        public Material()
+        {
+            MTLCode = Guid.NewGuid().ToString();
+        }
     }
 }

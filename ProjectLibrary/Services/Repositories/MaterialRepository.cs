@@ -28,7 +28,16 @@ namespace ProjectLibrary.Services.Repositories
 
             // Map DTO to model
             var materialMap = _mapper.Map<Material>(materialDto);
-            materialMap.MTLCode = Guid.NewGuid().ToString("N").ToUpper().Substring(0, 6);
+
+            // Ensure the MTLCode is unique
+            string uniqueMTLCode;
+            do
+            {
+                //uniqueMTLCode = Guid.NewGuid().ToString("N").ToUpper().Substring(0, 8);
+                uniqueMTLCode = Guid.NewGuid().ToString();
+            } while (await IsMTLCodeExist(uniqueMTLCode));
+
+            materialMap.MTLCode = uniqueMTLCode;
 
             // Add the material to the database
             _dataContext.Material.Add(materialMap);
@@ -66,6 +75,11 @@ namespace ProjectLibrary.Services.Repositories
         public async Task<bool> IsMaterialExist(string name)
         {
             return await _dataContext.Material.AnyAsync(i => i.MTLDescript == name);
+        }
+
+        public async Task<bool> IsMTLCodeExist(string mtlCode)
+        {
+            return await _dataContext.Material.AnyAsync(m => m.MTLCode == mtlCode);
         }
 
         public async Task<bool> Save()

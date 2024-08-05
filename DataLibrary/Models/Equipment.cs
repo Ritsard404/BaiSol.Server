@@ -7,7 +7,7 @@ namespace DataLibrary.Models
     {
         [Key]
         public int EQPTId { get; set; }
-        public required string EQPTCode { get; set; }
+        public string EQPTCode { get; set; }
         public required string EQPTDescript { get; set; }
         public decimal EQPTPrice { get; set; }
         public int EQPTQOH { get; set; }
@@ -16,5 +16,10 @@ namespace DataLibrary.Models
         public required string EQPTStatus { get; set; } = "Good";
         public DateTimeOffset UpdatedAt { get; set; } = DateTimeOffset.UtcNow;
         public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
+
+        public Equipment()
+        {
+            EQPTCode = Guid.NewGuid().ToString();
+        }
     }
 }

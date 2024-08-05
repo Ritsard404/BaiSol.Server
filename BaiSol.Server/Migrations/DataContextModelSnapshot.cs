@@ -73,9 +73,6 @@ namespace BaiSol.Server.Migrations
                     b.Property<bool>("PhoneNumberConfirmed")
                         .HasColumnType("boolean");
 
-                    b.Property<int?>("ProjectProjId")
-                        .HasColumnType("integer");
-
                     b.Property<string>("RefreshToken")
                         .HasColumnType("text");
 
@@ -106,8 +103,6 @@ namespace BaiSol.Server.Migrations
                     b.HasIndex("NormalizedUserName")
                         .IsUnique()
                         .HasDatabaseName("UserNameIndex");
-
-                    b.HasIndex("ProjectProjId");
 
                     b.ToTable("AspNetUsers", (string)null);
                 });
@@ -238,15 +233,18 @@ namespace BaiSol.Server.Migrations
                     b.Property<int>("LaborNumUnit")
                         .HasColumnType("integer");
 
-                    b.Property<int>("LaborQOH")
+                    b.Property<int>("LaborQuantity")
                         .HasColumnType("integer");
 
                     b.Property<string>("LaborUnit")
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<int?>("ProjectProjId")
-                        .HasColumnType("integer");
+                    b.Property<decimal>("LaborUnitCost")
+                        .HasColumnType("numeric");
+
+                    b.Property<string>("ProjectProjId")
+                        .HasColumnType("text");
 
                     b.HasKey("LaborId");
 
@@ -302,14 +300,18 @@ namespace BaiSol.Server.Migrations
 
             modelBuilder.Entity("DataLibrary.Models.Project", b =>
                 {
-                    b.Property<int>("ProjId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
+                    b.Property<string>("ProjId")
+                        .HasColumnType("text");
 
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("ProjId"));
+                    b.Property<string>("ClientId")
+                        .HasColumnType("text");
 
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ProjDescript")
+                        .IsRequired()
+                        .HasColumnType("text");
 
                     b.Property<string>("ProjName")
                         .IsRequired()
@@ -323,6 +325,8 @@ namespace BaiSol.Server.Migrations
                         .HasColumnType("timestamp with time zone");
 
                     b.HasKey("ProjId");
+
+                    b.HasIndex("ClientId");
 
                     b.ToTable("Project");
                 });
@@ -347,8 +351,8 @@ namespace BaiSol.Server.Migrations
                     b.Property<int?>("MaterialMTLId")
                         .HasColumnType("integer");
 
-                    b.Property<int?>("ProjectProjId")
-                        .HasColumnType("integer");
+                    b.Property<string>("ProjectProjId")
+                        .HasColumnType("text");
 
                     b.HasKey("SuppId");
 
@@ -499,10 +503,6 @@ namespace BaiSol.Server.Migrations
                         .WithMany("Admin")
                         .HasForeignKey("ClientId");
 
-                    b.HasOne("DataLibrary.Models.Project", null)
-                        .WithMany("Client")
-                        .HasForeignKey("ProjectProjId");
-
                     b.Navigation("Client");
                 });
 
@@ -522,6 +522,15 @@ namespace BaiSol.Server.Migrations
                         .HasForeignKey("ProjectProjId");
 
                     b.Navigation("Project");
+                });
+
+            modelBuilder.Entity("DataLibrary.Models.Project", b =>
+                {
+                    b.HasOne("DataLibrary.Models.AppUsers", "Client")
+                        .WithMany()
+                        .HasForeignKey("ClientId");
+
+                    b.Navigation("Client");
                 });
 
             modelBuilder.Entity("DataLibrary.Models.Supply", b =>
@@ -604,11 +613,6 @@ namespace BaiSol.Server.Migrations
             modelBuilder.Entity("DataLibrary.Models.Client", b =>
                 {
                     b.Navigation("Admin");
-                });
-
-            modelBuilder.Entity("DataLibrary.Models.Project", b =>
-                {
-                    b.Navigation("Client");
                 });
 #pragma warning restore 612, 618
         }

@@ -2,6 +2,7 @@
 using AutoMapper;
 using DataLibrary.Models;
 using ProjectLibrary.DTO.Material;
+using ProjectLibrary.DTO.Project;
 
 namespace BaiSol.Server.Helper
 {
@@ -11,6 +12,7 @@ namespace BaiSol.Server.Helper
         {
             CreateMap<Installer, InstallerDto>().ReverseMap();
             CreateMap<Material, MaterialDTO>().ReverseMap();
+            CreateMap<Project, ProjectDto>().ReverseMap();
         }
     }
 }
