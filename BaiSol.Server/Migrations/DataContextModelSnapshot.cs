@@ -223,6 +223,9 @@ namespace BaiSol.Server.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("LaborId"));
 
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<decimal>("LaborCost")
                         .HasColumnType("numeric");
 
@@ -245,6 +248,9 @@ namespace BaiSol.Server.Migrations
 
                     b.Property<string>("ProjectProjId")
                         .HasColumnType("text");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
 
                     b.HasKey("LaborId");
 

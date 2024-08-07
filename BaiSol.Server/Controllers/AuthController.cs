@@ -23,6 +23,7 @@ namespace BaiSol.Server.Controllers
     {
 
         [HttpGet("ConfirmEmail")]
+
         public async Task<IActionResult> ConfirmEmail(string token, string email)
         {
             var user = await _userManager.FindByEmailAsync(email);

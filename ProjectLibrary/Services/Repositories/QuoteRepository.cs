@@ -11,7 +11,8 @@ using ProjectLibrary.Services.Interfaces;
 
 namespace ProjectLibrary.Services.Repositories
 {
-    public class QuoteRepository(DataContext _dataContext, UserManager<AppUsers> _userManager, IMapper _mapper) : IQuote
+    public class QuoteRepository(DataContext _dataContext
+        ) : IQuote
     {
 
         public async Task<string> AddNewLaborCost(LaborQuoteDto laborQuoteDto)
@@ -50,19 +51,22 @@ namespace ProjectLibrary.Services.Repositories
                 .FirstOrDefaultAsync(proj => proj.ProjId == materialQuoteDto.ProjId);
 
 
-            //if (clientProject == null)
-            //{
-            //    return "Project not found.";
-            //}
+            if (clientProject == null)
+            {
+                return "Project not found.";
+            }
 
             var projectMaterial = await _dataContext.Material
+                .Where(s => s.MTLStatus == "Good")
                 .FirstOrDefaultAsync(m => m.MTLCode == materialQuoteDto.MTLCode);
 
+            if (projectMaterial == null)
+            {
+                return "Material not found.";
+            }
 
-            //if (projectMaterial == null)
-            //{
-            //    return "Material not found.";
-            //}
+            projectMaterial.MTLQOH -= materialQuoteDto.MTLQuantity;
+
 
             var newSupply = new Supply
             {
@@ -72,6 +76,8 @@ namespace ProjectLibrary.Services.Repositories
 
             };
 
+            _dataContext.Material.Update(projectMaterial);
+
             // Add the new Supply entity to the context
             _dataContext.Supply.Add(newSupply);
 
@@ -80,6 +86,44 @@ namespace ProjectLibrary.Services.Repositories
 
             return saveResult ? null : "Something went wrong while saving";
 
+        }
+
+        public async Task<bool> DeleteLaborQuote(int laborId)
+        {
+            var labor = await _dataContext.Labor
+                .FindAsync(laborId);
+
+            if (labor == null) return false;
+
+            _dataContext.Labor.Remove(labor);
+
+            // Save changes to the database
+            return await Save();
+        }
+
+        public async Task<bool> DeleteMaterialSupply(int suppId, int mtlId)
+        {
+            var supply = await _dataContext.Supply
+                .FirstOrDefaultAsync(i => i.SuppId == suppId);
+
+            // Retrieve the Material entity by mtlID
+            var material = await _dataContext.Material
+                .FirstOrDefaultAsync(i => i.MTLId == mtlId);
+
+            // Check if the material entity exists
+            // Material not found, return false
+            if (material == null) return false;
+
+            if (supply == null) return false;
+
+            material.MTLQOH = material.MTLQOH + (supply.MTLQuantity ?? 0);
+
+            _dataContext.Material.Update(material);
+
+            _dataContext.Supply.Remove(supply);
+
+            // Save changes to the database
+            return await Save();
         }
 
         public async Task<ICollection<LaborCostDto>> GetLaborCostQuote(string? projectID)
@@ -236,6 +280,30 @@ namespace ProjectLibrary.Services.Repositories
         {
             var saved = _dataContext.SaveChangesAsync();
             return await saved > 0 ? true : false;
+        }
+
+        public async Task<bool> UpdateLaborQuoote(UpdateLaborQuote updateLaborQuote)
+        {
+            // Retrieve the labor entity
+            var labor = await _dataContext.Labor
+                .FindAsync(updateLaborQuote.LaborId);
+
+            // Return false if labor entity not found
+            if (labor == null) return false;
+
+            // Update labor properties
+            labor.LaborDescript = updateLaborQuote.Description;
+            labor.LaborQuantity = updateLaborQuote.Quantity;
+            labor.LaborUnit = updateLaborQuote.Unit;
+            labor.LaborUnitCost = updateLaborQuote.UnitCost;
+            labor.LaborNumUnit = updateLaborQuote.UnitNum;
+            labor.UpdatedAt = DateTimeOffset.UtcNow;
+
+            // Mark entity as modified
+            _dataContext.Labor.Update(labor);
+
+            // Save changes and return the result
+            return await Save();
         }
 
         public async Task<bool> UpdateMaterialQuantity(UpdateMaterialSupplyQuantity materialSupplyQuantity)

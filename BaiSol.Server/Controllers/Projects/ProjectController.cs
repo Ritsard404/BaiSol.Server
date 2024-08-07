@@ -44,5 +44,27 @@ namespace BaiSol.Server.Controllers.Projects
 
             return Ok("New Client Project Added");
         }
+
+        [HttpPut("Update-Client-Project")]
+        public async Task<IActionResult> UpdateClientProject(UpdateProject updateProject)
+        {
+            if (updateProject == null) return BadRequest(ModelState);
+
+            var project = await _project.UpdateClientProject(updateProject);
+            
+            if (!project) return BadRequest("Project don\'t exist!");
+
+            return Ok("Project updated successfully!");
+        }
+
+        [HttpDelete("Delete-Client-Project")]
+        public async Task<IActionResult> DeleteClientProject(string projectId)
+        {
+            var project = await _project.DeleteClientProject(projectId);
+
+            if (!project) return BadRequest("Unable to delete the project!");
+
+            return Ok("Project deleted!");
+        }
     }
 }

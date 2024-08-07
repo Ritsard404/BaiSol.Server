@@ -13,6 +13,9 @@ namespace ProjectLibrary.Services.Interfaces
         Task<ICollection<LaborCostDto>> GetLaborCostQuote(string? projectID);
         Task<ICollection<TotalLaborCostDto>> GetTotalLaborCostQuote(string? projectID);
         Task<bool> UpdateMaterialQuantity(UpdateMaterialSupplyQuantity materialSupplyQuantity);
+        Task<bool> UpdateLaborQuoote(UpdateLaborQuote updateLaborQuote);
+        Task<bool> DeleteMaterialSupply(int suppId, int MTLId);
+        Task<bool> DeleteLaborQuote(int laborId);
         Task<bool> Save();
     }
 }

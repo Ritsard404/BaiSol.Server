@@ -12,6 +12,8 @@ namespace DataLibrary.Models
         public decimal LaborUnitCost { get; set; }
         public int LaborNumUnit { get; set; }
         public decimal LaborCost { get; set; }
+        public DateTimeOffset UpdatedAt { get; set; } = DateTimeOffset.UtcNow;
+        public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
         public Project? Project { get; set; }
     }
 }

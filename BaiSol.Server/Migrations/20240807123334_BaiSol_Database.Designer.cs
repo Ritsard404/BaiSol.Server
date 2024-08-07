@@ -12,7 +12,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace BaiSol.Server.Migrations
 {
     [DbContext(typeof(DataContext))]
-    [Migration("20240805144354_BaiSol_Database")]
+    [Migration("20240807123334_BaiSol_Database")]
     partial class BaiSol_Database
     {
         /// <inheritdoc />
@@ -226,6 +226,9 @@ namespace BaiSol.Server.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("LaborId"));
 
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<decimal>("LaborCost")
                         .HasColumnType("numeric");
 
@@ -248,6 +251,9 @@ namespace BaiSol.Server.Migrations
 
                     b.Property<string>("ProjectProjId")
                         .HasColumnType("text");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
 
                     b.HasKey("LaborId");
 

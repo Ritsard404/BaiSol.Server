@@ -283,6 +283,8 @@ namespace BaiSol.Server.Migrations
                     LaborUnitCost = table.Column<decimal>(type: "numeric", nullable: false),
                     LaborNumUnit = table.Column<int>(type: "integer", nullable: false),
                     LaborCost = table.Column<decimal>(type: "numeric", nullable: false),
+                    UpdatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    CreatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
                     ProjectProjId = table.Column<string>(type: "text", nullable: true)
                 },
                 constraints: table =>

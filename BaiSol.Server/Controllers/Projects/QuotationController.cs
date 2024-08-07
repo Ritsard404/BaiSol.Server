@@ -11,7 +11,7 @@ namespace BaiSol.Server.Controllers.Projects
     public class QuotationController(IQuote _quote) : ControllerBase
     {
 
-        [HttpPost("Add-Materia-Supply")]
+        [HttpPost("Add-Material-Supply")]
         public async Task<IActionResult> NewMaterialSupply(MaterialQuoteDto materialQuoteDto)
         {
             if (materialQuoteDto == null) return BadRequest(ModelState);
@@ -69,7 +69,7 @@ namespace BaiSol.Server.Controllers.Projects
 
             if (laborCost == null || !laborCost.Any())
             {
-                return StatusCode(400, "Empty Material Cost");
+                return StatusCode(400, "Empty Labor Cost");
             }
 
             return Ok(new
@@ -95,6 +95,38 @@ namespace BaiSol.Server.Controllers.Projects
 
             // Return a success response
             return Ok("Material quantity updated successfully");
+        }
+
+        [HttpPut("Update-Labor-Quote")]
+        public async Task<IActionResult> UpdateLaborQuote(UpdateLaborQuote updateLaborQuote)
+        {
+            if (updateLaborQuote == null) return BadRequest(ModelState);
+
+            var updateLabor = await _quote.UpdateLaborQuoote(updateLaborQuote);
+
+            if(!updateLabor) return BadRequest("Labor not found!");
+
+            return Ok("Labor updated successfully");
+        }
+
+        [HttpDelete("Delete-Material-Supply")]
+        public async Task<IActionResult> DeleteMaterialSupply(int suppId, int mtlId)
+        {
+            var deleteSupply = await _quote.DeleteMaterialSupply(suppId, mtlId);
+
+            if (!deleteSupply) return BadRequest("Supply don\'t exist!");
+
+            return Ok("Supply deleted!");
+        }
+
+        [HttpDelete("Delete-Labor-Quote")]
+        public async Task<IActionResult> DeleteLaborQuote(int laborId)
+        {
+            var deleteLabor = await _quote.DeleteLaborQuote(laborId);
+
+            if(!deleteLabor) return BadRequest("Labor don\'t exist!");
+
+            return Ok("Labor deleted!");
         }
     }
 }

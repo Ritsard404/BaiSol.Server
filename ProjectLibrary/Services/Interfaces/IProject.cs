@@ -6,7 +6,9 @@ namespace ProjectLibrary.Services.Interfaces
     {
         Task<ICollection<GetProjects>> GetClientsProject();
         Task<ICollection<GetProjects>> GetClientProject(string clientId);
+        Task<bool> UpdateClientProject(UpdateProject updateProject);
         Task<string> AddNewClientProject(ProjectDto projectDto);
+        Task<bool> DeleteClientProject(string projId);
         Task<bool> IsProjIdExist(string projId);
         Task<bool> Save();
 
