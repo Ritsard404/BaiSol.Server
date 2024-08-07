@@ -13,40 +13,6 @@ namespace ProjectLibrary.Services.Repositories
 {
     public class QuoteRepository(DataContext _dataContext, UserManager<AppUsers> _userManager, IMapper _mapper) : IQuote
     {
-        public async Task<string> AddNewClientProject(ProjectDto projectDto)
-        {
-            if (projectDto == null)
-            {
-                throw new ArgumentNullException(nameof(projectDto));
-            }
-
-            // Check if the client exists
-            var isClientExist = await _userManager.FindByIdAsync(projectDto.ClientId);
-            if (isClientExist == null)
-            {
-                return "Client does not exist";
-            }
-
-            // Map DTO to model
-            var projectMap = _mapper.Map<Project>(projectDto);
-
-            // Generate unique ProjId
-            string uniqueProjId;
-            do
-            {
-                uniqueProjId = Guid.NewGuid().ToString();
-            } while (await IsProjIdExist(uniqueProjId));
-
-            projectMap.ProjId = uniqueProjId;
-
-            // Add the new Supply entity to the context
-            _dataContext.Project.Add(projectMap);
-
-            // Save changes to the database
-            var saveResult = await Save();
-
-            return saveResult ? null : "Something went wrong while saving";
-        }
 
         public async Task<string> AddNewLaborCost(LaborQuoteDto laborQuoteDto)
         {
@@ -145,46 +111,48 @@ namespace ProjectLibrary.Services.Repositories
 
         public async Task<ICollection<MaterialCostDto>> GetMaterialCostQuote(string? projectID)
         {
-            //var materialSupply = await _dataContext.Supply
-            //    .Where(p => p.Project.ProjId == projectID)
-            //    .Include(i => i.Material)
-            //    .ToListAsync();
-
             var materialSupply = await _dataContext.Supply
-                .Where(p => p.Project.ProjId == null)
+                .Where(p => p.Project.ProjId == projectID)
                 .Include(i => i.Material)
                 .ToListAsync();
 
+            //var materialSupply = await _dataContext.Supply
+            //    .Where(p => p.Project.ProjId == null)
+            //    .Include(i => i.Material)
+            //    .ToListAsync();
+
             var materialCostList = materialSupply
-                .GroupBy(material => material.Material.MTLDescript)
-                .Select(group => new MaterialCostDto
-                {
-                    Description = group.Key,
-                    Quantity = group.Sum(m => m.MTLQuantity ?? 0), // Use null-coalescing to handle possible null values
-                    Unit = group.First().Material.MTLUnit, // Assuming unit is the same for all items in the group
-                    Category = group.First().Material.MTLCategory, // Add this if you have a category in your DTO
-                    UnitCost = group.First().Material.MTLPrice, // Assuming price is the same for all items in the group
-                    TotalUnitCost = (decimal)(group.Sum(m => m.MTLQuantity ?? 0) * group.First().Material.MTLPrice),
-                    BuildUpCost = ((decimal)(group.Sum(m => m.MTLQuantity ?? 0) * group.First().Material.MTLPrice) * 1.2m)
-                })
-                .OrderBy(o => o.Category) // Order by category
-                .ToList();
+            .Select(material => new MaterialCostDto
+            {
+                SuppId = material.SuppId, // Assuming SuppId is available and needs to be included
+                Description = material.Material.MTLDescript,
+                Quantity = material.MTLQuantity ?? 0, // Use null-coalescing to handle possible null values
+                Unit = material.Material.MTLUnit,
+                Category = material.Material.MTLCategory, // Include if needed in DTO
+                UnitCost = material.Material.MTLPrice,
+                TotalUnitCost = (decimal)((material.MTLQuantity ?? 0) * material.Material.MTLPrice),
+                BuildUpCost = (decimal)((material.MTLQuantity ?? 0) * material.Material.MTLPrice * 1.2m),
+                CreatedAt = DateTime.UtcNow.ToString("MMM dd, yyyy"),
+                UpdatedAt = DateTime.UtcNow.ToString("MMM dd, yyyy"),
+            })
+            .OrderByDescending(o => o.CreatedAt) // Order by CreatedAt or another property if necessary
+            .ToList();
 
             return materialCostList;
         }
 
         public async Task<ICollection<ProjectCostDto>> GetProjectTotalCostQuote(string? projectID)
         {
-            //var materialSupply = await _dataContext.Supply
-            //    .Where(p => p.Project.ProjId == projectID)
-            //    .Include(i => i.Material)
-            //    .ToListAsync();
-
-            // Retrieve material supply data
             var materialSupply = await _dataContext.Supply
-                .Where(p => p.Project.ProjId == null)
+                .Where(p => p.Project.ProjId == projectID)
                 .Include(i => i.Material)
                 .ToListAsync();
+
+            //// Retrieve material supply data
+            //var materialSupply = await _dataContext.Supply
+            //    .Where(p => p.Project.ProjId == null)
+            //    .Include(i => i.Material)
+            //    .ToListAsync();
 
             // Calculate total unit cost and build-up cost in one pass
             var (totalUnitCostSum, buildUpCostSum) = materialSupply
@@ -236,14 +204,14 @@ namespace ProjectLibrary.Services.Repositories
 
         public async Task<ICollection<TotalLaborCostDto>> GetTotalLaborCostQuote(string? projectID)
         {
-            //var totalLaborCost = await _dataContext.Labor
-            //    .Where(p => p.Project.ProjId == projectID)
-            //    .ToListAsync();
-
-            // Retrieve labor costs for the specified project
             var totalLaborCost = await _dataContext.Labor
-                .Where(p => p.Project.ProjId == null)
+                .Where(p => p.Project.ProjId == projectID)
                 .SumAsync(o => o.LaborCost);
+
+            //// Retrieve labor costs for the specified project
+            //var totalLaborCost = await _dataContext.Labor
+            //    .Where(p => p.Project.ProjId == null)
+            //    .SumAsync(o => o.LaborCost);
 
 
             // Calculate profit and overall total
@@ -263,15 +231,58 @@ namespace ProjectLibrary.Services.Repositories
             };
         }
 
-        public async Task<bool> IsProjIdExist(string projId)
-        {
-            return await _dataContext.Project.AnyAsync(p => p.ProjId == projId);
-        }
 
         public async Task<bool> Save()
         {
             var saved = _dataContext.SaveChangesAsync();
             return await saved > 0 ? true : false;
+        }
+
+        public async Task<bool> UpdateMaterialQuantity(UpdateMaterialSupplyQuantity materialSupplyQuantity)
+        {
+            // Retrieve the Supply entity by suppId
+            var supply = await _dataContext.Supply.FirstOrDefaultAsync(i => i.SuppId == materialSupplyQuantity.SuppId);
+
+            // Check if the supply entity exists
+            if (supply == null)
+            {
+                // Supply not found, return false
+                return false;
+            }
+
+            // Retrieve the Material entity by mtlID
+            var material = await _dataContext.Material.FirstOrDefaultAsync(i => i.MTLId == materialSupplyQuantity.MTLID);
+
+            // Check if the material entity exists
+            if (material == null)
+            {
+                // Material not found, return false
+                return false;
+            }
+
+            // Calculate the total quantity on hand (QOH) including the quantity from the supply
+            // Use null-coalescing operator to handle possible null values
+            var materialQOH = material.MTLQOH + (supply.MTLQuantity ?? 0);
+
+            // Check if the available quantity is less than the requested quantity
+            if (materialQOH < materialSupplyQuantity.Quantity)
+            {
+                // Not enough material available, return false
+                return false;
+            }
+
+            // Update the material quantity on hand by subtracting the requested quantity
+            material.MTLQOH = materialQOH - materialSupplyQuantity.Quantity;
+
+            // Update the supply quantity to the new value
+            supply.MTLQuantity = materialSupplyQuantity.Quantity;
+
+            // Mark both entities as modified
+            _dataContext.Material.Update(material);
+            _dataContext.Supply.Update(supply);
+
+            // Save changes to the database and return the result
+            return await Save();
         }
     }
 }

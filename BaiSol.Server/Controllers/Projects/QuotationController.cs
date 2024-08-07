@@ -10,21 +10,6 @@ namespace BaiSol.Server.Controllers.Projects
     [ApiController]
     public class QuotationController(IQuote _quote) : ControllerBase
     {
-        [HttpPost("Add-Client-Project")]
-        public async Task<IActionResult> NewClientProject(ProjectDto projectDto)
-        {
-            if (projectDto == null) return BadRequest(ModelState);
-
-            var result = await _quote.AddNewClientProject(projectDto);
-
-            if (result != null)
-            {
-                ModelState.AddModelError("", result);
-                return StatusCode(500, ModelState);
-            }
-
-            return Ok("New Client Project Added");
-        }
 
         [HttpPost("Add-Materia-Supply")]
         public async Task<IActionResult> NewMaterialSupply(MaterialQuoteDto materialQuoteDto)
@@ -92,6 +77,24 @@ namespace BaiSol.Server.Controllers.Projects
                 LaborCost = laborCost,
                 TotalLaborCost = totalLaborCost
             });
+        }
+
+        [HttpPut("Update-Material-Supply-Quantity")]
+        public async Task<IActionResult> UpdateMaterialSupplyQuantity(UpdateMaterialSupplyQuantity materialSupplyQuantity)
+        {
+            if (materialSupplyQuantity == null) return BadRequest(ModelState);
+
+            var updateSupply = await _quote.UpdateMaterialQuantity(materialSupplyQuantity);
+
+            // Check if the update was unsuccessful due to insufficient inventory
+            if (!updateSupply)
+            {
+                // Return a BadRequest with a specific error message
+                return BadRequest("Insufficient material inventory");
+            }
+
+            // Return a success response
+            return Ok("Material quantity updated successfully");
         }
     }
 }
