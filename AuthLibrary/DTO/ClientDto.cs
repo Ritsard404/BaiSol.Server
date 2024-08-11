@@ -25,9 +25,13 @@ namespace AuthLibrary.DTO
         public string ClientContactNum { get; set; } = string.Empty;
 
         [Required]
+        [EmailAddress]
+        [DataType(DataType.EmailAddress)]
         public string AdminEmail { get; set; } = string.Empty;
 
         public required string ClientAddress { get; set; }
-        public decimal ClientMonthlyElectricBill { get; set; }
+        public required decimal ClientMonthlyElectricBill { get; set; }
+        public required string ProjName { get; set; }
+        public required string ProjDescript { get; set; }
     }
 }

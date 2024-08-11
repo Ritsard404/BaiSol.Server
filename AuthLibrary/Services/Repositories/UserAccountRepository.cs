@@ -183,7 +183,7 @@ namespace AuthLibrary.Services.Repositories
             // Create a new AppUsers object using the data from the provided adminDto.
             AppUsers newAdminUser = new AppUsers()
             {
-                UserName = adminDto.FirstName + "_" + adminDto.LastName, // Create a username by concatenating first and last names.
+                UserName = adminDto.FirstName + " " + adminDto.LastName, // Create a username by concatenating first and last names.
                 Email = adminDto.Email, // Set the email from adminDto.
                 PasswordHash = adminDto.Password, // Set the password hash (assuming it's already hashed).
                 AdminEmail = adminDto.AdminEmail,
@@ -243,7 +243,7 @@ namespace AuthLibrary.Services.Repositories
             // Create a new AppUsers object using the data from the provided adminDto.
             AppUsers newFacilitatorUser = new AppUsers()
             {
-                UserName = facilitatorDto.FirstName + "_" + facilitatorDto.LastName, // Create a username by concatenating first and last names.
+                UserName = facilitatorDto.FirstName + " " + facilitatorDto.LastName, // Create a username by concatenating first and last names.
                 Email = facilitatorDto.Email,
                 PasswordHash = facilitatorDto.Password,
                 TwoFactorEnabled = true,
@@ -290,7 +290,16 @@ namespace AuthLibrary.Services.Repositories
             var adminCreator = await _userManager.FindByEmailAsync(clientDto.AdminEmail);
             if (adminCreator == null) return new RegisterResponse("Admin not exist!", false, null);
 
-            Client newClient = new Client()
+
+            // Check if an client user with the same email already exists.
+            var clientUser = await _userManager.FindByEmailAsync(clientDto.Email);
+            if (clientUser != null) return new RegisterResponse("Email already exist! Try another.", false, null);
+
+            // Check if an client user with the same username already exists.
+            var clientName = await _userManager.FindByNameAsync(clientDto.FirstName + "_" + clientDto.LastName);
+            if (clientName != null) return new RegisterResponse("Username already exist! Try another.", false, null);
+
+            Client newClient = new Client
             {
                 ClientContactNum = clientDto.ClientContactNum,
                 ClientAddress = clientDto.ClientAddress,
@@ -298,9 +307,9 @@ namespace AuthLibrary.Services.Repositories
             };
 
             // Create a new AppUsers object using the data from the provided clientDto.
-            AppUsers newClientUser = new AppUsers()
+            AppUsers newClientUser = new AppUsers
             {
-                UserName = clientDto.FirstName + "_" + clientDto.LastName, // Create a username by concatenating first and last names.
+                UserName = clientDto.FirstName + " " + clientDto.LastName, // Create a username by concatenating first and last names.
                 Email = clientDto.Email,
                 PasswordHash = clientDto.Password,
                 TwoFactorEnabled = true,
@@ -308,24 +317,26 @@ namespace AuthLibrary.Services.Repositories
                 Client = newClient
             };
 
-            // Check if an client user with the same email already exists.
-            var clientUser = await _userManager.FindByEmailAsync(newClientUser.Email);
-            if (clientUser != null) return new RegisterResponse("Email already exist! Try another.", false, null);
+            Project newProject = new Project
+            {
+                ProjDescript = clientDto.ProjDescript,
+                ProjName = clientDto.ProjName,
+                Client = newClientUser
+            };
 
-            // Check if an client user with the same username already exists.
-            var clientName = await _userManager.FindByNameAsync(newClientUser.UserName);
-            if (clientName != null) return new RegisterResponse("Username already exist! Try another.", false, null);
 
-
-            CreateClient(newClient);
+            _dataContext.Client.Add(newClient);
+            //CreateClient(newClient, newProject);
             // Attempt to create the new client user.
-            var createFacilitatorUser = await _userManager.CreateAsync(newClientUser!, clientDto.Password);
-            if (!createFacilitatorUser.Succeeded)
+            var createClientUser = await _userManager.CreateAsync(newClientUser!, clientDto.Password);
+            if (!createClientUser.Succeeded)
             {
                 // If user creation failed, collect all error messages and return a response.
-                var errors = string.Join(", ", createFacilitatorUser.Errors.Select(e => e.Description));
+                var errors = string.Join(", ", createClientUser.Errors.Select(e => e.Description));
                 return new RegisterResponse("Error occurred: " + errors, false, null);
             }
+
+            _dataContext.Project.Add(newProject);
 
             // If the Admin role not exists, add the roles.
             if (!await _roleManager.RoleExistsAsync(UserRoles.Admin))
@@ -342,9 +353,10 @@ namespace AuthLibrary.Services.Repositories
             return new RegisterResponse("New client added successfully.", true, newClientUser);
         }
 
-        public void CreateClient(Client client)
+        public void CreateClient(Client client, Project project)
         {
             _dataContext.Client.Add(client);
+            _dataContext.Project.Add(project);
             _dataContext.SaveChanges();
         }
     }
