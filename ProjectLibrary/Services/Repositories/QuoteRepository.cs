@@ -216,16 +216,16 @@ namespace ProjectLibrary.Services.Repositories
                 );
 
             // Calculate profit and overall totals
-            var profitPercentage = 1.3m;
-            var profit = totalUnitCostSum * (profitPercentage - 1);
+            var profitPercentage = 0.3m;
+            var profit = totalUnitCostSum * profitPercentage;
             var overallMaterialTotal = totalUnitCostSum + profit;
 
             // Retrieve labor costs and calculate profit and totals
             var totalLaborCost = await _dataContext.Labor
-                .Where(p => p.Project.ProjId == null)
+                .Where(p => p.Project.ProjId == projectID)
                 .SumAsync(o => o.LaborCost);
 
-            var laborProfit = totalLaborCost * (profitPercentage - 1);
+            var laborProfit = totalLaborCost * profitPercentage;
             var overallLaborProjectTotal = totalLaborCost + laborProfit;
 
             // Calculate the total project cost
@@ -239,7 +239,7 @@ namespace ProjectLibrary.Services.Repositories
                     TotalCost = totalUnitCostSum,
                     Profit = profit,
                     OverallMaterialTotal = overallMaterialTotal,
-                    OverallProjMgtCost = totalLaborCost,
+                    OverallProjMgtCost = overallLaborProjectTotal,
                     NetMeteringCost = null,
                     TotalProjectCost = totalProjectCost,
                 }
@@ -260,8 +260,8 @@ namespace ProjectLibrary.Services.Repositories
 
 
             // Calculate profit and overall total
-            var profitPercentage = 1.3m; // Example profit percentage
-            var profit = totalLaborCost * (profitPercentage - 1);
+            var profitPercentage = 0.3m; // Example profit percentage
+            var profit = totalLaborCost * profitPercentage;
             var overallLaborProjectTotal = totalLaborCost + profit;
 
             // Return the DTO wrapped in a list
