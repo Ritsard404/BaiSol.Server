@@ -14,6 +14,7 @@ namespace AuthLibrary.Services.Interfaces
         Task<ICollection<UsersDto>> GetUsersAsync();
         Task<ICollection<AdminUsersDto>> GetAdminUsers();
         Task<ICollection<UsersDto>> GetUsersByRole(string role);
+        Task<ICollection<AvailableClients>> GetAvailableClients();
         Task<bool> SuspendUser(string id);
         Task<bool> DeactivateUser(string id);
         Task<bool> ActivateUser(string id);

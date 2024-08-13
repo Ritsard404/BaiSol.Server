@@ -21,10 +21,10 @@ namespace ProjectLibrary.Services.Repositories
                 .FirstOrDefaultAsync(proj => proj.ProjId == laborQuoteDto.ProjId);
 
 
-            //if (clientProject == null)
-            //{
-            //    return "Project not found.";
-            //}
+            if (clientProject == null)
+            {
+                return "Project not found.";
+            }
 
             var newLabor = new Labor
             {
@@ -34,6 +34,7 @@ namespace ProjectLibrary.Services.Repositories
                 LaborUnitCost = laborQuoteDto.UnitCost,
                 LaborNumUnit = laborQuoteDto.UnitNum,
                 LaborCost = laborQuoteDto.Quantity * laborQuoteDto.UnitCost * laborQuoteDto.UnitNum,
+                Project = clientProject
             };
 
             // Add the new Supply entity to the context
@@ -128,13 +129,13 @@ namespace ProjectLibrary.Services.Repositories
 
         public async Task<ICollection<LaborCostDto>> GetLaborCostQuote(string? projectID)
         {
-            //var quoteMaterialSupply = await _dataContext.Labor
-            //    .Where(p => p.Project.ProjId == projectID)
-            //    .ToListAsync();
-
             var quoteMaterialSupply = await _dataContext.Labor
-                .Where(p => p.Project.ProjId == null)
+                .Where(p => p.Project.ProjId == projectID)
                 .ToListAsync();
+
+            //var quoteMaterialSupply = await _dataContext.Labor
+            //    .Where(p => p.Project.ProjId == null)
+            //    .ToListAsync();
 
             var laborCostList = quoteMaterialSupply
                 .Select(l => new LaborCostDto

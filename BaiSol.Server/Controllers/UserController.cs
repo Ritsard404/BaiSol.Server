@@ -146,5 +146,11 @@ namespace BaiSol.Server.Controllers
             await _userAccount.DeactivateUser(id);
             return Ok();
         }
+
+        [HttpGet("Available-Clients")]
+        public async Task<IActionResult> GetAvailableClients()
+        {
+            return Ok(await _userAccount.GetAvailableClients());
+        }
     }
 }

@@ -183,7 +183,7 @@ namespace AuthLibrary.Services.Repositories
             // Create a new AppUsers object using the data from the provided adminDto.
             AppUsers newAdminUser = new AppUsers()
             {
-                UserName = adminDto.FirstName + " " + adminDto.LastName, // Create a username by concatenating first and last names.
+                UserName = adminDto.FirstName + "_" + adminDto.LastName, // Create a username by concatenating first and last names.
                 Email = adminDto.Email, // Set the email from adminDto.
                 PasswordHash = adminDto.Password, // Set the password hash (assuming it's already hashed).
                 AdminEmail = adminDto.AdminEmail,
@@ -243,7 +243,7 @@ namespace AuthLibrary.Services.Repositories
             // Create a new AppUsers object using the data from the provided adminDto.
             AppUsers newFacilitatorUser = new AppUsers()
             {
-                UserName = facilitatorDto.FirstName + " " + facilitatorDto.LastName, // Create a username by concatenating first and last names.
+                UserName = facilitatorDto.FirstName + "_" + facilitatorDto.LastName, // Create a username by concatenating first and last names.
                 Email = facilitatorDto.Email,
                 PasswordHash = facilitatorDto.Password,
                 TwoFactorEnabled = true,
@@ -309,7 +309,7 @@ namespace AuthLibrary.Services.Repositories
             // Create a new AppUsers object using the data from the provided clientDto.
             AppUsers newClientUser = new AppUsers
             {
-                UserName = clientDto.FirstName + " " + clientDto.LastName, // Create a username by concatenating first and last names.
+                UserName = clientDto.FirstName + "_" + clientDto.LastName, // Create a username by concatenating first and last names.
                 Email = clientDto.Email,
                 PasswordHash = clientDto.Password,
                 TwoFactorEnabled = true,
@@ -358,6 +358,32 @@ namespace AuthLibrary.Services.Repositories
             _dataContext.Client.Add(client);
             _dataContext.Project.Add(project);
             _dataContext.SaveChanges();
+        }
+
+        public async Task<ICollection<AvailableClients>> GetAvailableClients()
+        {
+            var clients = await _dataContext.Project
+                .Include(c => c.Client)
+                .Where(a => a.Status == "Finished" && a.Client.EmailConfirmed)
+                .ToListAsync();
+
+            var clientList = new List<AvailableClients>();
+
+
+            foreach (var client in clients)
+            {
+                var roles = await _userManager.GetRolesAsync(client.Client);
+                if (UserRoles.Client == roles.FirstOrDefault())
+                {
+                    clientList.Add(new AvailableClients
+                    {
+                        ClientId = client.Client.Id,
+                        ClientEmail = client.Client.NormalizedEmail
+                    });
+                }
+            }
+
+            return clientList.OrderBy(a => a.ClientEmail).ToList();
         }
     }
 }
