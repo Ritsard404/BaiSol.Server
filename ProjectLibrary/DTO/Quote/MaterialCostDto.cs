@@ -4,6 +4,7 @@ namespace ProjectLibrary.DTO.Quote
     public class MaterialCostDto
     {
         public required int SuppId { get; set; }
+        public required int MtlId { get; set; }
         public required string Description { get; set; }
         public int? Quantity { get; set; }
         public required string  Unit { get; set; }

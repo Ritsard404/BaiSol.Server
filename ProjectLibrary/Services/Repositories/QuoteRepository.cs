@@ -170,6 +170,7 @@ namespace ProjectLibrary.Services.Repositories
             .Select(material => new MaterialCostDto
             {
                 SuppId = material.SuppId, // Assuming SuppId is available and needs to be included
+                MtlId = material.Material.MTLId,
                 Description = material.Material.MTLDescript,
                 Quantity = material.MTLQuantity ?? 0, // Use null-coalescing to handle possible null values
                 Unit = material.Material.MTLUnit,
@@ -320,7 +321,7 @@ namespace ProjectLibrary.Services.Repositories
             }
 
             // Retrieve the Material entity by mtlID
-            var material = await _dataContext.Material.FirstOrDefaultAsync(i => i.MTLId == materialSupplyQuantity.MTLID);
+            var material = await _dataContext.Material.FirstOrDefaultAsync(i => i.MTLId == materialSupplyQuantity.MTLId);
 
             // Check if the material entity exists
             if (material == null)
