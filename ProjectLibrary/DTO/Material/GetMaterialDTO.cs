@@ -13,6 +13,7 @@ namespace ProjectLibrary.DTO.Material
         public int MTLId { get; set; }
         public required string MTLCode { get; set; }
         public required string MTLDescript { get; set; }
+        public required string MTLCtgry { get; set; }
         public decimal MTLPrice { get; set; }
         public int MTLQOH { get; set; }
         public required string MTLUnit { get; set; }

@@ -39,5 +39,44 @@ namespace BaiSol.Server.Controllers.Projects
 
             return Ok(material);
         }
+
+        [HttpGet("Get-Categories")]
+        public async Task<IActionResult> GetAllCategories()
+        {
+            var categories = await _material.GetMaterialCategories();
+
+            if (categories == null || !categories.Any())
+            {
+                return StatusCode(400, "Empty Category");
+            }
+
+            return Ok(categories);
+        }
+
+        [HttpGet("Get-Available-Materials")]
+        public async Task<IActionResult> GetAvailableMaterials(string projId, string category)
+        {
+            var availableMaterials = await _material.GetMaterialsByCategory(projId, category);
+
+            if (availableMaterials == null || !availableMaterials.Any())
+            {
+                return StatusCode(400, "Empty Materials");
+            }
+
+            return Ok(availableMaterials);
+        }
+
+        [HttpGet("Get-Material-QOH")]
+        public async Task<IActionResult> GetAvailableMaterials(int mtlId)
+        {
+            var qoh = await _material.GetQOHMaterial(mtlId);
+
+            if (qoh < 0)
+            {
+                return StatusCode(400, "Empty Material");
+            }
+
+            return Ok(new { QOH = qoh });
+        }
     }
 }

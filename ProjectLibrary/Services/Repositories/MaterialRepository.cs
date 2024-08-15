@@ -46,6 +46,15 @@ namespace ProjectLibrary.Services.Repositories
             return saveResult ? null : "Something went wrong while saving";
         }
 
+        public async Task<ICollection<GetAllMaterialCategory>> GetMaterialCategories()
+        {
+            return await _dataContext.Material
+                .Where(m => !string.IsNullOrEmpty(m.MTLCategory))
+                .GroupBy(m => m.MTLCategory)
+                .Select(g => new GetAllMaterialCategory { Category = g.Key })
+                .ToListAsync();
+        }
+
         public async Task<ICollection<GetMaterialDTO>> GetMaterials()
         {
             var materials = await _dataContext.Material.ToListAsync();
@@ -59,6 +68,7 @@ namespace ProjectLibrary.Services.Repositories
                     MTLId = material.MTLId,
                     MTLCode = material.MTLCode,
                     MTLDescript = material.MTLDescript,
+                    MTLCtgry = material.MTLCategory,
                     MTLPrice = material.MTLPrice,
                     MTLQOH = material.MTLQOH,
                     MTLUnit = material.MTLUnit,
@@ -69,7 +79,35 @@ namespace ProjectLibrary.Services.Repositories
                 });
             }
 
-            return materialsList.OrderBy(o=>o.MTLUnit).ToList();
+            return materialsList.OrderBy(o => o.MTLCtgry).ToList();
+        }
+
+        public async Task<ICollection<AvailableByCategoryMaterialDTO>> GetMaterialsByCategory(string projId, string category)
+        {
+            return await _dataContext.Material
+                .Where(m => m.MTLStatus == "Good" && m.MTLCategory == category)
+                .Where(m => !_dataContext.Supply
+                    .Where(s => s.Project.ProjId == projId)
+                    .Select(s => s.Material.MTLId)
+                    .Contains(m.MTLId))
+                .Select(a => new AvailableByCategoryMaterialDTO
+                {
+                    Code = a.MTLCode,
+                    Description = a.MTLDescript,
+                    MtlId = a.MTLId,
+                    Quantity = a.MTLQOH
+
+                })
+                .OrderBy(a => a.Description)
+                .ToListAsync();
+        }
+
+        public async Task<int> GetQOHMaterial(int mtlId)
+        {
+            return await _dataContext.Material
+                .Where(m => m.MTLId == mtlId) // Filter by the specified material ID
+                .Select(m => m.MTLQOH) // Select the QOH property
+                .FirstOrDefaultAsync(); // Get the first match or default value (0 if not found)
         }
 
         public async Task<bool> IsMaterialExist(string name)
