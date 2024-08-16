@@ -58,10 +58,10 @@ namespace BaiSol.Server.Controllers.Projects
         {
             var availableMaterials = await _material.GetMaterialsByCategory(projId, category);
 
-            if (availableMaterials == null || !availableMaterials.Any())
-            {
-                return StatusCode(400, "Empty Materials");
-            }
+            //if (availableMaterials == null || !availableMaterials.Any())
+            //{
+            //    return StatusCode(400, "Empty Materials");
+            //}
 
             return Ok(availableMaterials);
         }
