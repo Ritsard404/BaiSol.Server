@@ -349,8 +349,36 @@ namespace AuthLibrary.Services.Repositories
 
             await _userManager.AddToRoleAsync(newClientUser, UserRoles.Client);
 
-            // Return a success response after the client user has been successfully created and added to the Client role.
-            return new RegisterResponse("New client added successfully.", true, newClientUser);
+
+            var predefinedCosts = new[]
+            {
+                new Labor { LaborDescript = "Manpower", LaborUnit = "Days", Project = newProject },
+                new Labor { LaborDescript = "Project Manager - Electrical Engr.", LaborUnit = "Days", Project = newProject },
+                new Labor { LaborDescript = "Mobilization/Demob", LaborUnit = "Lot", Project = newProject },
+                new Labor { LaborDescript = "Tools & Equipment", LaborUnit = "Lot", Project = newProject },
+                new Labor { LaborDescript = "Other Incidental Costs", LaborUnit = "Lot", Project = newProject }
+            };
+
+            foreach (var labor in predefinedCosts)
+            {
+                if (!await _dataContext.Labor
+                    .Include(p => p.Project)
+                    .AnyAsync(proj => proj.Project.ProjDescript == newProject.ProjDescript && proj.LaborDescript == labor.LaborDescript))
+                {
+                    _dataContext.Labor.Add(labor);
+                }
+            }
+
+            // Save changes to the database.
+            var saveResult = await _dataContext.SaveChangesAsync();
+            if (saveResult > 0)
+            {
+                return new RegisterResponse("New client added successfully.", true, newClientUser);
+            }
+            else
+            {
+                return new RegisterResponse("Something went wrong while saving.", false, null);
+            }
         }
 
         public void CreateClient(Client client, Project project)

@@ -9,6 +9,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ProjectLibrary", "ProjectLi
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DataLibrary", "DataLibrary\DataLibrary.csproj", "{42A51E81-57B8-460D-BE5D-36471AA8C8E4}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AuthLibrary", "AuthLibrary\AuthLibrary.csproj", "{3CD051C3-43E9-48E9-905E-7508427DA915}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -27,6 +29,10 @@ Global
 		{42A51E81-57B8-460D-BE5D-36471AA8C8E4}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{42A51E81-57B8-460D-BE5D-36471AA8C8E4}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{42A51E81-57B8-460D-BE5D-36471AA8C8E4}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3CD051C3-43E9-48E9-905E-7508427DA915}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3CD051C3-43E9-48E9-905E-7508427DA915}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3CD051C3-43E9-48E9-905E-7508427DA915}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3CD051C3-43E9-48E9-905E-7508427DA915}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
