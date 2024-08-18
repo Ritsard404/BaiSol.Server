@@ -154,6 +154,23 @@ namespace ProjectLibrary.Services.Repositories
             return laborCostList;
         }
 
+        public async Task<ICollection<AllMaterialCategoriesExpense>> GetMaterialCategoryCostQuote(string? projectID)
+        {
+            return await _dataContext.Supply
+                .Where(p => p.Project.ProjId == projectID)
+                .Include(i => i.Material)
+                .GroupBy(c => c.Material.MTLCategory)
+                .Select(g => new AllMaterialCategoriesExpense
+                {
+                    Category = g.Key,
+                    TotalCategory = g.Count(),
+                    TotalExpense = g.Sum(s => (decimal)(s.MTLQuantity ?? 0) * s.Material.MTLPrice * 1.3m) // Calculate the total expense
+
+                })
+                .ToListAsync();
+
+        }
+
         public async Task<ICollection<MaterialCostDto>> GetMaterialCostQuote(string? projectID)
         {
             var materialSupply = await _dataContext.Supply
@@ -177,7 +194,7 @@ namespace ProjectLibrary.Services.Repositories
                 Category = material.Material.MTLCategory, // Include if needed in DTO
                 UnitCost = material.Material.MTLPrice,
                 TotalUnitCost = (decimal)((material.MTLQuantity ?? 0) * material.Material.MTLPrice),
-                BuildUpCost = (decimal)((material.MTLQuantity ?? 0) * material.Material.MTLPrice * 1.2m),
+                BuildUpCost = (decimal)((material.MTLQuantity ?? 0) * material.Material.MTLPrice * 1.3m),
                 CreatedAt = DateTime.UtcNow.ToString("MMM dd, yyyy"),
                 UpdatedAt = DateTime.UtcNow.ToString("MMM dd, yyyy"),
             })
@@ -187,7 +204,46 @@ namespace ProjectLibrary.Services.Repositories
             return materialCostList;
         }
 
-        public async Task<ICollection<ProjectCostDto>> GetProjectTotalCostQuote(string? projectID)
+        public async Task<ICollection<AllMaterialCategoriesCostDto>> GetProjectAndMaterialsTotalCostQuote(string? projectID)
+        {
+            // Fetch the material supply data with the required joins
+            var materialSupply = await _dataContext.Supply
+                .Where(p => p.Project.ProjId == projectID)
+                .Include(i => i.Material)
+                .ToListAsync();
+
+            // Group by category and calculate the required totals
+            var categoryExpenses = materialSupply
+                .GroupBy(p => p.Material.MTLCategory)
+                .Select(g => new AllMaterialCategoriesCostDto
+                {
+                    Category = g.Key,
+                    TotalCategory = g.Count(),
+                    TotalExpense = g.Sum(s => (decimal)(s.MTLQuantity ?? 0) * s.Material.MTLPrice * 1.3m),
+                    MaterialCostDtos = g.Select(material => new MaterialCostDto
+                    {
+                        SuppId = material.SuppId,
+                        MtlId = material.Material.MTLId,
+                        Description = material.Material.MTLDescript,
+                        Quantity = material.MTLQuantity ?? 0,
+                        Unit = material.Material.MTLUnit,
+                        Category = material.Material.MTLCategory,
+                        UnitCost = material.Material.MTLPrice,
+                        TotalUnitCost = (decimal)((material.MTLQuantity ?? 0) * material.Material.MTLPrice),
+                        BuildUpCost = (decimal)((material.MTLQuantity ?? 0) * material.Material.MTLPrice * 1.3m),
+                        CreatedAt = DateTime.UtcNow.ToString("MMM dd, yyyy"),
+                        UpdatedAt = DateTime.UtcNow.ToString("MMM dd, yyyy"),
+                    }).OrderBy(o => o.Description)
+                    .ThenBy(o => o.Unit) // Secondary sort by Description
+                    .ToList()
+                })
+                .OrderBy(c => c.Category)
+                .ToList();
+
+            return categoryExpenses;
+        }
+
+        public async Task<ProjectCostDto> GetProjectTotalCostQuote(string? projectID)
         {
             var materialSupply = await _dataContext.Supply
                 .Where(p => p.Project.ProjId == projectID)
@@ -233,17 +289,15 @@ namespace ProjectLibrary.Services.Repositories
             var totalProjectCost = overallMaterialTotal + overallLaborProjectTotal;
 
             // Return the project cost DTO
-            return new List<ProjectCostDto>
-{
-            new ProjectCostDto
-                {
-                    TotalCost = totalUnitCostSum,
-                    Profit = profit,
-                    OverallMaterialTotal = overallMaterialTotal,
-                    OverallProjMgtCost = overallLaborProjectTotal,
-                    NetMeteringCost = null,
-                    TotalProjectCost = totalProjectCost,
-                }
+            return new ProjectCostDto
+            {
+                TotalCost = totalUnitCostSum,
+                Profit = profit,
+                OverallMaterialTotal = overallMaterialTotal,
+                OverallProjMgtCost = overallLaborProjectTotal,
+                NetMeteringCost = null,
+                TotalProjectCost = totalProjectCost,
+
             };
 
         }

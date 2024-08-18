@@ -8,9 +8,11 @@ namespace ProjectLibrary.Services.Interfaces
     {
         Task<string> AddNewMaterialSupply(MaterialQuoteDto materialQuoteDto);
         Task<ICollection<MaterialCostDto>> GetMaterialCostQuote(string? projectID);
-        Task<ICollection<ProjectCostDto>> GetProjectTotalCostQuote(string? projectID);
+        Task<ProjectCostDto> GetProjectTotalCostQuote(string? projectID);
+        Task<ICollection<AllMaterialCategoriesCostDto>> GetProjectAndMaterialsTotalCostQuote(string? projectID);
         Task<string> AddNewLaborCost(LaborQuoteDto laborQuoteDto);
         Task<ICollection<LaborCostDto>> GetLaborCostQuote(string? projectID);
+        Task<ICollection<AllMaterialCategoriesExpense>> GetMaterialCategoryCostQuote(string? projectID);
         Task<ICollection<TotalLaborCostDto>> GetTotalLaborCostQuote(string? projectID);
         Task<bool> UpdateMaterialQuantity(UpdateMaterialSupplyQuantity materialSupplyQuantity);
         Task<bool> UpdateLaborQuoote(UpdateLaborQuote updateLaborQuote);

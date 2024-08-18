@@ -31,6 +31,7 @@ namespace BaiSol.Server.Controllers.Projects
         public async Task<IActionResult> GetProjectCostQuote(string projectId)
         {
             var materialCost = await _quote.GetMaterialCostQuote(projectId);
+            var categoryCost = await _quote.GetMaterialCategoryCostQuote(projectId);
             var totalProjectCost = await _quote.GetProjectTotalCostQuote(projectId);
 
             if (materialCost == null || !materialCost.Any())
@@ -41,6 +42,24 @@ namespace BaiSol.Server.Controllers.Projects
             return Ok(new
             {
                 materialCostList = materialCost,
+                categoryCostList = categoryCost,
+                totalProjectCostList = totalProjectCost
+            });
+        }
+        [HttpGet("Get-Project-Material-Cost")]
+        public async Task<IActionResult> GetProjectAndMaterialCostQuote(string projectId)
+        {
+            var materialAndCategoryCost = await _quote.GetProjectAndMaterialsTotalCostQuote(projectId);
+            var totalProjectCost = await _quote.GetProjectTotalCostQuote(projectId);
+
+            if (materialAndCategoryCost == null || !materialAndCategoryCost.Any())
+            {
+                return StatusCode(400, "Empty Material Cost");
+            }
+
+            return Ok(new
+            {
+                materialAndCategoryCostList = materialAndCategoryCost,
                 totalProjectCostList = totalProjectCost
             });
         }
@@ -104,7 +123,7 @@ namespace BaiSol.Server.Controllers.Projects
 
             var updateLabor = await _quote.UpdateLaborQuoote(updateLaborQuote);
 
-            if(!updateLabor) return BadRequest("Labor not found!");
+            if (!updateLabor) return BadRequest("Labor not found!");
 
             return Ok("Labor updated successfully");
         }
@@ -124,7 +143,7 @@ namespace BaiSol.Server.Controllers.Projects
         {
             var deleteLabor = await _quote.DeleteLaborQuote(laborId);
 
-            if(!deleteLabor) return BadRequest("Labor don\'t exist!");
+            if (!deleteLabor) return BadRequest("Labor don\'t exist!");
 
             return Ok("Labor deleted!");
         }
