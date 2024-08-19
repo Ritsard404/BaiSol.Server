@@ -26,24 +26,24 @@ namespace ProjectLibrary.Services.Repositories
                 return "Project not found.";
             }
 
-            var predefinedCosts = new[]
-            {
-                new Labor { LaborDescript = "Manpower", LaborUnit = "Days", Project = clientProject },
-                new Labor { LaborDescript = "Project Manager - Electrical Engr.", LaborUnit = "Days", Project = clientProject },
-                new Labor { LaborDescript = "Mobilization/Demob", LaborUnit = "Lot", Project = clientProject },
-                new Labor { LaborDescript = "Tools & Equipment", LaborUnit = "Lot", Project = clientProject },
-                new Labor { LaborDescript = "Other Incidental Costs", LaborUnit = "Lot", Project = clientProject }
-            };
+            //var predefinedCosts = new[]
+            //{
+            //    new Labor { LaborDescript = "Manpower", LaborUnit = "Days", Project = clientProject },
+            //    new Labor { LaborDescript = "Project Manager - Electrical Engr.", LaborUnit = "Days", Project = clientProject },
+            //    new Labor { LaborDescript = "Mobilization/Demob", LaborUnit = "Lot", Project = clientProject },
+            //    new Labor { LaborDescript = "Tools & Equipment", LaborUnit = "Lot", Project = clientProject },
+            //    new Labor { LaborDescript = "Other Incidental Costs", LaborUnit = "Lot", Project = clientProject }
+            //};
 
-            foreach (var labor in predefinedCosts)
-            {
-                if (!await _dataContext.Labor
-                    .Include(p => p.Project)
-                    .AnyAsync(proj => proj.Project.ProjDescript == clientProject.ProjDescript && proj.LaborDescript == labor.LaborDescript))
-                {
-                    _dataContext.Labor.Add(labor);
-                }
-            }
+            //foreach (var labor in predefinedCosts)
+            //{
+            //    if (!await _dataContext.Labor
+            //        .Include(p => p.Project)
+            //        .AnyAsync(proj => proj.Project.ProjDescript == clientProject.ProjDescript && proj.LaborDescript == labor.LaborDescript))
+            //    {
+            //        _dataContext.Labor.Add(labor);
+            //    }
+            //}
 
             var newLabor = new Labor
             {
@@ -321,7 +321,7 @@ namespace ProjectLibrary.Services.Repositories
 
         }
 
-        public async Task<ICollection<TotalLaborCostDto>> GetTotalLaborCostQuote(string? projectID)
+        public async Task<TotalLaborCostDto> GetTotalLaborCostQuote(string? projectID)
         {
             var totalLaborCost = await _dataContext.Labor
                 .Where(p => p.Project.ProjId == projectID)
@@ -339,14 +339,12 @@ namespace ProjectLibrary.Services.Repositories
             var overallLaborProjectTotal = totalLaborCost + profit;
 
             // Return the DTO wrapped in a list
-            return new List<TotalLaborCostDto>
+            return new TotalLaborCostDto
             {
-                new TotalLaborCostDto
-                {
-                    TotalCost = totalLaborCost,
-                    Profit = profit,
-                    OverallLaborProjectTotal = overallLaborProjectTotal
-                }
+                TotalCost = totalLaborCost,
+                Profit = profit,
+                OverallLaborProjectTotal = overallLaborProjectTotal
+
             };
         }
 
