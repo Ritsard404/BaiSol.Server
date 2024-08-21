@@ -47,9 +47,9 @@ namespace ProjectLibrary.Services.Repositories
 
             var newLabor = new Labor
             {
-                LaborDescript = laborQuoteDto.Description,
+                LaborDescript = laborQuoteDto.Description.Trim(),
                 LaborQuantity = laborQuoteDto.Quantity,
-                LaborUnit = laborQuoteDto.Unit,
+                LaborUnit = laborQuoteDto.Unit.Trim(),
                 LaborUnitCost = laborQuoteDto.UnitCost,
                 LaborNumUnit = laborQuoteDto.UnitNum,
                 LaborCost = laborQuoteDto.Quantity * laborQuoteDto.UnitCost * laborQuoteDto.UnitNum,
@@ -365,11 +365,12 @@ namespace ProjectLibrary.Services.Repositories
             if (labor == null) return false;
 
             // Update labor properties
-            labor.LaborDescript = updateLaborQuote.Description;
+            labor.LaborDescript = updateLaborQuote.Description.Trim();
             labor.LaborQuantity = updateLaborQuote.Quantity;
-            labor.LaborUnit = updateLaborQuote.Unit;
+            labor.LaborUnit = updateLaborQuote.Unit.Trim();
             labor.LaborUnitCost = updateLaborQuote.UnitCost;
             labor.LaborNumUnit = updateLaborQuote.UnitNum;
+            labor.LaborCost = updateLaborQuote.Quantity * updateLaborQuote.UnitCost * updateLaborQuote.UnitNum;
             labor.UpdatedAt = DateTimeOffset.UtcNow;
 
             // Mark entity as modified
