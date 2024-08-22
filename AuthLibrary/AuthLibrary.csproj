@@ -15,7 +15,4 @@
 	  <ProjectReference Include="..\BaseLibrary\BaseLibrary.csproj" />
 	  <ProjectReference Include="..\DataLibrary\DataLibrary.csproj" />
 	</ItemGroup>
-	<ItemGroup>
-	  <Folder Include="DTO\Facilitator\" />
-	</ItemGroup>
 </Project>

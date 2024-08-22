@@ -76,7 +76,7 @@ namespace AuthLibrary.Services.Repositories
             foreach (var user in users)
             {
                 var roles = await _userManager.GetRolesAsync(user);
-                if (roles.FirstOrDefault() == role)
+                if (roles.Contains(role))
                 {
                     var userDto = new UsersDto
                     {

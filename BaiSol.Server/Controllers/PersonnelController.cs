@@ -51,5 +51,23 @@ namespace BaiSol.Server.Controllers
             return Ok("Status Updated Successfully");
         }
 
+        [HttpGet]
+        public async Task<IActionResult> GetAvailableFacilitators()
+        {
+            var allFacilitator = await _personnel.GetAvailableFacilitator();
+            if (allFacilitator == null || !allFacilitator.Any()) return NoContent();
+
+            return Ok(allFacilitator);
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetAvailableInstallers()
+        {
+            var allInstaller = await _personnel.GetAvailableInstaller();
+            if (allInstaller == null || !allInstaller.Any()) return NoContent();
+
+            return Ok(allInstaller);
+        }
+
     }
 }

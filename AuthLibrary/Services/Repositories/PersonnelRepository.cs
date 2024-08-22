@@ -6,6 +6,9 @@ using DataLibrary.Models;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using AutoMapper;
+using AuthLibrary.DTO.Installer;
+using AuthLibrary.DTO.Facilitator;
+using AuthLibrary.Models;
 
 namespace AuthLibrary.Services.Repositories
 {
@@ -46,6 +49,44 @@ namespace AuthLibrary.Services.Repositories
             var saveResult = await Save();
 
             return saveResult ? null : "Something went wrong while saving";
+        }
+
+        public async Task<ICollection<AvailableFacilitatorDto>> GetAvailableFacilitator()
+        {
+            var facilitators = await _dataContext.Users
+      .Where(a => a.Status == "Active")
+      .ToListAsync();
+
+            var facilitatorList = await Task.WhenAll(facilitators
+                .Select(async facilitator =>
+                {
+                    var roles = await _userManager.GetRolesAsync(facilitator);
+                    if (roles.Contains(UserRoles.Facilitator))
+                    {
+                        return new AvailableFacilitatorDto
+                        {
+                            Id = facilitator.Id,
+                            Email = facilitator.Email,
+                            UserName = facilitator.NormalizedUserName
+                        };
+                    }
+                    return null;
+                }));
+
+            return facilitatorList
+                .Where(f => f != null)
+                .OrderBy(n => n.UserName)
+                .ToList();
+        }
+
+        public async Task<ICollection<AvailableInstallerDto>> GetAvailableInstaller()
+        {
+            return await _dataContext.Installer
+                .Where(a => a.Status == "Active")
+                .OrderBy(n => n.Name)
+                .ThenBy(a => a.Position)
+                .Select(s => new AvailableInstallerDto { InstallerId = s.InstallerId, Name = s.Name, Position = s.Position })
+                .ToListAsync();
         }
 
         public async Task<ICollection<Installer>> GetInstallers()
