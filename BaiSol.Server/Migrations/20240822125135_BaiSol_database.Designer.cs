@@ -12,8 +12,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace BaiSol.Server.Migrations
 {
     [DbContext(typeof(DataContext))]
-    [Migration("20240807123334_BaiSol_Database")]
-    partial class BaiSol_Database
+    [Migration("20240822125135_BaiSol_database")]
+    partial class BaiSol_database
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -340,6 +340,51 @@ namespace BaiSol.Server.Migrations
                     b.ToTable("Project");
                 });
 
+            modelBuilder.Entity("DataLibrary.Models.ProjectWorkLog", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("AssignedByAdminId")
+                        .HasColumnType("text");
+
+                    b.Property<DateTimeOffset>("DateAssigned")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("FacilitatorId")
+                        .HasColumnType("text");
+
+                    b.Property<int?>("InstallerId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("ProjectProjId")
+                        .HasColumnType("text");
+
+                    b.Property<DateTimeOffset?>("WorkEnded")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("WorkEndedReason")
+                        .HasColumnType("text");
+
+                    b.Property<DateTimeOffset?>("WorkStarted")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AssignedByAdminId");
+
+                    b.HasIndex("FacilitatorId");
+
+                    b.HasIndex("InstallerId");
+
+                    b.HasIndex("ProjectProjId");
+
+                    b.ToTable("ProjectWorkLog");
+                });
+
             modelBuilder.Entity("DataLibrary.Models.Supply", b =>
                 {
                     b.Property<int>("SuppId")
@@ -540,6 +585,33 @@ namespace BaiSol.Server.Migrations
                         .HasForeignKey("ClientId");
 
                     b.Navigation("Client");
+                });
+
+            modelBuilder.Entity("DataLibrary.Models.ProjectWorkLog", b =>
+                {
+                    b.HasOne("DataLibrary.Models.AppUsers", "AssignedByAdmin")
+                        .WithMany()
+                        .HasForeignKey("AssignedByAdminId");
+
+                    b.HasOne("DataLibrary.Models.AppUsers", "Facilitator")
+                        .WithMany()
+                        .HasForeignKey("FacilitatorId");
+
+                    b.HasOne("DataLibrary.Models.Installer", "Installer")
+                        .WithMany()
+                        .HasForeignKey("InstallerId");
+
+                    b.HasOne("DataLibrary.Models.Project", "Project")
+                        .WithMany()
+                        .HasForeignKey("ProjectProjId");
+
+                    b.Navigation("AssignedByAdmin");
+
+                    b.Navigation("Facilitator");
+
+                    b.Navigation("Installer");
+
+                    b.Navigation("Project");
                 });
 
             modelBuilder.Entity("DataLibrary.Models.Supply", b =>

@@ -46,9 +46,120 @@ namespace AuthLibrary.Services.Repositories
 
             // Add the installer to the database
             _dataContext.Installer.Add(installerMap);
-            var saveResult = await Save();
 
-            return saveResult ? null : "Something went wrong while saving";
+            return await Save() ? null : "Something went wrong while saving";
+        }
+
+        public async Task<string> AssignFacilitator(AssignFacilitatorToProjectDto assignFacilitatorToProject)
+        {
+            if (assignFacilitatorToProject == null)
+                throw new ArgumentNullException(nameof(assignFacilitatorToProject));
+
+            // Find the facilitator by Id
+            var facilitator = await _userManager.FindByIdAsync(assignFacilitatorToProject.FacilitatorId);
+            if (facilitator == null)
+                return "Facilitator does not exist!";
+
+            // Find the admin by Id
+            var admin = await _userManager.FindByIdAsync(assignFacilitatorToProject.AdminId);
+            if (admin == null)
+                return "Admin does not exist!";
+
+            // Check if the facilitator is already assigned and working
+            var isFacilitatorAssigned = await _dataContext.ProjectWorkLog
+                .AnyAsync(o => o.Facilitator.Id == facilitator.Id && o.Project.ProjId == assignFacilitatorToProject.ProjectId);
+
+            if (isFacilitatorAssigned)
+                return "Facilitator is already assigned to this project";
+
+            // Find the project by Id
+            var project = await _dataContext.Project.FindAsync(assignFacilitatorToProject.ProjectId);
+            if (project == null)
+                return "Project does not exist!";
+
+            // Add a new entry to the ProjectWorkLog
+            _dataContext.ProjectWorkLog.Add(new ProjectWorkLog
+            {
+                Facilitator = facilitator,
+                AssignedByAdmin = admin,
+                Project = project
+            });
+
+            // Update the facilitator's status
+            facilitator.Status = "OnWork";
+            _dataContext.Users.Update(facilitator);
+
+            // Save changes
+            return await Save() ? null : "Something went wrong while saving";
+        }
+
+        public async Task<string> AssignInstallers(List<AssignInstallerToProjectDto> assignInstallersToProject)
+        {
+            // Check if the input list is null or empty
+            if (assignInstallersToProject == null || !assignInstallersToProject.Any())
+                return "No installers provided";
+
+            // Retrieve the project by ID from the first DTO
+            var projectId = assignInstallersToProject.First().ProjectId;
+            var project = await _dataContext.Project.FindAsync(projectId);
+            if (project == null)
+                return "Project does not exist!";
+
+            // Get a list of unique installer IDs and fetch their details
+            var installerIds = assignInstallersToProject.Select(x => x.InstallerId).Distinct().ToList();
+            var installers = await _dataContext.Installer
+                .Where(i => installerIds.Contains(i.InstallerId))
+                .ToDictionaryAsync(i => i.InstallerId);
+
+            // Get a list of unique admin IDs
+            var adminIds = assignInstallersToProject.Select(x => x.AdminId).Distinct().ToList();
+            var results = new List<string>();
+
+            // Iterate through each DTO to process assignments
+            foreach (var dto in assignInstallersToProject)
+            {
+                // Check if the installer exists in the dictionary
+                if (!installers.TryGetValue(dto.InstallerId, out var installer))
+                {
+                    results.Add($"Installer with ID {dto.InstallerId} does not exist!");
+                    continue;
+                }
+
+                // Fetch admin details by ID
+                var admin = await _userManager.FindByIdAsync(dto.AdminId);
+                if (admin == null)
+                {
+                    results.Add($"Admin with ID {dto.AdminId} does not exist!");
+                    continue;
+                }
+
+                // Check if the installer is already assigned to another project
+                var isInstallerAssigned = await _dataContext.Installer
+                    .AnyAsync(o => o.Status == "OnWork" && o.InstallerId == installer.InstallerId);
+
+                if (isInstallerAssigned)
+                {
+                    results.Add($"Installer with ID {dto.InstallerId} is already assigned");
+                    continue;
+                }
+
+                // Add a new project work log entry and update the installer status
+                _dataContext.ProjectWorkLog.Add(new ProjectWorkLog
+                {
+                    Installer = installer,
+                    AssignedByAdmin = admin,
+                    Project = project
+                });
+
+                installer.Status = "OnWork";
+                _dataContext.Installer.Update(installer);
+            }
+
+            // Save changes to the database
+            await Save();
+
+            // Return a summary of results or a success message
+            return results.Any() ? string.Join("; ", results) : "Installers assigned successfully";
         }
 
         public async Task<ICollection<AvailableFacilitatorDto>> GetAvailableFacilitator()
@@ -147,5 +258,7 @@ namespace AuthLibrary.Services.Repositories
             _dataContext.Installer.Update(installer);
             return await Save();
         }
+
+
     }
 }

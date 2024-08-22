@@ -10,6 +10,8 @@ namespace ProjectLibrary.Services.Interfaces
         Task<string> AddNewClientProject(ProjectDto projectDto);
         Task<bool> DeleteClientProject(string projId);
         Task<bool> IsProjIdExist(string projId);
+        Task<bool> UpdatePersonnelWorkStarted(string projId);
+        Task<bool> UpdatePersonnelWorkEnded(string projId, string reasonEnded);
         Task<bool> Save();
 
     }

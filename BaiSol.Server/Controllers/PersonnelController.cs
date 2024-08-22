@@ -1,4 +1,6 @@
 ﻿using AuthLibrary.DTO;
+using AuthLibrary.DTO.Facilitator;
+using AuthLibrary.DTO.Installer;
 using AuthLibrary.Services.Interfaces;
 using DataLibrary.Models;
 using Microsoft.AspNetCore.Http;
@@ -67,6 +69,45 @@ namespace BaiSol.Server.Controllers
             if (allInstaller == null || !allInstaller.Any()) return NoContent();
 
             return Ok(allInstaller);
+        }
+
+        [HttpPost("Assign-Installers")]
+        public async Task<IActionResult> AssignInstallers(List<AssignInstallerToProjectDto> assignInstallerToProject)
+        {
+            // Call the service to assign installers and get the result
+            var result = await _personnel.AssignInstallers(assignInstallerToProject);
+
+            // Check if the result contains any messages or errors
+            if (result == "No installers provided" || result.Contains("does not exist") || result.Contains("already assigned"))
+            {
+                // Return a BadRequest if the result indicates a problem
+                return BadRequest(result);
+            }
+
+            // Return OK with the result if everything went well
+            return Ok(result);
+        }
+
+
+        [HttpPost("Assign-Facilitator")]
+        public async Task<IActionResult> AssignFacilitator(AssignFacilitatorToProjectDto facilitatorToProjectDto)
+        {
+            // Call the service to assign the facilitator and get the result
+            var result = await _personnel.AssignFacilitator(facilitatorToProjectDto);
+
+            // Check for specific error messages and return BadRequest if any issues are found
+            if (string.IsNullOrEmpty(result))
+            {
+                return NoContent(); // Return NoContent if the result is empty or null
+            }
+
+            if (result.Contains("does not exist") || result.Contains("already assigned"))
+            {
+                return BadRequest(result); // Return BadRequest for specific errors
+            }
+
+            // If the result contains a success message or other information, return Ok
+            return Ok(result);
         }
 
     }

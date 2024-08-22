@@ -16,6 +16,8 @@ namespace AuthLibrary.Services.Interfaces
         Task<bool> UpdateInstallerStatus(int id, string status);
         Task<ICollection<AvailableInstallerDto>> GetAvailableInstaller();
         Task<ICollection<AvailableFacilitatorDto>> GetAvailableFacilitator();
+        Task<string> AssignInstallers(List<AssignInstallerToProjectDto> assignInstallerToProject);
+        Task<string> AssignFacilitator(AssignFacilitatorToProjectDto assignFacilitatorToProject);
         Task<bool> Save();
     }
 }

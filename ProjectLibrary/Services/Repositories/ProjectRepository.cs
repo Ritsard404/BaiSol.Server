@@ -147,5 +147,46 @@ namespace ProjectLibrary.Services.Repositories
 
             return await Save();
         }
+
+        public async Task<bool> UpdatePersonnelWorkEnded(string projId, string reasonEnded)
+        {
+            // Find the ProjectWorkLog entries by the foreign key
+            var workLogs = await _dataContext.ProjectWorkLog
+                .Where(w => w.Project.ProjId == projId)
+                .ToListAsync();
+
+            if (workLogs == null || !workLogs.Any())
+                return false; // Return false if no work logs were found
+
+            // Update the WorkEnded property for each entry in the list
+            foreach (var log in workLogs)
+            {
+                log.WorkEnded = DateTimeOffset.Now;
+                log.WorkEndedReason = reasonEnded;
+            }
+
+            // Save changes to the database
+            return await Save();
+        }
+
+        public async Task<bool> UpdatePersonnelWorkStarted(string projId)
+        {
+            // Find the ProjectWorkLog entries by the foreign key
+            var workLogs = await _dataContext.ProjectWorkLog
+                .Where(w => w.Project.ProjId == projId)
+                .ToListAsync();
+
+            if (workLogs == null || !workLogs.Any())
+                return false; // Return false if no work logs were found
+
+            // Update the WorkStarted property for each entry in the list
+            foreach (var log in workLogs)
+            {
+                log.WorkStarted = DateTimeOffset.Now;
+            }
+
+            // Save changes to the database
+            return await Save();
+        }
     }
 }

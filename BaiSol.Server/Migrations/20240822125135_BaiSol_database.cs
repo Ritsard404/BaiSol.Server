@@ -7,7 +7,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace BaiSol.Server.Migrations
 {
     /// <inheritdoc />
-    public partial class BaiSol_Database : Migration
+    public partial class BaiSol_database : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -298,6 +298,46 @@ namespace BaiSol.Server.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "ProjectWorkLog",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    DateAssigned = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    WorkStarted = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
+                    WorkEnded = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
+                    WorkEndedReason = table.Column<string>(type: "text", nullable: true),
+                    AssignedByAdminId = table.Column<string>(type: "text", nullable: true),
+                    FacilitatorId = table.Column<string>(type: "text", nullable: true),
+                    InstallerId = table.Column<int>(type: "integer", nullable: true),
+                    ProjectProjId = table.Column<string>(type: "text", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_ProjectWorkLog", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_ProjectWorkLog_AspNetUsers_AssignedByAdminId",
+                        column: x => x.AssignedByAdminId,
+                        principalTable: "AspNetUsers",
+                        principalColumn: "Id");
+                    table.ForeignKey(
+                        name: "FK_ProjectWorkLog_AspNetUsers_FacilitatorId",
+                        column: x => x.FacilitatorId,
+                        principalTable: "AspNetUsers",
+                        principalColumn: "Id");
+                    table.ForeignKey(
+                        name: "FK_ProjectWorkLog_Installer_InstallerId",
+                        column: x => x.InstallerId,
+                        principalTable: "Installer",
+                        principalColumn: "InstallerId");
+                    table.ForeignKey(
+                        name: "FK_ProjectWorkLog_Project_ProjectProjId",
+                        column: x => x.ProjectProjId,
+                        principalTable: "Project",
+                        principalColumn: "ProjId");
+                });
+
+            migrationBuilder.CreateTable(
                 name: "Supply",
                 columns: table => new
                 {
@@ -387,6 +427,26 @@ namespace BaiSol.Server.Migrations
                 column: "ClientId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_ProjectWorkLog_AssignedByAdminId",
+                table: "ProjectWorkLog",
+                column: "AssignedByAdminId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ProjectWorkLog_FacilitatorId",
+                table: "ProjectWorkLog",
+                column: "FacilitatorId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ProjectWorkLog_InstallerId",
+                table: "ProjectWorkLog",
+                column: "InstallerId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ProjectWorkLog_ProjectProjId",
+                table: "ProjectWorkLog",
+                column: "ProjectProjId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Supply_EquipmentEQPTId",
                 table: "Supply",
                 column: "EquipmentEQPTId");
@@ -421,16 +481,19 @@ namespace BaiSol.Server.Migrations
                 name: "AspNetUserTokens");
 
             migrationBuilder.DropTable(
-                name: "Installer");
+                name: "Labor");
 
             migrationBuilder.DropTable(
-                name: "Labor");
+                name: "ProjectWorkLog");
 
             migrationBuilder.DropTable(
                 name: "Supply");
 
             migrationBuilder.DropTable(
                 name: "AspNetRoles");
+
+            migrationBuilder.DropTable(
+                name: "Installer");
 
             migrationBuilder.DropTable(
                 name: "Equipment");

@@ -51,7 +51,7 @@ namespace BaiSol.Server.Controllers.Projects
             if (updateProject == null) return BadRequest(ModelState);
 
             var project = await _project.UpdateClientProject(updateProject);
-            
+
             if (!project) return BadRequest("Project don\'t exist!");
 
             return Ok("Project updated successfully!");
@@ -65,6 +65,27 @@ namespace BaiSol.Server.Controllers.Projects
             if (!project) return BadRequest("Unable to delete the project!");
 
             return Ok("Project deleted!");
+        }
+
+        [HttpPut("Update-WorkStarted")]
+        public async Task<IActionResult> UpdatePersonnelWorkStart(string projectId)
+        {
+            var updatePersonnel = await _project.UpdatePersonnelWorkStarted(projectId);
+
+            if (!updatePersonnel) return BadRequest("Unable to update the work start!");
+
+            return Ok("Work start updated!");
+        }
+
+
+        [HttpPut("Update-WorkEnded")]
+        public async Task<IActionResult> UpdatePersonnelWorkEnd(string projectId, string workEndReason)
+        {
+            var updatePersonnel = await _project.UpdatePersonnelWorkEnded(projectId, workEndReason);
+
+            if (!updatePersonnel) return BadRequest("Unable to update the work end!");
+
+            return Ok("Work end updated!");
         }
     }
 }

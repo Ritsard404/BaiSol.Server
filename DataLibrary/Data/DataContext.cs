@@ -13,6 +13,7 @@ namespace DataLibrary.Data
         public DbSet<Equipment> Equipment { get; set; }
         public DbSet<Material> Material { get; set; }
         public DbSet<Labor> Labor { get; set; }
+        public DbSet<ProjectWorkLog> ProjectWorkLog { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
