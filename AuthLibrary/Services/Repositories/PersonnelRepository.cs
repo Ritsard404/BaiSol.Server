@@ -162,30 +162,75 @@ namespace AuthLibrary.Services.Repositories
             return results.Any() ? string.Join("; ", results) : "Installers assigned successfully";
         }
 
+        public async Task<ICollection<AvailableFacilitatorDto>> GetAssignedFacilitator(string projectId)
+        {
+            // Get active facilitators who have the "Facilitator" role
+            var facilitators = await _dataContext.ProjectWorkLog
+                .Include(f => f.Facilitator)
+                .Where(p => p.Project.ProjId == projectId)
+                .ToListAsync();
+
+            var facilitatorList = new List<AvailableFacilitatorDto>();
+
+            // Loop through each facilitator to check if they have the 'Facilitator' role
+            foreach (var facilitator in facilitators)
+            {
+                var roles = await _userManager.GetRolesAsync(facilitator.Facilitator);
+                if (roles.Contains(UserRoles.Facilitator))
+                {
+                    facilitatorList.Add(new AvailableFacilitatorDto
+                    {
+                        Id = facilitator.Facilitator.Id,
+                        Email = facilitator.Facilitator.Email,
+                        UserName = facilitator.Facilitator.NormalizedUserName
+                    });
+                }
+            }
+
+            // Return the list, ordered by the user name
+            return facilitatorList
+                .OrderBy(n => n.UserName)
+                .ToList();
+        }
+
+        public async Task<ICollection<AvailableInstallerDto>> GetAssignednstaller(string projectId)
+        {
+
+            return await _dataContext.ProjectWorkLog
+                .Include(i => i.Installer)
+                .Where(p => p.Project.ProjId == projectId)
+                .OrderBy(n => n.Installer.Name)
+                .ThenBy(a => a.Installer.Position)
+                .Select(s => new AvailableInstallerDto { InstallerId = s.Installer.InstallerId, Name = s.Installer.Name, Position = s.Installer.Position })
+                .ToListAsync();
+        }
+
         public async Task<ICollection<AvailableFacilitatorDto>> GetAvailableFacilitator()
         {
+            // Get active facilitators who have the "Facilitator" role
             var facilitators = await _dataContext.Users
-      .Where(a => a.Status == "Active")
-      .ToListAsync();
+                .Where(a => a.Status == "Active")
+                .ToListAsync();
 
-            var facilitatorList = await Task.WhenAll(facilitators
-                .Select(async facilitator =>
+            var facilitatorList = new List<AvailableFacilitatorDto>();
+
+            // Loop through each facilitator to check if they have the 'Facilitator' role
+            foreach (var facilitator in facilitators)
+            {
+                var roles = await _userManager.GetRolesAsync(facilitator);
+                if (roles.Contains(UserRoles.Facilitator))
                 {
-                    var roles = await _userManager.GetRolesAsync(facilitator);
-                    if (roles.Contains(UserRoles.Facilitator))
+                    facilitatorList.Add(new AvailableFacilitatorDto
                     {
-                        return new AvailableFacilitatorDto
-                        {
-                            Id = facilitator.Id,
-                            Email = facilitator.Email,
-                            UserName = facilitator.NormalizedUserName
-                        };
-                    }
-                    return null;
-                }));
+                        Id = facilitator.Id,
+                        Email = facilitator.Email,
+                        UserName = facilitator.NormalizedUserName
+                    });
+                }
+            }
 
+            // Return the list, ordered by the user name
             return facilitatorList
-                .Where(f => f != null)
                 .OrderBy(n => n.UserName)
                 .ToList();
         }
@@ -233,6 +278,67 @@ namespace AuthLibrary.Services.Repositories
         public async Task<bool> IsInstallerExist(string name)
         {
             return await _dataContext.Installer.AnyAsync(i => i.Name == name);
+        }
+
+        public async Task<bool> RemoveFacilitator(string facilitatorId, string projectId)
+        {
+            // Retrieve the first matching ProjectWorkLog entry for the specified project and facilitator
+            var assignedFacilitator = await _dataContext.ProjectWorkLog
+                .Include(i => i.Facilitator) // Include related Facilitator entity in the query
+                .Include(p => p.Project)     // Include related Project entity in the query
+                .Where(p => p.Project.ProjId == projectId && p.Facilitator.Id == facilitatorId) // Filter by project and facilitator
+                .FirstOrDefaultAsync();      // Retrieve the first or default result (null if not found)
+
+            // Check if a matching facilitator was found
+            if (assignedFacilitator == null)
+                return false; // Return false if no matching facilitator was found
+
+            // Remove the facilitator entry from the ProjectWorkLog
+            _dataContext.ProjectWorkLog.Remove(assignedFacilitator);
+
+            // Retrieve the facilitator entity from the user manager
+            var updateFacilitator = await _userManager.FindByIdAsync(facilitatorId);
+
+            // Check if the facilitator entity was found
+            if (updateFacilitator == null)
+                return false; // Return false if no matching facilitator was found
+
+            // Update the status of the facilitator
+            updateFacilitator.Status = "Active";
+
+            // Save the changes to the database
+            return await Save();
+        }
+
+        public async Task<bool> RemoveInstallers(List<int> installerId, string projectId)
+        {
+            // Retrieve all ProjectWorkLog entries for the specified project and installers
+            var assignedInstallers = await _dataContext.ProjectWorkLog
+                .Include(i => i.Installer)
+                .Include(p => p.Project)
+                .Where(p => p.Project.ProjId == projectId && installerId.Contains(p.Installer.InstallerId))
+                .ToListAsync();
+
+            // Check if any matching installers exist
+            if (!assignedInstallers.Any()) return false;
+
+
+            // Remove all the matching ProjectWorkLog entries
+            _dataContext.ProjectWorkLog.RemoveRange(assignedInstallers);
+
+            // Retrieve the installers to update
+            var installersToUpdate = await _dataContext.Installer
+                .Where(i => installerId.Contains(i.InstallerId)) // Filter installers by IDs
+                .ToListAsync(); // Execute the query and retrieve the installers
+
+            // Update the status of each installer
+            foreach (var installer in installersToUpdate)
+            {
+                installer.Status = "Active"; // Set the desired status or update any other property as needed
+            }
+
+            // Save the changes to the database and return the result
+            return await Save();
         }
 
         public async Task<bool> Save()

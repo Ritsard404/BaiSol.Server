@@ -2,9 +2,6 @@
 using AuthLibrary.DTO.Facilitator;
 using AuthLibrary.DTO.Installer;
 using AuthLibrary.Services.Interfaces;
-using DataLibrary.Models;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 
 namespace BaiSol.Server.Controllers
@@ -53,7 +50,7 @@ namespace BaiSol.Server.Controllers
             return Ok("Status Updated Successfully");
         }
 
-        [HttpGet]
+        [HttpGet("Get-Available-Facilitators")]
         public async Task<IActionResult> GetAvailableFacilitators()
         {
             var allFacilitator = await _personnel.GetAvailableFacilitator();
@@ -62,7 +59,7 @@ namespace BaiSol.Server.Controllers
             return Ok(allFacilitator);
         }
 
-        [HttpGet]
+        [HttpGet("Get-Available-Installers")]
         public async Task<IActionResult> GetAvailableInstallers()
         {
             var allInstaller = await _personnel.GetAvailableInstaller();

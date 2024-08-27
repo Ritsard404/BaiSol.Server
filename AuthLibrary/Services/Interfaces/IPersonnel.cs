@@ -15,9 +15,13 @@ namespace AuthLibrary.Services.Interfaces
         Task<bool> IsInstallerExist(string name);
         Task<bool> UpdateInstallerStatus(int id, string status);
         Task<ICollection<AvailableInstallerDto>> GetAvailableInstaller();
+        Task<ICollection<AvailableInstallerDto>> GetAssignednstaller(string projectId);
         Task<ICollection<AvailableFacilitatorDto>> GetAvailableFacilitator();
+        Task<ICollection<AvailableFacilitatorDto>> GetAssignedFacilitator(string projectId);
         Task<string> AssignInstallers(List<AssignInstallerToProjectDto> assignInstallerToProject);
         Task<string> AssignFacilitator(AssignFacilitatorToProjectDto assignFacilitatorToProject);
+        Task<bool> RemoveInstallers(List<int> installerId,string projectId);
+        Task<bool> RemoveFacilitator(string facilitatorId,string projectId);
         Task<bool> Save();
     }
 }
