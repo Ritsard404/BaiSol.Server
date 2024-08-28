@@ -69,7 +69,7 @@ namespace BaiSol.Server.Controllers
         }
 
         [HttpPost("Assign-Installers")]
-        public async Task<IActionResult> AssignInstallers(List<AssignInstallerToProjectDto> assignInstallerToProject)
+        public async Task<IActionResult> AssignInstallers(AssignInstallerToProjectDto assignInstallerToProject)
         {
             // Call the service to assign installers and get the result
             var result = await _personnel.AssignInstallers(assignInstallerToProject);
@@ -107,5 +107,40 @@ namespace BaiSol.Server.Controllers
             return Ok(result);
         }
 
+        [HttpGet("Get-Assigned-Installers")]
+        public async Task<IActionResult> GetAssignedInstallers(string projId)
+        {
+            var assignedInstaller = await _personnel.GetAssignednstaller(projId);
+            if (assignedInstaller == null || !assignedInstaller.Any()) return NoContent();
+
+            return Ok(assignedInstaller);
+        }
+
+        [HttpGet("Get-Assigned-Facilitator")]
+        public async Task<IActionResult> GetAssignedFacilitator(string projId)
+        {
+            var assignedFacilitator = await _personnel.GetAssignedFacilitator(projId);
+            if (assignedFacilitator == null || !assignedFacilitator.Any()) return NoContent();
+
+            return Ok(assignedFacilitator);
+        }
+
+        [HttpDelete("Remove-Assigned-Installers")]
+        public async Task<IActionResult> RemoveInstallers(RemoveInstallersDto removeInstallersDto)
+        {
+            var removeInstallers = await _personnel.RemoveInstallers(removeInstallersDto.InstallerIds, removeInstallersDto.ProjectId);
+            if (!removeInstallers) return BadRequest("Installer not found or could not be removed.");
+
+            return Ok("Installers removed successfully.");
+        }
+
+        [HttpDelete("Remove-Assigned-Facilitator")]
+        public async Task<IActionResult> RemoveFacilitator(RemoveFacilitatorDto removeFacilitatorDto)
+        {
+            var removeFacilitator = await _personnel.RemoveFacilitator(removeFacilitatorDto.facilitatorId, removeFacilitatorDto.projectId);
+            if (!removeFacilitator) return BadRequest("Facilitator not found or could not be removed.");
+
+            return Ok("Facilitator removed successfully.");
+        }
     }
 }
