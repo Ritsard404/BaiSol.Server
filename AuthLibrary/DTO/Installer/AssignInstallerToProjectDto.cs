@@ -4,8 +4,8 @@ namespace AuthLibrary.DTO.Installer
 {
     public class AssignInstallerToProjectDto
     {
+        public required List<int> InstallerId { get; set; }
         public required string AdminId { get; set; }
-        public int InstallerId { get; set; }
         public required string ProjectId { get; set; }
     }
 }

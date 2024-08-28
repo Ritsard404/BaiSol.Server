@@ -61,7 +61,7 @@ namespace AuthLibrary.Services.Repositories
                 return "Facilitator does not exist!";
 
             // Find the admin by Id
-            var admin = await _userManager.FindByIdAsync(assignFacilitatorToProject.AdminId);
+            var admin = await _userManager.FindByEmailAsync(assignFacilitatorToProject.AdminEmail);
             if (admin == null)
                 return "Admin does not exist!";
 
@@ -93,53 +93,45 @@ namespace AuthLibrary.Services.Repositories
             return await Save() ? null : "Something went wrong while saving";
         }
 
-        public async Task<string> AssignInstallers(List<AssignInstallerToProjectDto> assignInstallersToProject)
+        public async Task<string> AssignInstallers(AssignInstallerToProjectDto assignInstallersToProject)
         {
             // Check if the input list is null or empty
-            if (assignInstallersToProject == null || !assignInstallersToProject.Any())
+            if (assignInstallersToProject.InstallerId == null || !assignInstallersToProject.InstallerId.Any())
                 return "No installers provided";
 
             // Retrieve the project by ID from the first DTO
-            var projectId = assignInstallersToProject.First().ProjectId;
-            var project = await _dataContext.Project.FindAsync(projectId);
+            var project = await _dataContext.Project.FindAsync(assignInstallersToProject.ProjectId);
             if (project == null)
                 return "Project does not exist!";
 
-            // Get a list of unique installer IDs and fetch their details
-            var installerIds = assignInstallersToProject.Select(x => x.InstallerId).Distinct().ToList();
-            var installers = await _dataContext.Installer
-                .Where(i => installerIds.Contains(i.InstallerId))
-                .ToDictionaryAsync(i => i.InstallerId);
 
-            // Get a list of unique admin IDs
-            var adminIds = assignInstallersToProject.Select(x => x.AdminId).Distinct().ToList();
+            // Fetch admin details by ID
+            var admin = await _userManager.FindByIdAsync(assignInstallersToProject.AdminId);
+            if (admin == null)
+                return "Admin does not exist!";
+
+            // Fetch installers for this specific DTO
+            var installers = await _dataContext.Installer
+                .Where(i => assignInstallersToProject.InstallerId.Contains(i.InstallerId))
+                .ToListAsync();
+
             var results = new List<string>();
 
-            // Iterate through each DTO to process assignments
-            foreach (var dto in assignInstallersToProject)
+            // Check for installers that are not found
+            var foundInstallerIds = installers.Select(i => i.InstallerId).ToHashSet();
+            var missingInstallerIds = assignInstallersToProject.InstallerId.Except(foundInstallerIds).ToList();
+            if (missingInstallerIds.Any())
             {
-                // Check if the installer exists in the dictionary
-                if (!installers.TryGetValue(dto.InstallerId, out var installer))
-                {
-                    results.Add($"Installer with ID {dto.InstallerId} does not exist!");
-                    continue;
-                }
+                results.AddRange(missingInstallerIds.Select(id => $"Installer with ID {id} does not exist!"));
+            }
 
-                // Fetch admin details by ID
-                var admin = await _userManager.FindByIdAsync(dto.AdminId);
-                if (admin == null)
-                {
-                    results.Add($"Admin with ID {dto.AdminId} does not exist!");
-                    continue;
-                }
-
+            // Iterate through each installer to process assignments
+            foreach (var installer in installers)
+            {
                 // Check if the installer is already assigned to another project
-                var isInstallerAssigned = await _dataContext.Installer
-                    .AnyAsync(o => o.Status == "OnWork" && o.InstallerId == installer.InstallerId);
-
-                if (isInstallerAssigned)
+                if (installer.Status == "OnWork")
                 {
-                    results.Add($"Installer with ID {dto.InstallerId} is already assigned");
+                    results.Add($"Installer with ID {installer.InstallerId} is already assigned");
                     continue;
                 }
 

@@ -8,7 +8,7 @@ namespace AuthLibrary.DTO.Facilitator
 {
     public class AssignFacilitatorToProjectDto
     {
-        public required string AdminId { get; set; }
+        public required string AdminEmail { get; set; }
         public required string FacilitatorId { get; set; }
         public required string ProjectId { get; set; }
     }
