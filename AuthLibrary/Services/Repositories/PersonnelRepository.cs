@@ -154,7 +154,7 @@ namespace AuthLibrary.Services.Repositories
             return results.Any() ? string.Join("; ", results) : "Installers assigned successfully";
         }
 
-        public async Task<ICollection<AvailableFacilitatorDto>> GetAssignedFacilitator(string projectId)
+        public async Task<AvailableFacilitatorDto> GetAssignedFacilitator(string projectId)
         {
             // Get active facilitators who have the "Facilitator" role
             var facilitators = await _dataContext.ProjectWorkLog
@@ -182,7 +182,7 @@ namespace AuthLibrary.Services.Repositories
             // Return the list, ordered by the user name
             return facilitatorList
                 .OrderBy(n => n.UserName)
-                .ToList();
+                .FirstOrDefault();
         }
 
         public async Task<ICollection<AvailableInstallerDto>> GetAssignednstaller(string projectId)

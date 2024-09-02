@@ -353,7 +353,7 @@ namespace AuthLibrary.Services.Repositories
             var predefinedCosts = new[]
             {
                 new Labor { LaborDescript = "Manpower", LaborUnit = "Days", Project = newProject },
-                new Labor { LaborDescript = "Project Manager - Electrical Engr.", LaborUnit = "Days", Project = newProject },
+                new Labor { LaborDescript = "Project Manager - Electrical Engr.", LaborQuantity = 1, LaborUnit = "Days", Project = newProject },
                 new Labor { LaborDescript = "Mobilization/Demob", LaborUnit = "Lot", Project = newProject },
                 new Labor { LaborDescript = "Tools & Equipment", LaborUnit = "Lot", Project = newProject },
                 new Labor { LaborDescript = "Other Incidental Costs", LaborUnit = "Lot", Project = newProject }
@@ -391,8 +391,11 @@ namespace AuthLibrary.Services.Repositories
         public async Task<ICollection<AvailableClients>> GetAvailableClients()
         {
             var clients = await _dataContext.Project
-                .Include(c => c.Client)
-                .Where(a => a.Status == "Finished" && a.Client.EmailConfirmed)
+                .Include(p => p.Client) // Ensure Client is included
+                .Where(p => p.Status == "Finished")
+                //.Where(p => p.Status == "Finished" && p.Client.EmailConfirmed)
+                .GroupBy(p => p.Client) // Group by ClientId to ensure distinctness
+                .Select(g => g.FirstOrDefault()) // Select the first Project from each group
                 .ToListAsync();
 
             var clientList = new List<AvailableClients>();
@@ -400,15 +403,15 @@ namespace AuthLibrary.Services.Repositories
 
             foreach (var client in clients)
             {
-                var roles = await _userManager.GetRolesAsync(client.Client);
-                if (UserRoles.Client == roles.FirstOrDefault())
+                //var roles = await _userManager.GetRolesAsync(client.Client);
+                //if (UserRoles.Client == roles.FirstOrDefault())
+                //{
+                clientList.Add(new AvailableClients
                 {
-                    clientList.Add(new AvailableClients
-                    {
-                        ClientId = client.Client.Id,
-                        ClientEmail = client.Client.NormalizedEmail
-                    });
-                }
+                    ClientId = client.Client.Id,
+                    ClientEmail = client.Client.NormalizedEmail
+                });
+                //}
             }
 
             return clientList.OrderBy(a => a.ClientEmail).ToList();

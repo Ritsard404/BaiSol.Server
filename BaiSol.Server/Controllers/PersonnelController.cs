@@ -93,18 +93,13 @@ namespace BaiSol.Server.Controllers
             var result = await _personnel.AssignFacilitator(facilitatorToProjectDto);
 
             // Check for specific error messages and return BadRequest if any issues are found
-            if (string.IsNullOrEmpty(result))
+            if (result != null)
             {
-                return NoContent(); // Return NoContent if the result is empty or null
-            }
-
-            if (result.Contains("does not exist") || result.Contains("already assigned"))
-            {
-                return BadRequest(result); // Return BadRequest for specific errors
+                return BadRequest(result); // Return NoContent if the result is empty or null
             }
 
             // If the result contains a success message or other information, return Ok
-            return Ok(result);
+            return Ok("Facilitator assigned successfully!");
         }
 
         [HttpGet("Get-Assigned-Installers")]
@@ -120,7 +115,7 @@ namespace BaiSol.Server.Controllers
         public async Task<IActionResult> GetAssignedFacilitator(string projId)
         {
             var assignedFacilitator = await _personnel.GetAssignedFacilitator(projId);
-            if (assignedFacilitator == null || !assignedFacilitator.Any()) return NoContent();
+            if (assignedFacilitator == null) return NoContent();
 
             return Ok(assignedFacilitator);
         }
