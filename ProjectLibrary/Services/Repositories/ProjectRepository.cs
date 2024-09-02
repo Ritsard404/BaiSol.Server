@@ -49,6 +49,26 @@ namespace ProjectLibrary.Services.Repositories
             // Add the new Supply entity to the context
             _dataContext.Project.Add(newProject);
 
+
+            var predefinedCosts = new[]
+            {
+                new Labor { LaborDescript = "Manpower", LaborUnit = "Days", Project = newProject },
+                new Labor { LaborDescript = "Project Manager - Electrical Engr.", LaborQuantity = 1, LaborUnit = "Days", Project = newProject },
+                new Labor { LaborDescript = "Mobilization/Demob", LaborUnit = "Lot", Project = newProject },
+                new Labor { LaborDescript = "Tools & Equipment", LaborUnit = "Lot", Project = newProject },
+                new Labor { LaborDescript = "Other Incidental Costs", LaborUnit = "Lot", Project = newProject }
+            };
+
+            foreach (var labor in predefinedCosts)
+            {
+                if (!await _dataContext.Labor
+                    .Include(p => p.Project)
+                    .AnyAsync(proj => proj.Project.ProjDescript == newProject.ProjDescript && proj.LaborDescript == labor.LaborDescript))
+                {
+                    _dataContext.Labor.Add(labor);
+                }
+            }
+
             // Save changes to the database
             var saveResult = await Save();
 
