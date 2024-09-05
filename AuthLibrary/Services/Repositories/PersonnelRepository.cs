@@ -106,7 +106,7 @@ namespace AuthLibrary.Services.Repositories
 
 
             // Fetch admin details by ID
-            var admin = await _userManager.FindByIdAsync(assignInstallersToProject.AdminId);
+            var admin = await _userManager.FindByEmailAsync(assignInstallersToProject.AdminEmail);
             if (admin == null)
                 return "Admin does not exist!";
 
@@ -167,15 +167,18 @@ namespace AuthLibrary.Services.Repositories
             // Loop through each facilitator to check if they have the 'Facilitator' role
             foreach (var facilitator in facilitators)
             {
-                var roles = await _userManager.GetRolesAsync(facilitator.Facilitator);
-                if (roles.Contains(UserRoles.Facilitator))
+                if (facilitator.Facilitator != null)
                 {
-                    facilitatorList.Add(new AvailableFacilitatorDto
+                    var roles = await _userManager.GetRolesAsync(facilitator.Facilitator);
+                    if (roles.Contains(UserRoles.Facilitator))
                     {
-                        Id = facilitator.Facilitator.Id,
-                        Email = facilitator.Facilitator.Email,
-                        UserName = facilitator.Facilitator.NormalizedUserName
-                    });
+                        facilitatorList.Add(new AvailableFacilitatorDto
+                        {
+                            Id = facilitator.Facilitator.Id,
+                            Email = facilitator.Facilitator.Email,
+                            UserName = facilitator.Facilitator.NormalizedUserName
+                        });
+                    }
                 }
             }
 
@@ -302,13 +305,14 @@ namespace AuthLibrary.Services.Repositories
             return await Save();
         }
 
-        public async Task<bool> RemoveInstallers(List<int> installerId, string projectId)
+        public async Task<bool> RemoveInstaller(int installerId, string projectId)
         {
             // Retrieve all ProjectWorkLog entries for the specified project and installers
             var assignedInstallers = await _dataContext.ProjectWorkLog
                 .Include(i => i.Installer)
                 .Include(p => p.Project)
-                .Where(p => p.Project.ProjId == projectId && installerId.Contains(p.Installer.InstallerId))
+                //.Where(p => p.Project.ProjId == projectId && installerId.Contains(p.Installer.InstallerId))
+                .Where(p => p.Project.ProjId == projectId && installerId == p.Installer.InstallerId)
                 .ToListAsync();
 
             // Check if any matching installers exist
@@ -320,14 +324,17 @@ namespace AuthLibrary.Services.Repositories
 
             // Retrieve the installers to update
             var installersToUpdate = await _dataContext.Installer
-                .Where(i => installerId.Contains(i.InstallerId)) // Filter installers by IDs
-                .ToListAsync(); // Execute the query and retrieve the installers
+                //.Where(i => installerId.Contains(i.InstallerId)) // Filter installers by IDs
+                .Where(i => installerId == i.InstallerId) // Filter installer by ID
+                .FirstAsync(); // Execute the query and retrieve the installers
 
-            // Update the status of each installer
-            foreach (var installer in installersToUpdate)
-            {
-                installer.Status = "Active"; // Set the desired status or update any other property as needed
-            }
+            //// Update the status of each installer
+            //foreach (var installer in installersToUpdate)
+            //{
+            //    installer.Status = "Active"; // Set the desired status or update any other property as needed
+            //}
+
+            installersToUpdate.Status = "Active";
 
             // Save the changes to the database and return the result
             return await Save();

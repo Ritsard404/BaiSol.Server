@@ -12,8 +12,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace BaiSol.Server.Migrations
 {
     [DbContext(typeof(DataContext))]
-    [Migration("20240822125135_BaiSol_database")]
-    partial class BaiSol_database
+    [Migration("20240904151110_BaiSol_Database")]
+    partial class BaiSol_Database
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)

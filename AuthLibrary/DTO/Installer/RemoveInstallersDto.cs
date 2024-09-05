@@ -8,7 +8,7 @@ namespace AuthLibrary.DTO.Installer
 {
     public class RemoveInstallersDto
     {
-        public required List<int> InstallerIds { get; set; }
+        public required int InstallerIds { get; set; }
         public required string ProjectId { get; set; }
     }
 }

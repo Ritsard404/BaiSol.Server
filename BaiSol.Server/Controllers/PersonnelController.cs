@@ -106,7 +106,6 @@ namespace BaiSol.Server.Controllers
         public async Task<IActionResult> GetAssignedInstallers(string projId)
         {
             var assignedInstaller = await _personnel.GetAssignednstaller(projId);
-            if (assignedInstaller == null || !assignedInstaller.Any()) return NoContent();
 
             return Ok(assignedInstaller);
         }
@@ -115,16 +114,16 @@ namespace BaiSol.Server.Controllers
         public async Task<IActionResult> GetAssignedFacilitator(string projId)
         {
             var assignedFacilitator = await _personnel.GetAssignedFacilitator(projId);
-            if (assignedFacilitator == null) return NoContent();
 
             return Ok(assignedFacilitator);
         }
 
-        [HttpDelete("Remove-Assigned-Installers")]
+        [HttpDelete("Remove-Assigned-Installer")]
         public async Task<IActionResult> RemoveInstallers(RemoveInstallersDto removeInstallersDto)
         {
-            var removeInstallers = await _personnel.RemoveInstallers(removeInstallersDto.InstallerIds, removeInstallersDto.ProjectId);
-            if (!removeInstallers) return BadRequest("Installer not found or could not be removed.");
+            //var removeInstallers = await _personnel.RemoveInstallers(removeInstallersDto.InstallerIds, removeInstallersDto.ProjectId);
+            var removeInstaller = await _personnel.RemoveInstaller(removeInstallersDto.InstallerIds, removeInstallersDto.ProjectId);
+            if (!removeInstaller) return BadRequest("Installer not found or could not be removed.");
 
             return Ok("Installers removed successfully.");
         }

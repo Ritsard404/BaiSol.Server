@@ -20,7 +20,7 @@ namespace AuthLibrary.Services.Interfaces
         Task<AvailableFacilitatorDto> GetAssignedFacilitator(string projectId);
         Task<string> AssignInstallers(AssignInstallerToProjectDto assignInstallerToProject);
         Task<string> AssignFacilitator(AssignFacilitatorToProjectDto assignFacilitatorToProject);
-        Task<bool> RemoveInstallers(List<int> installerId,string projectId);
+        Task<bool> RemoveInstaller(int installerId,string projectId);
         Task<bool> RemoveFacilitator(string facilitatorId,string projectId);
         Task<bool> Save();
     }
