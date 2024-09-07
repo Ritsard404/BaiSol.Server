@@ -54,7 +54,7 @@ namespace BaiSol.Server.Controllers
         public async Task<IActionResult> GetAvailableFacilitators()
         {
             var allFacilitator = await _personnel.GetAvailableFacilitator();
-            if (allFacilitator == null || !allFacilitator.Any()) return NoContent();
+            //if (allFacilitator == null || !allFacilitator.Any()) return NoContent();
 
             return Ok(allFacilitator);
         }
@@ -63,7 +63,7 @@ namespace BaiSol.Server.Controllers
         public async Task<IActionResult> GetAvailableInstallers()
         {
             var allInstaller = await _personnel.GetAvailableInstaller();
-            if (allInstaller == null || !allInstaller.Any()) return NoContent();
+            //if (allInstaller == null || !allInstaller.Any()) return NoContent();
 
             return Ok(allInstaller);
         }

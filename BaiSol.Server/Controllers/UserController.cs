@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
+using System.Net.Sockets;
 
 namespace BaiSol.Server.Controllers
 {
@@ -66,17 +67,53 @@ namespace BaiSol.Server.Controllers
 
             if (addClient.Flag)
             {
-                // Add Token to Verify the email
-                var token = await _userManager.GenerateEmailConfirmationTokenAsync(addClient.AppUsers);
-                var reactAppUrl = _config["FrontEnd_Url"];
-                var confirmationLink = $"{reactAppUrl}/Confirm-Email?token={token}&email={addClient.AppUsers.Email}";
-
-                var message = new EmailMessage(new string[] { addClient.AppUsers.Email! }, "Confirmation email link", $"Please confirm your account by clicking this link: <a href='{confirmationLink}'>Confirmation Link</a>");
+                var message = new EmailMessage(
+                    new string[] { addClient.AppUsers.Email! },
+                    "Successful Account Registration",
+                    "Dear User,\n\nCongratulations! Your account has been successfully registered with BaiSol. We are excited to have you on board. Please note that your account is currently pending approval. Once approved, you'll be able to fully explore and enjoy our services as you embark on your project journey.\n\nThank you for choosing BaiSol!\n\nBest regards,\nThe BaiSol Team"
+                );
                 _emailRepository.SendEmail(message);
-                return Ok($"An email has been sent to {addClient.AppUsers.Email} for confirmation.");
 
+
+                return Ok("You have successfully registered your account. Please check your email for further instructions.");
             }
+
             return StatusCode(500, addClient);
+        }
+
+        [HttpPut("Approve-Client-Account")]
+        public async Task<IActionResult> ApproveClientAccount(string clientId)
+        {
+            var approveClient = await _userAccount.ApproveClient(clientId);
+            if (!approveClient.Flag) return BadRequest("Client does not exist.");
+
+
+            // Generate the email confirmation token
+            var token = await _userManager.GenerateEmailConfirmationTokenAsync(approveClient.ClientUser);
+
+            // URL encode token and email to ensure proper handling of special characters
+            var encodedToken = Uri.EscapeDataString(token);
+            var encodedEmail = Uri.EscapeDataString(approveClient.ClientUser.Email!);
+
+            // Construct the confirmation link
+            var reactAppUrl = _config["FrontEnd_Url"];
+            var confirmationLink = $"{reactAppUrl}/Confirm-Email?token={encodedToken}&email={encodedEmail}";
+
+            // Create the email message
+            var message = new EmailMessage(
+                new string[] { approveClient.ClientUser.Email! },
+                "Email Confirmation Link",
+                $"Dear {approveClient.ClientUser.UserName},<br/><br/>" +
+                $"Please confirm your account by clicking the link below:<br/>" +
+                $"<a href='{confirmationLink}'>Confirm Your Email</a><br/><br/>" +
+                $"If you did not create an account, please disregard this email.<br/><br/>" +
+                $"Best regards,<br/>The BaiSol Team"
+            );
+
+            // Send the email
+            _emailRepository.SendEmail(message);
+
+            return Ok($"Client with email {approveClient.ClientUser.Email} has been approved. A confirmation email has been sent.");
         }
 
 

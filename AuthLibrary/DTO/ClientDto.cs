@@ -31,7 +31,7 @@ namespace AuthLibrary.DTO
 
         public required string ClientAddress { get; set; }
         public required decimal ClientMonthlyElectricBill { get; set; }
-        public required string ProjName { get; set; }
-        public required string ProjDescript { get; set; }
+        //public required string ProjName { get; set; }
+        //public required string ProjDescript { get; set; }
     }
 }

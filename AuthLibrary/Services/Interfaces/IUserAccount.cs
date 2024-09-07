@@ -9,6 +9,7 @@ namespace AuthLibrary.Services.Interfaces
         Task<RegisterResponse> CreateAdminAccount(AdminDto adminDto);
         Task<RegisterResponse> CreateFacilitatorAccount(FacilitatorDto facilitatorDto);
         Task<RegisterResponse> CreateClientAccount(ClientDto clientDto);
+        Task<ApprovalResponse> ApproveClient(string clientId);
         void CreateClient(Client client, Project project);
         Task EnsureRoleExists(string roleName);
         Task<ICollection<UsersDto>> GetUsersAsync();

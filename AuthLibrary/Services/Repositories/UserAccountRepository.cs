@@ -172,7 +172,7 @@ namespace AuthLibrary.Services.Repositories
         {
 
             var saved = await _dataContext.SaveChangesAsync();
-            return saved > 0 ? true : false;
+            return saved > 0;
         }
 
         public async Task<RegisterResponse> CreateAdminAccount(AdminDto adminDto)
@@ -284,100 +284,49 @@ namespace AuthLibrary.Services.Repositories
 
         public async Task<RegisterResponse> CreateClientAccount(ClientDto clientDto)
         {
-            // Check if the provided clientDto is null and return a response if it is.
-            if (clientDto is null) return new RegisterResponse("Model is empty", false, null);
-
-            var adminCreator = await _userManager.FindByEmailAsync(clientDto.AdminEmail);
-            if (adminCreator == null) return new RegisterResponse("Admin not exist!", false, null);
-
-
-            // Check if an client user with the same email already exists.
-            var clientUser = await _userManager.FindByEmailAsync(clientDto.Email);
-            if (clientUser != null) return new RegisterResponse("Email already exist! Try another.", false, null);
-
-            // Check if an client user with the same username already exists.
-            var clientName = await _userManager.FindByNameAsync(clientDto.FirstName + "_" + clientDto.LastName);
-            if (clientName != null) return new RegisterResponse("Username already exist! Try another.", false, null);
-
-            Client newClient = new Client
+            try
             {
-                ClientContactNum = clientDto.ClientContactNum,
-                ClientAddress = clientDto.ClientAddress,
-                ClientMonthlyElectricBill = clientDto.ClientMonthlyElectricBill
-            };
+                if (clientDto == null) return new RegisterResponse("Model is empty", false, null);
 
-            // Create a new AppUsers object using the data from the provided clientDto.
-            AppUsers newClientUser = new AppUsers
-            {
-                UserName = clientDto.FirstName + "_" + clientDto.LastName, // Create a username by concatenating first and last names.
-                Email = clientDto.Email,
-                PasswordHash = clientDto.Password,
-                TwoFactorEnabled = true,
-                AdminEmail = clientDto.AdminEmail,
-                Client = newClient
-            };
+                var adminCreator = await _userManager.FindByEmailAsync(clientDto.AdminEmail);
+                if (adminCreator == null) return new RegisterResponse("Admin not exist!", false, null);
 
-            Project newProject = new Project
-            {
-                ProjDescript = clientDto.ProjDescript,
-                ProjName = clientDto.ProjName,
-                Client = newClientUser
-            };
+                var clientUser = await _userManager.FindByEmailAsync(clientDto.Email);
+                if (clientUser != null) return new RegisterResponse("Email already exists!", false, null);
 
+                var clientName = await _userManager.FindByNameAsync(clientDto.FirstName + "_" + clientDto.LastName);
+                if (clientName != null) return new RegisterResponse("Username already exists!", false, null);
 
-            _dataContext.Client.Add(newClient);
-            //CreateClient(newClient, newProject);
-            // Attempt to create the new client user.
-            var createClientUser = await _userManager.CreateAsync(newClientUser!, clientDto.Password);
-            if (!createClientUser.Succeeded)
-            {
-                // If user creation failed, collect all error messages and return a response.
-                var errors = string.Join(", ", createClientUser.Errors.Select(e => e.Description));
-                return new RegisterResponse("Error occurred: " + errors, false, null);
-            }
-
-            _dataContext.Project.Add(newProject);
-
-            // If the Admin role not exists, add the roles.
-            if (!await _roleManager.RoleExistsAsync(UserRoles.Admin))
-            {
-                // Ensure the roles exists in the system.
-                await EnsureRoleExists(UserRoles.Admin);
-                await EnsureRoleExists(UserRoles.Client);
-                await EnsureRoleExists(UserRoles.Facilitator);
-            }
-
-            await _userManager.AddToRoleAsync(newClientUser, UserRoles.Client);
-
-
-            var predefinedCosts = new[]
-            {
-                new Labor { LaborDescript = "Manpower", LaborUnit = "Days", Project = newProject },
-                new Labor { LaborDescript = "Project Manager - Electrical Engr.", LaborQuantity = 1, LaborUnit = "Days", Project = newProject },
-                new Labor { LaborDescript = "Mobilization/Demob", LaborUnit = "Lot", Project = newProject },
-                new Labor { LaborDescript = "Tools & Equipment", LaborUnit = "Lot", Project = newProject },
-                new Labor { LaborDescript = "Other Incidental Costs", LaborUnit = "Lot", Project = newProject }
-            };
-
-            foreach (var labor in predefinedCosts)
-            {
-                if (!await _dataContext.Labor
-                    .Include(p => p.Project)
-                    .AnyAsync(proj => proj.Project.ProjDescript == newProject.ProjDescript && proj.LaborDescript == labor.LaborDescript))
+                var newClient = new Client
                 {
-                    _dataContext.Labor.Add(labor);
-                }
-            }
+                    ClientContactNum = clientDto.ClientContactNum,
+                    ClientAddress = clientDto.ClientAddress,
+                    ClientMonthlyElectricBill = clientDto.ClientMonthlyElectricBill
+                };
 
-            // Save changes to the database.
-            var saveResult = await _dataContext.SaveChangesAsync();
-            if (saveResult > 0)
-            {
+                _dataContext.Client.Add(newClient);
+
+                var newClientUser = new AppUsers
+                {
+                    UserName = clientDto.FirstName + "_" + clientDto.LastName,
+                    Email = clientDto.Email,
+                    AdminEmail = clientDto.AdminEmail,
+                    Client = newClient
+                };
+
+                var createClientUser = await _userManager.CreateAsync(newClientUser, clientDto.Password);
+                if (!createClientUser.Succeeded)
+                {
+                    var errors = string.Join(", ", createClientUser.Errors.Select(e => e.Description));
+                    return new RegisterResponse("Error occurred: " + errors, false, null);
+                }
+
+                await _dataContext.SaveChangesAsync();
                 return new RegisterResponse("New client added successfully.", true, newClientUser);
             }
-            else
+            catch (Exception ex)
             {
-                return new RegisterResponse("Something went wrong while saving.", false, null);
+                return new RegisterResponse($"An error occurred: {ex.Message}", false, null);
             }
         }
 
@@ -415,6 +364,49 @@ namespace AuthLibrary.Services.Repositories
             }
 
             return clientList.OrderBy(a => a.ClientEmail).ToList();
+        }
+
+        public async Task<ApprovalResponse> ApproveClient(string clientId)
+        {
+            var newClient = await _userManager.Users
+                .Include(c => c.Client)
+                .FirstOrDefaultAsync(u => u.Id == clientId);
+
+            if (newClient == null) return new ApprovalResponse(false, null);
+
+
+            Project newProject = new Project
+            {
+                ProjDescript = $"{newClient.Client.ClientAddress} Solar Project",
+                ProjName = $"{newClient.NormalizedUserName} Project",
+                Client = newClient
+            };
+
+            _dataContext.Project.Add(newProject);
+
+
+
+            var predefinedCosts = new[]
+            {
+                new Labor { LaborDescript = "Manpower", LaborUnit = "Days", Project = newProject },
+                new Labor { LaborDescript = "Project Manager - Electrical Engr.", LaborQuantity = 1, LaborUnit = "Days", Project = newProject },
+                new Labor { LaborDescript = "Mobilization/Demob", LaborUnit = "Lot", Project = newProject },
+                new Labor { LaborDescript = "Tools & Equipment", LaborUnit = "Lot", Project = newProject },
+                new Labor { LaborDescript = "Other Incidental Costs", LaborUnit = "Lot", Project = newProject }
+            };
+
+            foreach (var labor in predefinedCosts)
+            {
+                if (!await _dataContext.Labor
+                    .Include(p => p.Project)
+                    .AnyAsync(proj => proj.Project.ProjDescript == newProject.ProjDescript && proj.LaborDescript == labor.LaborDescript))
+                {
+                    _dataContext.Labor.Add(labor);
+                }
+            }
+
+            newClient.Status = "Active";
+            return new ApprovalResponse(await Save(), newClient);
         }
     }
 }

@@ -14,7 +14,15 @@ namespace BaiSol.Server.Controllers.Projects
         [HttpPost("Add-Material")]
         public async Task<IActionResult> NewMaterial(MaterialDTO getMaterialDTO)
         {
+            // Retrieve the client IP address
+            var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
+
             if (getMaterialDTO == null) return BadRequest(ModelState);
+
+            // Validate IP address
+            if (string.IsNullOrWhiteSpace(ipAddress)) return BadRequest("IP address is required and cannot be empty");
+
+            getMaterialDTO.UserIpAddress = ipAddress;
 
             var result = await _material.AddNewMaterial(getMaterialDTO);
 
@@ -78,5 +86,62 @@ namespace BaiSol.Server.Controllers.Projects
 
             return Ok(new { QOH = qoh });
         }
+
+        [HttpPut("Update-MaterialPAndQ")]
+        public async Task<IActionResult> UpdateQAndPMaterial(UpdateQAndPMaterialDTO updateMaterial)
+        {
+
+            // Retrieve the client IP address
+            var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
+
+            // Validate IP address
+            if (string.IsNullOrWhiteSpace(ipAddress)) return BadRequest("IP address is required and cannot be empty");
+
+            updateMaterial.UserIpAddress = ipAddress;
+            var updateMtaerial = await _material.UpdateQAndPMaterial(updateMaterial);
+
+
+            return Ok(updateMtaerial);
+        }
+
+        [HttpPut("Update-MaterialUAndD")]
+        public async Task<IActionResult> UpdateUAndDMaterial(UpdateMaterialUAndC updateMaterial)
+        {
+
+            // Retrieve the client IP address
+            var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
+
+            // Validate IP address
+            if (string.IsNullOrWhiteSpace(ipAddress)) return BadRequest("IP address is required and cannot be empty");
+
+            updateMaterial.UserIpAddress = ipAddress;
+            var updateMtaerial = await _material.UpdateUAndDMaterial(updateMaterial);
+
+
+            return Ok(updateMtaerial);
+        }
+
+        [HttpDelete("Delete-Material/{mtlId}")]
+        public async Task<IActionResult> DeleteMaterialById(int mtlId, string adminEmail)
+        {
+            // Retrieve the client IP address
+            var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
+
+            // Validate IP address
+            if (string.IsNullOrWhiteSpace(ipAddress)) return BadRequest("IP address is required and cannot be empty");
+
+            var (success, message) = await _material.DeleteMaterial(mtlId, adminEmail, ipAddress);
+
+            if (success)
+            {
+                return Ok(message);
+            }
+            else
+            {
+                return BadRequest(message);
+            }
+        }
+
+
     }
 }

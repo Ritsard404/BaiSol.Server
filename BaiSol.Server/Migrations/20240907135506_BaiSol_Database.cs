@@ -272,6 +272,33 @@ namespace BaiSol.Server.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "UserLogs",
+                columns: table => new
+                {
+                    LogId = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Action = table.Column<string>(type: "text", nullable: false),
+                    EntityName = table.Column<string>(type: "text", nullable: false),
+                    EntityId = table.Column<string>(type: "text", nullable: false),
+                    UserIPAddress = table.Column<string>(type: "text", nullable: false),
+                    Details = table.Column<string>(type: "text", nullable: false),
+                    UserId = table.Column<string>(type: "text", nullable: false),
+                    UserName = table.Column<string>(type: "text", nullable: false),
+                    UserRole = table.Column<string>(type: "text", nullable: false),
+                    Timestamp = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_UserLogs", x => x.LogId);
+                    table.ForeignKey(
+                        name: "FK_UserLogs_AspNetUsers_UserId",
+                        column: x => x.UserId,
+                        principalTable: "AspNetUsers",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "Labor",
                 columns: table => new
                 {
@@ -460,6 +487,11 @@ namespace BaiSol.Server.Migrations
                 name: "IX_Supply_ProjectProjId",
                 table: "Supply",
                 column: "ProjectProjId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_UserLogs_UserId",
+                table: "UserLogs",
+                column: "UserId");
         }
 
         /// <inheritdoc />
@@ -488,6 +520,9 @@ namespace BaiSol.Server.Migrations
 
             migrationBuilder.DropTable(
                 name: "Supply");
+
+            migrationBuilder.DropTable(
+                name: "UserLogs");
 
             migrationBuilder.DropTable(
                 name: "AspNetRoles");

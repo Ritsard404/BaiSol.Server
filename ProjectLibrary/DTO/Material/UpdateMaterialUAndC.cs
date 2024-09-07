@@ -1,18 +1,20 @@
-﻿
-
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
 using System.Text.Json.Serialization;
+using System.Threading.Tasks;
 
 namespace ProjectLibrary.DTO.Material
 {
-    public class MaterialDTO
+    public class UpdateMaterialUAndC
     {
+        public required string MTLCode { get; set; }
         public required string MTLDescript { get; set; }
-        public decimal MTLPrice { get; set; }
-        public int MTLQOH { get; set; }
-        public required string MTLCategory { get; set; }
         public required string MTLUnit { get; set; }
         public required string UserEmail { get; set; }
+
         [JsonIgnore]
-        public string? UserIpAddress { get; set; }
+        public required string UserIpAddress { get; set; }
     }
 }
