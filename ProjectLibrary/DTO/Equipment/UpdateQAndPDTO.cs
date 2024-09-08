@@ -6,13 +6,13 @@ using System.Text;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 
-namespace ProjectLibrary.DTO.Material
+namespace ProjectLibrary.DTO.Equipment
 {
-    public class UpdateQAndPMaterialDTO
+    public class UpdateQAndPDTO
     {
-        public int MTLId { get; set; }
-        public decimal MTLPrice { get; set; }
-        public int MTLQOH { get; set; }
+        public int EQPTId { get; set; }
+        public decimal EQPTPrice { get; set; }
+        public int EQPTQOH { get; set; }
         [EmailAddress]
         public required string UserEmail { get; set; }
         [JsonIgnore]

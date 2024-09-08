@@ -53,7 +53,7 @@ namespace ProjectLibrary.Services.Repositories
             {
                 Action = "Create",
                 EntityName = "Material",
-                EntityId = uniqueMTLCode,
+                EntityId = materialMap.MTLId.ToString(),
                 UserIPAddress = materialDto.UserIpAddress,
                 Details = $"New material named {materialMap.MTLDescript} added. With a quantity of {materialMap.MTLQOH}",
                 UserId = user.Id,

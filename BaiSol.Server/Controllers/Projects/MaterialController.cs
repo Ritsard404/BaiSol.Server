@@ -53,11 +53,6 @@ namespace BaiSol.Server.Controllers.Projects
         {
             var categories = await _material.GetMaterialCategories();
 
-            if (categories == null || !categories.Any())
-            {
-                return StatusCode(400, "Empty Category");
-            }
-
             return Ok(categories);
         }
 
@@ -66,10 +61,6 @@ namespace BaiSol.Server.Controllers.Projects
         {
             var availableMaterials = await _material.GetMaterialsByCategory(projId, category);
 
-            //if (availableMaterials == null || !availableMaterials.Any())
-            //{
-            //    return StatusCode(400, "Empty Materials");
-            //}
 
             return Ok(availableMaterials);
         }

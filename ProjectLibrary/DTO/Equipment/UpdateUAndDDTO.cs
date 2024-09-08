@@ -6,15 +6,16 @@ using System.Text;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 
-namespace ProjectLibrary.DTO.Material
+namespace ProjectLibrary.DTO.Equipment
 {
-    public class UpdateQAndPMaterialDTO
+    public class UpdateUAndDDTO
     {
-        public int MTLId { get; set; }
-        public decimal MTLPrice { get; set; }
-        public int MTLQOH { get; set; }
+        public required string EQPTCode { get; set; }
+        public required string EQPTDescript { get; set; }
+        public required string EQPTUnit { get; set; }
         [EmailAddress]
         public required string UserEmail { get; set; }
+
         [JsonIgnore]
         public required string UserIpAddress { get; set; }
     }
