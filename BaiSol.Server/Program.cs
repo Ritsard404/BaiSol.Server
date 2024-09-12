@@ -129,7 +129,9 @@ namespace BaiSol.Server
             // Add CORS to services
             builder.Services.AddCors(options =>
             {
-                var frontEndUrl = builder.Configuration.GetValue<string>("FrontEnd_Url");
+                //var frontEndUrl = builder.Configuration.GetValue<string>("FrontEnd_Url");
+
+                var frontEndUrl = builder.Configuration.GetSection("FrontEnd_Url").Get<string[]>();
                 options.AddDefaultPolicy(builder =>
                 {
                     builder.WithOrigins(frontEndUrl)
