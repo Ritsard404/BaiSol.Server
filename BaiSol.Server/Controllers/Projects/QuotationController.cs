@@ -34,10 +34,10 @@ namespace BaiSol.Server.Controllers.Projects
             var categoryCost = await _quote.GetMaterialCategoryCostQuote(projectId);
             var totalProjectCost = await _quote.GetProjectTotalCostQuote(projectId);
 
-            if (materialCost == null || !materialCost.Any())
-            {
-                return StatusCode(400, "Empty Material Cost");
-            }
+            //if (materialCost == null || !materialCost.Any())
+            //{
+            //    return StatusCode(400, "Empty Material Cost");
+            //}
 
             return Ok(new
             {
@@ -52,10 +52,10 @@ namespace BaiSol.Server.Controllers.Projects
             var materialAndCategoryCost = await _quote.GetProjectAndMaterialsTotalCostQuote(projectId);
             var totalProjectCost = await _quote.GetProjectTotalCostQuote(projectId);
 
-            if (materialAndCategoryCost == null || !materialAndCategoryCost.Any())
-            {
-                return StatusCode(400, "Empty Material Cost");
-            }
+            //if (materialAndCategoryCost == null || !materialAndCategoryCost.Any())
+            //{
+            //    return StatusCode(400, "Empty Material Cost");
+            //}
 
             return Ok(new
             {
@@ -86,10 +86,10 @@ namespace BaiSol.Server.Controllers.Projects
             var laborCost = await _quote.GetLaborCostQuote(projectId);
             var totalLaborCost = await _quote.GetTotalLaborCostQuote(projectId);
 
-            if (laborCost == null || !laborCost.Any())
-            {
-                return StatusCode(400, "Empty Labor Cost");
-            }
+            //if (laborCost == null || !laborCost.Any())
+            //{
+            //    return StatusCode(400, "Empty Labor Cost");
+            //}
 
             return Ok(new
             {

@@ -40,10 +40,10 @@ namespace BaiSol.Server.Controllers.Projects
         {
             var material = await _material.GetMaterials();
 
-            if (material == null || !material.Any())
-            {
-                return StatusCode(400, "Empty Materials");
-            }
+            //if (material == null || !material.Any())
+            //{
+            //    return StatusCode(400, "Empty Materials");
+            //}
 
             return Ok(material);
         }
@@ -70,10 +70,10 @@ namespace BaiSol.Server.Controllers.Projects
         {
             var qoh = await _material.GetQOHMaterial(mtlId);
 
-            if (qoh < 0)
-            {
-                return StatusCode(400, "Empty Material");
-            }
+            //if (qoh < 0)
+            //{
+            //    return StatusCode(400, "Empty Material");
+            //}
 
             return Ok(new { QOH = qoh });
         }
@@ -112,7 +112,7 @@ namespace BaiSol.Server.Controllers.Projects
             return Ok(updateMtaerial);
         }
 
-        [HttpDelete("Delete-Material/{mtlId}")]
+        [HttpDelete("Delete-Material")]
         public async Task<IActionResult> DeleteMaterialById(int mtlId, string adminEmail)
         {
             // Retrieve the client IP address

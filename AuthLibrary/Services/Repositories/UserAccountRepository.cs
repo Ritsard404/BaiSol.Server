@@ -1,7 +1,6 @@
 ﻿using AuthLibrary.DTO;
 using AuthLibrary.Models;
 using AuthLibrary.Services.Interfaces;
-using AuthLibrary.Services.Responses;
 using DataLibrary.Data;
 using DataLibrary.Models;
 using Microsoft.AspNetCore.Identity;
@@ -311,7 +310,8 @@ namespace AuthLibrary.Services.Repositories
                     UserName = clientDto.FirstName + "_" + clientDto.LastName,
                     Email = clientDto.Email,
                     AdminEmail = clientDto.AdminEmail,
-                    Client = newClient
+                    Client = newClient,
+                    Status = "Pending"
                 };
 
                 var createClientUser = await _userManager.CreateAsync(newClientUser, clientDto.Password);
@@ -320,6 +320,8 @@ namespace AuthLibrary.Services.Repositories
                     var errors = string.Join(", ", createClientUser.Errors.Select(e => e.Description));
                     return new RegisterResponse("Error occurred: " + errors, false, null);
                 }
+
+                await _userManager.AddToRoleAsync(newClientUser, UserRoles.Client);
 
                 await _dataContext.SaveChangesAsync();
                 return new RegisterResponse("New client added successfully.", true, newClientUser);

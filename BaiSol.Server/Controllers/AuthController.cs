@@ -5,11 +5,8 @@ using BaiSol.Server.Models.Email;
 using BaseLibrary.Services.Interfaces;
 using DataLibrary.Models;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Core.Infrastructure;
-using System.ComponentModel.DataAnnotations;
 namespace BaiSol.Server.Controllers
 {
     [Route("auth/[controller]")]
@@ -33,7 +30,7 @@ namespace BaiSol.Server.Controllers
                 var result = await _userManager.ConfirmEmailAsync(user, token);
                 if (result.Succeeded)
                 {
-                    return Ok("Your Email Account Verified");
+                    return Ok("Your email is successfully verified!");
                 }
             }
 

@@ -1,6 +1,5 @@
 ﻿using AuthLibrary.DTO;
 using AuthLibrary.Services.Interfaces;
-using AuthLibrary.Services.Responses;
 using DataLibrary.Data;
 using DataLibrary.Models;
 using Microsoft.AspNetCore.Identity;

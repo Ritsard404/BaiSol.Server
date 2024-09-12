@@ -17,6 +17,6 @@ namespace ProjectLibrary.DTO.Material
         public required string UserEmail { get; set; }
 
         [JsonIgnore]
-        public required string UserIpAddress { get; set; }
+        public string? UserIpAddress { get; set; }
     }
 }

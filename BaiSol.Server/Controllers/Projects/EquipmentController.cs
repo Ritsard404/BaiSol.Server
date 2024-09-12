@@ -97,8 +97,8 @@ namespace BaiSol.Server.Controllers.Projects
             return Ok(updateMtaerial);
         }
 
-        [HttpDelete("Delete-Equipment/{mtlId}")]
-        public async Task<IActionResult> DeleteEquipmentById(int mtlId, string adminEmail)
+        [HttpDelete("Delete-Equipment")]
+        public async Task<IActionResult> DeleteEquipmentById(int eqptId, string adminEmail)
         {
             // Retrieve the client IP address
             var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
@@ -106,7 +106,7 @@ namespace BaiSol.Server.Controllers.Projects
             // Validate IP address
             if (string.IsNullOrWhiteSpace(ipAddress)) return BadRequest("IP address is required and cannot be empty");
 
-            var (success, message) = await _equipment.DeleteEquipment(mtlId, adminEmail, ipAddress);
+            var (success, message) = await _equipment.DeleteEquipment(eqptId, adminEmail, ipAddress);
 
             if (success)
             {

@@ -1,14 +1,10 @@
 ﻿using AuthLibrary.DTO;
 using AuthLibrary.Services.Interfaces;
-using AuthLibrary.Services.Repositories;
 using BaiSol.Server.Models.Email;
 using BaseLibrary.Services.Interfaces;
 using DataLibrary.Models;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.IdentityModel.Tokens;
-using System.Net.Sockets;
 
 namespace BaiSol.Server.Controllers
 {
@@ -104,6 +100,7 @@ namespace BaiSol.Server.Controllers
                 new string[] { approveClient.ClientUser.Email! },
                 "Email Confirmation Link",
                 $"Dear {approveClient.ClientUser.UserName},<br/><br/>" +
+                $"Your registration is approved by the company.<br/>" +
                 $"Please confirm your account by clicking the link below:<br/>" +
                 $"<a href='{confirmationLink}'>Confirm Your Email</a><br/><br/>" +
                 $"If you did not create an account, please disregard this email.<br/><br/>" +
@@ -149,16 +146,16 @@ namespace BaiSol.Server.Controllers
         {
             var users = await _userAccount.GetUsersByRole(role);
 
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ModelState);
+            //if (!ModelState.IsValid)
+            //{
+            //    return BadRequest(ModelState);
 
-            }
+            //}
 
-            if (users == null || !users.Any())
-            {
-                return StatusCode(400, "Empty Users");
-            }
+            //if (users == null || !users.Any())
+            //{
+            //    return StatusCode(400, "Empty Users");
+            //}
 
             return Ok(users);
         }
