@@ -1,6 +1,7 @@
 ﻿using DataLibrary.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Org.BouncyCastle.Asn1.Ocsp;
 using ProjectLibrary.DTO.Material;
 using ProjectLibrary.Services.Interfaces;
 
@@ -89,10 +90,17 @@ namespace BaiSol.Server.Controllers.Projects
             if (string.IsNullOrWhiteSpace(ipAddress)) return BadRequest("IP address is required and cannot be empty");
 
             updateMaterial.UserIpAddress = ipAddress;
-            var updateMtaerial = await _material.UpdateQAndPMaterial(updateMaterial);
 
+            var (success, message) = await _material.UpdateQAndPMaterial(updateMaterial);
 
-            return Ok(updateMtaerial);
+            if (success)
+            {
+                return Ok(message);
+            }
+            else
+            {
+                return BadRequest(message);
+            }
         }
 
         [HttpPut("Update-MaterialUAndD")]
@@ -106,10 +114,17 @@ namespace BaiSol.Server.Controllers.Projects
             if (string.IsNullOrWhiteSpace(ipAddress)) return BadRequest("IP address is required and cannot be empty");
 
             updateMaterial.UserIpAddress = ipAddress;
-            var updateMtaerial = await _material.UpdateUAndDMaterial(updateMaterial);
 
+            var (success, message) = await _material.UpdateUAndDMaterial(updateMaterial);
 
-            return Ok(updateMtaerial);
+            if (success)
+            {
+                return Ok(message);
+            }
+            else
+            {
+                return BadRequest(message);
+            }
         }
 
         [HttpDelete("Delete-Material")]

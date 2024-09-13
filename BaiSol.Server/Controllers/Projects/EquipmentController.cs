@@ -39,10 +39,10 @@ namespace BaiSol.Server.Controllers.Projects
         {
             var equipment = await _equipment.GetAllEquipment();
 
-            if (equipment == null || !equipment.Any())
-            {
-                return StatusCode(400, "Empty Equipment");
-            }
+            //if (equipment == null || !equipment.Any())
+            //{
+            //    return StatusCode(400, "Empty Equipment");
+            //}
 
             return Ok(equipment);
         }
@@ -74,10 +74,17 @@ namespace BaiSol.Server.Controllers.Projects
             if (string.IsNullOrWhiteSpace(ipAddress)) return BadRequest("IP address is required and cannot be empty");
 
             updateEquipment.UserIpAddress = ipAddress;
-            var updateMtaerial = await _equipment.UpdateQAndPEquipment(updateEquipment);
 
+            var (success, message) = await _equipment.UpdateQAndPEquipment(updateEquipment);
 
-            return Ok(updateMtaerial);
+            if (success)
+            {
+                return Ok(message);
+            }
+            else
+            {
+                return BadRequest(message);
+            }
         }
 
         [HttpPut("Update-EquipmentUAndD")]
@@ -91,10 +98,17 @@ namespace BaiSol.Server.Controllers.Projects
             if (string.IsNullOrWhiteSpace(ipAddress)) return BadRequest("IP address is required and cannot be empty");
 
             updateEquipment.UserIpAddress = ipAddress;
-            var updateMtaerial = await _equipment.UpdateUAndDEquipment(updateEquipment);
 
+            var (success, message) = await _equipment.UpdateUAndDEquipment(updateEquipment);
 
-            return Ok(updateMtaerial);
+            if (success)
+            {
+                return Ok(message);
+            }
+            else
+            {
+                return BadRequest(message);
+            }
         }
 
         [HttpDelete("Delete-Equipment")]

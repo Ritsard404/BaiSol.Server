@@ -372,6 +372,7 @@ namespace BaiSol.Server.Migrations
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     MTLQuantity = table.Column<int>(type: "integer", nullable: true),
                     EQPTQuantity = table.Column<int>(type: "integer", nullable: true),
+                    Price = table.Column<decimal>(type: "numeric", nullable: false),
                     MaterialMTLId = table.Column<int>(type: "integer", nullable: true),
                     EquipmentEQPTId = table.Column<int>(type: "integer", nullable: true),
                     ProjectProjId = table.Column<string>(type: "text", nullable: true)

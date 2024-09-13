@@ -10,12 +10,12 @@ namespace ProjectLibrary.Services.Interfaces
     public interface IEquipment
     {
         Task<string> AddNewEquipment(EquipmentDTO equipment);
-        Task<ICollection<GetEquipmentDTO>> GetAllEquipment(); 
+        Task<ICollection<GetEquipmentDTO>> GetAllEquipment();
         Task<ICollection<GetAllEquipmentCategory>> GetEquipmentCategories();
         Task<ICollection<AvailableByCategoryEquipmentDTO>> GetEquipmentByCategory(string projId, string category);
 
-        Task<string> UpdateQAndPEquipment(UpdateQAndPDTO updateEquipment);
-        Task<string> UpdateUAndDEquipment(UpdateUAndDDTO updateEquipment);
+        Task<(bool, string)> UpdateQAndPEquipment(UpdateQAndPDTO updateEquipment);
+        Task<(bool, string)> UpdateUAndDEquipment(UpdateUAndDDTO updateEquipment);
         Task<bool> IsEQPTCodeExist(string eqptCode);
         Task<bool> IsEQPTDescriptExist(string eqptDescript);
         Task<(bool, string)> DeleteEquipment(int eqptId, string adminEmail, string ipAdd);

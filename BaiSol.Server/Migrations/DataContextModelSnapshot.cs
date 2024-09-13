@@ -402,6 +402,9 @@ namespace BaiSol.Server.Migrations
                     b.Property<int?>("MaterialMTLId")
                         .HasColumnType("integer");
 
+                    b.Property<decimal>("Price")
+                        .HasColumnType("numeric");
+
                     b.Property<string>("ProjectProjId")
                         .HasColumnType("text");
 

@@ -91,6 +91,7 @@ namespace ProjectLibrary.Services.Repositories
             var newSupply = new Supply
             {
                 MTLQuantity = materialQuoteDto.MTLQuantity,
+                Price = projectMaterial.MTLPrice,
                 Material = projectMaterial,
                 Project = clientProject
 

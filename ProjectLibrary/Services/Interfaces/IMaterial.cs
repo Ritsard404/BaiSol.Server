@@ -5,8 +5,8 @@ namespace ProjectLibrary.Services.Interfaces
     public interface IMaterial
     {
         Task<string> AddNewMaterial(MaterialDTO material);
-        Task<string> UpdateQAndPMaterial(UpdateQAndPMaterialDTO updateMaterial);
-        Task<string> UpdateUAndDMaterial(UpdateMaterialUAndC updateMaterial);
+        Task<(bool, string)> UpdateQAndPMaterial(UpdateQAndPMaterialDTO updateMaterial);
+        Task<(bool, string)> UpdateUAndDMaterial(UpdateMaterialUAndC updateMaterial);
         Task<bool> IsMTLCodeExist(string mtlCode);
         Task<ICollection<GetMaterialDTO>> GetMaterials();
         Task<ICollection<GetAllMaterialCategory>> GetMaterialCategories();

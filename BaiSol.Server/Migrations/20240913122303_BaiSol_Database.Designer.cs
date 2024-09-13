@@ -12,7 +12,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace BaiSol.Server.Migrations
 {
     [DbContext(typeof(DataContext))]
-    [Migration("20240907135506_BaiSol_Database")]
+    [Migration("20240913122303_BaiSol_Database")]
     partial class BaiSol_Database
     {
         /// <inheritdoc />
@@ -404,6 +404,9 @@ namespace BaiSol.Server.Migrations
 
                     b.Property<int?>("MaterialMTLId")
                         .HasColumnType("integer");
+
+                    b.Property<decimal>("Price")
+                        .HasColumnType("numeric");
 
                     b.Property<string>("ProjectProjId")
                         .HasColumnType("text");

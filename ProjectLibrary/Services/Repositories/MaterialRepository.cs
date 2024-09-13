@@ -48,6 +48,7 @@ namespace ProjectLibrary.Services.Repositories
 
             // Add the material to the database
             _dataContext.Material.Add(materialMap);
+            await Save();
 
             UserLogs logs = new UserLogs
             {
@@ -191,54 +192,68 @@ namespace ProjectLibrary.Services.Repositories
             return await saved > 0 ? true : false;
         }
 
-        public async Task<string> UpdateQAndPMaterial(UpdateQAndPMaterialDTO updateMaterial)
+        public async Task<(bool, string)> UpdateQAndPMaterial(UpdateQAndPMaterialDTO updateMaterial)
         {
             var material = await _dataContext.Material
                 .FirstOrDefaultAsync(m => m.MTLId == updateMaterial.MTLId);
 
-            if (material == null) return "Material not exist";
+            if (material == null) return (false, "Material does not exist");
+
+            // Check if the material is used in any ongoing project
+            var isUsed = await _dataContext.Supply
+                .AnyAsync(s => s.Material == material && s.Project.Status == "OnGoing" && s.Material.MTLStatus == "Good");
 
             // Store old values
             var oldQuantity = material.MTLQOH;
             var oldPrice = material.MTLPrice;
 
             material.MTLQOH = updateMaterial.MTLQOH;
-            material.MTLPrice = updateMaterial.MTLPrice;
+            if (!isUsed) material.MTLPrice = updateMaterial.MTLPrice; // Update price only if not used
             material.UpdatedAt = DateTimeOffset.UtcNow;
-
 
             // Check User Existence
             var user = await _userManager.FindByEmailAsync(updateMaterial.UserEmail);
-            if (user == null) return "Invalid User!";
-            var userRole = await _userManager.GetRolesAsync(user);
+            if (user == null) return (false, "Invalid User!");
 
-            UserLogs logs = new UserLogs
+            var userRole = (await _userManager.GetRolesAsync(user)).FirstOrDefault();
+
+            // Log details
+            var details = isUsed
+                ? $"Updated material '{material.MTLDescript}'. Old Quantity: {oldQuantity}, New Quantity: {material.MTLQOH}. Price was not updated because it is used in ongoing projects."
+                : $"Updated material '{material.MTLDescript}'. Old Quantity: {oldQuantity}, New Quantity: {material.MTLQOH}. Old Price: ₱{oldPrice}, New Price: ₱{material.MTLPrice}";
+
+            _dataContext.UserLogs.Add(new UserLogs
             {
                 Action = "Update",
                 EntityName = "Material",
                 EntityId = material.MTLId.ToString(),
                 UserIPAddress = updateMaterial.UserIpAddress,
-                Details = $"Updated material '{material.MTLDescript}'. " +
-                  $"Old Quantity: {oldQuantity}, New Quantity: {material.MTLQOH}. " +
-                  $"Old Price: ₱{oldPrice}, New Price: ₱{material.MTLPrice}",
+                Details = details,
                 UserId = user.Id,
                 UserName = user.NormalizedUserName,
-                UserRole = userRole.FirstOrDefault(),
+                UserRole = userRole,
                 User = user,
-            };
-            _dataContext.UserLogs.Add(logs);
+            });
 
             await Save();
+            if (isUsed) return (true, "The material quantity was sccuessfully updated!");
 
-            return "THe material was successfully updated!";
+            return (true, "The material was successfully updated!");
         }
 
-        public async Task<string> UpdateUAndDMaterial(UpdateMaterialUAndC updateMaterial)
+        public async Task<(bool, string)> UpdateUAndDMaterial(UpdateMaterialUAndC updateMaterial)
         {
             var material = await _dataContext.Material
                 .FirstOrDefaultAsync(m => m.MTLCode == updateMaterial.MTLCode);
 
-            if (material == null) return "Material not exist";
+            if (material == null) return (false, "Material not exist");
+
+
+            //// Check if the material is used in any finished project
+            //var isUsed = await _dataContext.Supply
+            //    .AnyAsync(s => s.Material == material && s.Project.Status == "OnGoing" && s.Material.MTLStatus == "Good");
+
+            //if (isUsed) return (false, "Material cannot be update because it is used in ongoing projects.");
 
             // Store old values
             var oldDesc = material.MTLDescript;
@@ -251,7 +266,7 @@ namespace ProjectLibrary.Services.Repositories
 
             // Check User Existence
             var user = await _userManager.FindByEmailAsync(updateMaterial.UserEmail);
-            if (user == null) return "Invalid User!";
+            if (user == null) return (false, "Invalid User!");
             var userRole = await _userManager.GetRolesAsync(user);
 
             UserLogs logs = new UserLogs
@@ -272,7 +287,7 @@ namespace ProjectLibrary.Services.Repositories
 
             await Save();
 
-            return "THe material was successfully updated!";
+            return (true, "The material was successfully updated!");
         }
     }
 }

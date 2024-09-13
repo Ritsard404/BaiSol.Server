@@ -48,6 +48,7 @@ namespace ProjectLibrary.Services.Repositories
 
             // Add the equipment to the database
             _dataContext.Equipment.Add(equipmentMap);
+            await Save();
 
 
             UserLogs logs = new UserLogs
@@ -332,55 +333,64 @@ namespace ProjectLibrary.Services.Repositories
             return await saved > 0 ? true : false;
         }
 
-        public async Task<string> UpdateQAndPEquipment(UpdateQAndPDTO updateEquipment)
+        public async Task<(bool, string)> UpdateQAndPEquipment(UpdateQAndPDTO updateEquipment)
         {
             var equipment = await _dataContext.Equipment
                 .FirstOrDefaultAsync(m => m.EQPTId == updateEquipment.EQPTId);
 
-            if (equipment == null) return "Equipment not exist";
+            if (equipment == null) return (false, "Equipment not exist");
+
+
+            // Check if the equipment is used in any finished project
+            var isUsed = await _dataContext.Supply
+                .AnyAsync(s => s.Equipment == equipment && s.Project.Status == "OnGoing" && s.Equipment.EQPTStatus == "Good");
 
             // Store old values
             var oldQuantity = equipment.EQPTQOH;
             var oldPrice = equipment.EQPTPrice;
 
             equipment.EQPTQOH = updateEquipment.EQPTQOH;
-            equipment.EQPTPrice = updateEquipment.EQPTPrice;
+            if (!isUsed) equipment.EQPTPrice = updateEquipment.EQPTPrice;
             equipment.UpdatedAt = DateTimeOffset.UtcNow;
 
 
             // Check User Existence
             var user = await _userManager.FindByEmailAsync(updateEquipment.UserEmail);
-            if (user == null) return "Invalid User!";
+            if (user == null) return (false, "Invalid User!");
             var userRole = await _userManager.GetRolesAsync(user);
 
-            UserLogs logs = new UserLogs
+            // Log details
+            var details = isUsed
+                ? $"Updated material '{equipment.EQPTDescript}'. Old Quantity: {oldQuantity}, New Quantity: {equipment.EQPTQOH}. Price was not updated because it is used in ongoing projects."
+                : $"Updated material '{equipment.EQPTDescript}'. Old Quantity: {oldQuantity}, New Quantity: {equipment.EQPTQOH}. Old Price: ₱{oldPrice}, New Price: ₱{equipment.EQPTPrice}";
+
+
+            _dataContext.UserLogs.Add(new UserLogs
             {
                 Action = "Update",
                 EntityName = "Equipment",
                 EntityId = equipment.EQPTId.ToString(),
                 UserIPAddress = updateEquipment.UserIpAddress,
-                Details = $"Updated equipment '{equipment.EQPTDescript}'. " +
-                  $"Old Quantity: {oldQuantity}, New Quantity: {equipment.EQPTQOH}. " +
-                  $"Old Price: ₱{oldPrice}, New Price: ₱{equipment.EQPTPrice}",
+                Details = details,
                 UserId = user.Id,
                 UserName = user.NormalizedUserName,
                 UserRole = userRole.FirstOrDefault(),
                 User = user,
-            };
-            _dataContext.UserLogs.Add(logs);
+            });
 
             await Save();
+            if (isUsed) return (true, "The equipment quantity was sccuessfully updated!");
 
-            return "THe equipment was successfully updated!";
+            return (true, "The equipment was successfully updated!");
 
         }
 
-        public async Task<string> UpdateUAndDEquipment(UpdateUAndDDTO updateEquipment)
+        public async Task<(bool, string)> UpdateUAndDEquipment(UpdateUAndDDTO updateEquipment)
         {
             var equipment = await _dataContext.Equipment
                 .FirstOrDefaultAsync(m => m.EQPTCode == updateEquipment.EQPTCode);
 
-            if (equipment == null) return "Equipment not exist";
+            if (equipment == null) return (false, "Equipment not exist");
 
             // Store old values
             var oldDesc = equipment.EQPTDescript;
@@ -392,7 +402,7 @@ namespace ProjectLibrary.Services.Repositories
 
             // Check User Existence
             var user = await _userManager.FindByEmailAsync(updateEquipment.UserEmail);
-            if (user == null) return "Invalid User!";
+            if (user == null) return (false, "Invalid User!");
             var userRole = await _userManager.GetRolesAsync(user);
 
             UserLogs logs = new UserLogs
@@ -413,7 +423,7 @@ namespace ProjectLibrary.Services.Repositories
 
             await Save();
 
-            return "THe equipment was successfully updated!";
+            return (true, "The equipment was successfully updated!");
         }
     }
 }
