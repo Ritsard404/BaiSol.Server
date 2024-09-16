@@ -11,7 +11,7 @@ using ProjectLibrary.Services.Interfaces;
 
 namespace ProjectLibrary.Services.Repositories
 {
-    public class QuoteRepository(DataContext _dataContext
+    public class QuoteRepository(DataContext _dataContext, UserManager<AppUsers> _userManager
         ) : IQuote
     {
 
@@ -109,6 +109,102 @@ namespace ProjectLibrary.Services.Repositories
 
         }
 
+        public async Task<(bool, string)> AssignNewEquipment(AssignEquipmentDto assignEquipmentDto)
+        {
+            // Fetch the project based on ProjId
+            var clientProject = await _dataContext.Project
+                .FirstOrDefaultAsync(proj => proj.ProjId == assignEquipmentDto.ProjId);
+
+            if (clientProject == null)
+            {
+                return (false, "Project not found.");
+            }
+
+            // Fetch the equipment based on EQPTId
+            var projectEquipment = await _dataContext.Equipment
+                .FirstOrDefaultAsync(equip => equip.EQPTId == assignEquipmentDto.EQPTId);
+
+            if (projectEquipment == null)
+            {
+                return (false, "Equipment not found.");
+            }
+
+            // Decrease the equipment quantity on hand (QOH)
+            projectEquipment.EQPTQOH -= assignEquipmentDto.EQPTQuantity;
+
+            // Create a new supply entry
+            var newSupply = new Supply
+            {
+                EQPTQuantity = assignEquipmentDto.EQPTQuantity,
+                Price = projectEquipment.EQPTPrice,
+                Equipment = projectEquipment,
+                Project = clientProject
+            };
+
+            // Update the equipment and add the new supply to the database
+            _dataContext.Equipment.Update(projectEquipment);
+            _dataContext.Supply.Add(newSupply);
+
+            // Fetch the user by email and ensure the user exists
+            var user = await _userManager.FindByEmailAsync(assignEquipmentDto.UserEmail);
+            if (user == null)
+            {
+                return (false, "Invalid User!");
+            }
+
+            // Fetch the user's roles
+            var userRole = await _userManager.GetRolesAsync(user);
+
+            // Log the action
+            var logs = new UserLogs
+            {
+                Action = "Create",
+                EntityName = "Supply",
+                EntityId = projectEquipment.EQPTCode,
+                UserIPAddress = assignEquipmentDto.UserIpAddress,
+                Details = $"Equipment named {projectEquipment.EQPTDescript} assigned to project {clientProject.ProjName} with a quantity of {assignEquipmentDto.EQPTQuantity}.",
+                UserId = user.Id,
+                UserName = user.NormalizedUserName,
+                UserRole = userRole.FirstOrDefault(),
+                User = user,
+            };
+            _dataContext.UserLogs.Add(logs);
+
+            // Save changes to the database
+            await Save();
+
+            return (true, "Equipment successfully assigned!");
+        }
+
+        public async Task<bool> DeleteEquipmentSupply(DeleteEquipmentSupplyDto deleteEquipmentSupply)
+        {
+            var supply = await _dataContext.Supply
+                .FirstOrDefaultAsync(i => i.SuppId == deleteEquipmentSupply.SuppId);
+
+            var equipment = await _dataContext.Equipment
+                .FirstOrDefaultAsync(i => i.EQPTId == deleteEquipmentSupply.EQPTId);
+
+            if (supply == null)
+                return false;
+
+            if (equipment == null)
+                return false;
+
+            var log = await LogUserActionAsync(
+                deleteEquipmentSupply.UserEmail,
+                "Delete",
+                "Supply",
+                supply.SuppId.ToString(),
+                $"Equipment named {equipment.EQPTDescript} that is assigned to project {supply.Project.ProjName} was deleted that has quantity of {supply.EQPTQuantity}.",
+                deleteEquipmentSupply.UserIpAddress
+                );
+
+            if (!log)
+                return false;
+
+            return await Save();
+        }
+
         public async Task<bool> DeleteLaborQuote(int laborId)
         {
             var labor = await _dataContext.Labor
@@ -145,6 +241,24 @@ namespace ProjectLibrary.Services.Repositories
 
             // Save changes to the database
             return await Save();
+        }
+
+        public async Task<ICollection<AssignedEquipmentDto>> GetAssignedEquipment(string projectID)
+        {
+            return await _dataContext.Supply
+                .Where(p => p.Project.ProjId == projectID)
+                .Include(i => i.Equipment)
+                .Select(e => new AssignedEquipmentDto
+                {
+                    EQPTId = e.Equipment.EQPTId,
+                    EQPTCode = e.Equipment.EQPTCode,
+                    EQPTDescript = e.Equipment.EQPTDescript,
+                    EQPTCategory = e.Equipment.EQPTCategory,
+                    EQPTUnit = e.Equipment.EQPTUnit,
+                    EQPTPrice = e.Equipment.EQPTPrice,
+                    EQPTQOH = e.Equipment.EQPTQOH
+                })
+                .ToListAsync();
         }
 
         public async Task<ICollection<LaborCostDto>> GetLaborCostQuote(string? projectID)
@@ -349,11 +463,92 @@ namespace ProjectLibrary.Services.Repositories
             };
         }
 
+        public async Task<bool> LogUserActionAsync(string userEmail, string action, string entityName, string entityId, string details, string userIpAddress)
+        {
+            // Fetch the user by email and ensure the user exists
+            var user = await _userManager.FindByEmailAsync(userEmail);
+            if (user == null) return false;
+
+            // Fetch the user's roles
+            var userRole = await _userManager.GetRolesAsync(user);
+
+            // Log the action
+            var logs = new UserLogs
+            {
+                Action = action,
+                EntityName = entityName,
+                EntityId = entityId,
+                UserIPAddress = userIpAddress,
+                Details = details,
+                UserId = user.Id,
+                UserName = user.NormalizedUserName,
+                UserRole = userRole.FirstOrDefault(),
+                User = user,
+            };
+
+            // Add the logs to the database
+            _dataContext.UserLogs.Add(logs);
+
+            // Save changes to the database (assuming you have a Save method)
+            await Save();
+
+            return true;
+        }
 
         public async Task<bool> Save()
         {
             var saved = _dataContext.SaveChangesAsync();
             return await saved > 0 ? true : false;
+        }
+
+        public async Task<bool> UpdateEquipmentQuantity(UpdateEquipmentSupply updateEquipmentSupply)
+        {
+            // Retrieve the Supply entity by suppId
+            var supply = await _dataContext.Supply.FirstOrDefaultAsync(i => i.SuppId == updateEquipmentSupply.SuppId);
+            if (supply == null)
+                return false;
+
+            var equipment = await _dataContext.Equipment.FirstOrDefaultAsync(i => i.EQPTId == updateEquipmentSupply.EQPTId);
+            if (equipment == null)
+                return false;
+
+            var equipmentQOH = equipment.EQPTQOH + (supply.EQPTQuantity ?? 0);
+            if (equipmentQOH < updateEquipmentSupply.Quantity)
+                return false;
+
+            equipment.EQPTQOH = equipmentQOH - updateEquipmentSupply.Quantity;
+
+            // Update the supply quantity to the new value
+            supply.EQPTQuantity = updateEquipmentSupply.Quantity;
+
+            // Mark both entities as modified
+            _dataContext.Equipment.Update(equipment);
+            _dataContext.Supply.Update(supply);
+
+            // Fetch the user by email and ensure the user exists
+            var user = await _userManager.FindByEmailAsync(updateEquipmentSupply.UserEmail);
+            if (user == null)
+                return false;
+
+            // Fetch the user's roles
+            var userRole = await _userManager.GetRolesAsync(user);
+
+            // Log the action
+            var logs = new UserLogs
+            {
+                Action = "Update",
+                EntityName = "Supply",
+                EntityId = supply.SuppId.ToString(),
+                UserIPAddress = updateEquipmentSupply.UserIpAddress,
+                Details = $"Equipment named {equipment.EQPTDescript} that is assigned to project {supply.Project.ProjName} was updated to a quantity of {updateEquipmentSupply.Quantity}.",
+                UserId = user.Id,
+                UserName = user.NormalizedUserName,
+                UserRole = userRole.FirstOrDefault(),
+                User = user,
+            };
+            _dataContext.UserLogs.Add(logs);
+
+            return await Save();
         }
 
         public async Task<bool> UpdateLaborQuoote(UpdateLaborQuote updateLaborQuote)
