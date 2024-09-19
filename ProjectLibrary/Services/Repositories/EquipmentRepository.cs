@@ -149,7 +149,7 @@ namespace ProjectLibrary.Services.Repositories
                 .Where(m => m.EQPTStatus == "Good" && m.EQPTCategory == category)
                 .Where(m => !_dataContext.Supply
                     .Where(s => s.Project.ProjId == projId)
-                    .Select(s => s.Material.MTLId)
+                    .Select(s => s.Equipment.EQPTId)
                     .Contains(m.EQPTId))
                 .Select(a => new AvailableByCategoryEquipmentDTO
                 {
@@ -170,6 +170,14 @@ namespace ProjectLibrary.Services.Repositories
                 .GroupBy(m => m.EQPTCategory)
                 .Select(g => new GetAllEquipmentCategory { Category = g.Key })
                 .ToListAsync();
+        }
+
+        public async Task<int> GetQOHEquipment(int eqptId)
+        {
+            return await _dataContext.Equipment
+                .Where(i => i.EQPTId == eqptId)
+                .Select(q => q.EQPTQOH)
+                .FirstOrDefaultAsync();
         }
 
         public async Task<bool> IsEQPTCodeExist(string eqptCode)

@@ -98,6 +98,32 @@ namespace BaiSol.Server.Controllers.Projects
             });
         }
 
+        [HttpGet("Get-Assigned-Equipment")]
+        public async Task<IActionResult> GetAssignedEquipment(string projectId)
+        {
+            var assignedEquipment = await _quote.GetAssignedEquipment(projectId);
+
+            return Ok(assignedEquipment);
+        }
+
+        [HttpPost("Assign-Equipment")]
+        public async Task<IActionResult> AssignNewEquipment(AssignEquipmentDto assignEquipmentDto)
+        {
+            // Retrieve the client IP address
+            var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
+            // Validate IP address
+            if (string.IsNullOrWhiteSpace(ipAddress)) return BadRequest("IP address is required and cannot be empty");
+            assignEquipmentDto.UserIpAddress = ipAddress;
+
+            var (isAssign, message) = await _quote.AssignNewEquipment(assignEquipmentDto);
+
+            if (isAssign)
+                return Ok(message);
+            else
+                return BadRequest(message);
+        }
+
+
         [HttpPut("Update-Material-Supply-Quantity")]
         public async Task<IActionResult> UpdateMaterialSupplyQuantity(UpdateMaterialSupplyQuantity materialSupplyQuantity)
         {
@@ -128,6 +154,25 @@ namespace BaiSol.Server.Controllers.Projects
             return Ok("Labor updated successfully");
         }
 
+        [HttpPut("Update-Equipment-Quantity")]
+        public async Task<IActionResult> UpdateLaborQuote(UpdateEquipmentSupply updateEquipmentSupply)
+        {
+            if (updateEquipmentSupply == null) return BadRequest(ModelState);
+
+            // Retrieve the client IP address
+            var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
+            // Validate IP address
+            if (string.IsNullOrWhiteSpace(ipAddress)) return BadRequest("IP address is required and cannot be empty");
+            updateEquipmentSupply.UserIpAddress = ipAddress;
+
+            var updateEquipment = await _quote.UpdateEquipmentQuantity(updateEquipmentSupply);
+
+            if (!updateEquipment) return BadRequest("Invalid quantity!");
+
+            return Ok("Equipment updated successfully");
+        }
+
+
         [HttpDelete("Delete-Material-Supply")]
         public async Task<IActionResult> DeleteMaterialSupply(int suppId, int mtlId)
         {
@@ -144,6 +189,22 @@ namespace BaiSol.Server.Controllers.Projects
             var deleteLabor = await _quote.DeleteLaborQuote(laborId);
 
             if (!deleteLabor) return BadRequest("Labor don\'t exist!");
+
+            return Ok("Labor deleted!");
+        }
+
+        [HttpDelete("Delete-Equipment-Supply")]
+        public async Task<IActionResult> DeleteLaborQuote(DeleteEquipmentSupplyDto deleteEquipmentSupply)
+        {
+            // Retrieve the client IP address
+            var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
+            // Validate IP address
+            if (string.IsNullOrWhiteSpace(ipAddress)) return BadRequest("IP address is required and cannot be empty");
+            deleteEquipmentSupply.UserIpAddress = ipAddress;
+
+            var deleteEquipment = await _quote.DeleteEquipmentSupply(deleteEquipmentSupply);
+
+            if (!deleteEquipment) return BadRequest("Supply don\'t exist!");
 
             return Ok("Labor deleted!");
         }

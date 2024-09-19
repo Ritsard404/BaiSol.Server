@@ -85,6 +85,15 @@ namespace ProjectLibrary.Services.Repositories
                 return "Material not found.";
             }
 
+
+            var isMaterialExist = await _dataContext.Supply
+                .FirstOrDefaultAsync(i => i.Material.MTLCode == materialQuoteDto.MTLCode);
+            if (isMaterialExist != null)
+                return "Material supply already exist!";
+
+            if (projectMaterial.MTLQOH < materialQuoteDto.MTLQuantity)
+                return "Invalid quantity!";
+
             projectMaterial.MTLQOH -= materialQuoteDto.MTLQuantity;
 
 
@@ -128,6 +137,14 @@ namespace ProjectLibrary.Services.Repositories
             {
                 return (false, "Equipment not found.");
             }
+
+            if (projectEquipment.EQPTQOH < assignEquipmentDto.EQPTQuantity)
+                return (false, "Invalid quanity!");
+
+            var isEquipmentExist = await _dataContext.Supply
+                .FirstOrDefaultAsync(i => i.Equipment.EQPTId == assignEquipmentDto.EQPTId);
+            if (isEquipmentExist != null)
+                return (false, "Equipment supply already exist!");
 
             // Decrease the equipment quantity on hand (QOH)
             projectEquipment.EQPTQOH -= assignEquipmentDto.EQPTQuantity;
@@ -184,23 +201,29 @@ namespace ProjectLibrary.Services.Repositories
             var equipment = await _dataContext.Equipment
                 .FirstOrDefaultAsync(i => i.EQPTId == deleteEquipmentSupply.EQPTId);
 
-            if (supply == null)
+            if (supply == null || equipment == null)
                 return false;
 
-            if (equipment == null)
-                return false;
+            var logMessage = $"Equipment named {equipment?.EQPTDescript ?? "unknown"} that is assigned to project {supply?.Project?.ProjName ?? "unknown"} was deleted with a quantity of {supply?.EQPTQuantity ?? 0}.";
+
 
             var log = await LogUserActionAsync(
                 deleteEquipmentSupply.UserEmail,
                 "Delete",
                 "Supply",
                 supply.SuppId.ToString(),
-                $"Equipment named {equipment.EQPTDescript} that is assigned to project {supply.Project.ProjName} was deleted that has quantity of {supply.EQPTQuantity}.",
+                logMessage,
                 deleteEquipmentSupply.UserIpAddress
                 );
 
             if (!log)
                 return false;
+
+            equipment.EQPTQOH += supply.EQPTQuantity ?? 0;
+            _dataContext.Equipment.Update(equipment);
+            _dataContext.Supply.Remove(supply);
+
+
 
             return await Save();
         }
@@ -245,20 +268,37 @@ namespace ProjectLibrary.Services.Repositories
 
         public async Task<ICollection<AssignedEquipmentDto>> GetAssignedEquipment(string projectID)
         {
-            return await _dataContext.Supply
-                .Where(p => p.Project.ProjId == projectID)
+            var equipmentSupply = await _dataContext.Supply
+                .Where(p => p.Project != null && p.Project.ProjId == projectID)
                 .Include(i => i.Equipment)
-                .Select(e => new AssignedEquipmentDto
-                {
-                    EQPTId = e.Equipment.EQPTId,
-                    EQPTCode = e.Equipment.EQPTCode,
-                    EQPTDescript = e.Equipment.EQPTDescript,
-                    EQPTCategory = e.Equipment.EQPTCategory,
-                    EQPTUnit = e.Equipment.EQPTUnit,
-                    EQPTPrice = e.Equipment.EQPTPrice,
-                    EQPTQOH = e.Equipment.EQPTQOH
-                })
+                .Where(e => e.Equipment != null) // Ensure Equipment is not null
                 .ToListAsync();
+
+            var category = equipmentSupply
+                .GroupBy(c => c.Equipment?.EQPTCategory) // Group by category, allowing null categories
+                .Select(s => new AssignedEquipmentDto
+                {
+                    EQPTCategory = s.Key ?? "Unknown", // Handle null categories
+                    Details = s
+                        .Where(e => e.Equipment != null) // Check if Equipment is not null
+                        .Select(e => new EquipmentDetails
+                        {
+                            SuppId = e.SuppId,
+                            EQPTId = e.Equipment.EQPTId,
+                            EQPTCode = e.Equipment.EQPTCode,
+                            EQPTDescript = e.Equipment.EQPTDescript,
+                            EQPTUnit = e.Equipment.EQPTUnit,
+                            EQPTPrice = e.Equipment.EQPTPrice,
+                            EQPTQOH = e.EQPTQuantity ?? 0,
+                        })
+                        .OrderBy(n => n.EQPTDescript)
+                        .ThenBy(o => o.EQPTUnit)
+                        .ToList()
+                })
+                .OrderBy(c => c.EQPTCategory)
+                .ToList();
+
+            return category;
         }
 
         public async Task<ICollection<LaborCostDto>> GetLaborCostQuote(string? projectID)
@@ -348,28 +388,34 @@ namespace ProjectLibrary.Services.Repositories
 
             // Group by category and calculate the required totals
             var categoryExpenses = materialSupply
-                .GroupBy(p => p.Material.MTLCategory)
+                .Where(p => p.Material != null) // Ensure Material is not null
+                .GroupBy(p => p.Material.MTLCategory ?? "Unknown") // Handle null categories
                 .Select(g => new AllMaterialCategoriesCostDto
                 {
                     Category = g.Key,
                     TotalCategory = g.Count(),
-                    TotalExpense = g.Sum(s => (decimal)(s.MTLQuantity ?? 0) * s.Material.MTLPrice * 1.3m),
-                    MaterialCostDtos = g.Select(material => new MaterialCostDto
-                    {
-                        SuppId = material.SuppId,
-                        MtlId = material.Material.MTLId,
-                        Description = material.Material.MTLDescript,
-                        Quantity = material.MTLQuantity ?? 0,
-                        Unit = material.Material.MTLUnit,
-                        Category = material.Material.MTLCategory,
-                        UnitCost = material.Material.MTLPrice,
-                        TotalUnitCost = (decimal)((material.MTLQuantity ?? 0) * material.Material.MTLPrice),
-                        BuildUpCost = (decimal)((material.MTLQuantity ?? 0) * material.Material.MTLPrice * 1.3m),
-                        CreatedAt = DateTime.UtcNow.ToString("MMM dd, yyyy"),
-                        UpdatedAt = DateTime.UtcNow.ToString("MMM dd, yyyy"),
-                    }).OrderBy(o => o.Description)
-                    .ThenBy(o => o.Unit) // Secondary sort by Description
-                    .ToList()
+                    TotalExpense = g.Sum(s =>
+                        (decimal)(s.MTLQuantity ?? 0) *
+                        (s.Material?.MTLPrice ?? 0) * 1.3m), // Handle null prices
+                    MaterialCostDtos = g
+                        .Where(material => material.Material != null) // Ensure Material is not null
+                        .Select(material => new MaterialCostDto
+                        {
+                            SuppId = material.SuppId,
+                            MtlId = material.Material?.MTLId ?? 0, // Handle null MTLId
+                            Description = material.Material?.MTLDescript ?? "No Description", // Handle null description
+                            Quantity = material.MTLQuantity ?? 0,
+                            Unit = material.Material?.MTLUnit ?? "Unknown", // Handle null units
+                            Category = material.Material?.MTLCategory ?? "Unknown", // Handle null categories
+                            UnitCost = material.Material?.MTLPrice ?? 0, // Handle null prices
+                            TotalUnitCost = (decimal)((material.MTLQuantity ?? 0) * (material.Material?.MTLPrice ?? 0)),
+                            BuildUpCost = (decimal)((material.MTLQuantity ?? 0) * (material.Material?.MTLPrice ?? 0) * 1.3m),
+                            CreatedAt = DateTime.UtcNow.ToString("MMM dd, yyyy"),
+                            UpdatedAt = DateTime.UtcNow.ToString("MMM dd, yyyy"),
+                        })
+                        .OrderBy(o => o.Description)
+                        .ThenBy(o => o.Unit) // Secondary sort by Description
+                        .ToList()
                 })
                 .OrderBy(c => c.Category)
                 .ToList();
@@ -392,6 +438,7 @@ namespace ProjectLibrary.Services.Repositories
 
             // Calculate total unit cost and build-up cost in one pass
             var (totalUnitCostSum, buildUpCostSum) = materialSupply
+                .Where(m => m.Material != null)
                 .GroupBy(m => m.Material.MTLDescript)
                 .Aggregate(
                     (totalUnitCost: 0m, buildUpCost: 0m),
@@ -504,7 +551,9 @@ namespace ProjectLibrary.Services.Repositories
         public async Task<bool> UpdateEquipmentQuantity(UpdateEquipmentSupply updateEquipmentSupply)
         {
             // Retrieve the Supply entity by suppId
-            var supply = await _dataContext.Supply.FirstOrDefaultAsync(i => i.SuppId == updateEquipmentSupply.SuppId);
+            var supply = await _dataContext.Supply
+                .Include(p=>p.Project)
+                .FirstOrDefaultAsync(i => i.SuppId == updateEquipmentSupply.SuppId);
             if (supply == null)
                 return false;
 
@@ -521,9 +570,11 @@ namespace ProjectLibrary.Services.Repositories
             // Update the supply quantity to the new value
             supply.EQPTQuantity = updateEquipmentSupply.Quantity;
 
+
             // Mark both entities as modified
             _dataContext.Equipment.Update(equipment);
             _dataContext.Supply.Update(supply);
+
 
             // Fetch the user by email and ensure the user exists
             var user = await _userManager.FindByEmailAsync(updateEquipmentSupply.UserEmail);
@@ -538,7 +589,7 @@ namespace ProjectLibrary.Services.Repositories
             {
                 Action = "Update",
                 EntityName = "Supply",
-                EntityId = supply.SuppId.ToString(),
+                EntityId = updateEquipmentSupply.SuppId.ToString(),
                 UserIPAddress = updateEquipmentSupply.UserIpAddress,
                 Details = $"Equipment named {equipment.EQPTDescript} that is assigned to project {supply.Project.ProjName} was updated to a quantity of {updateEquipmentSupply.Quantity}.",
                 UserId = user.Id,
@@ -579,7 +630,8 @@ namespace ProjectLibrary.Services.Repositories
         public async Task<bool> UpdateMaterialQuantity(UpdateMaterialSupplyQuantity materialSupplyQuantity)
         {
             // Retrieve the Supply entity by suppId
-            var supply = await _dataContext.Supply.FirstOrDefaultAsync(i => i.SuppId == materialSupplyQuantity.SuppId);
+            var supply = await _dataContext.Supply
+                .FirstOrDefaultAsync(i => i.SuppId == materialSupplyQuantity.SuppId);
 
             // Check if the supply entity exists
             if (supply == null)

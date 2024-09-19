@@ -47,12 +47,21 @@ namespace BaiSol.Server.Controllers.Projects
             return Ok(equipment);
         }
 
+
+        [HttpGet("Get-Equipment-QOH")]
+        public async Task<IActionResult> GetAvailableEquipment(int eqptId)
+        {
+            var qoh = await _equipment.GetQOHEquipment(eqptId);
+
+            return Ok(new { QOH = qoh });
+        }
+
         [HttpGet("Get-Available-Equipment")]
         public async Task<IActionResult> GetAvailableEquipment(string projId, string category)
         {
-            var availableMaterials = await _equipment.GetEquipmentByCategory(projId, category);
+            var availableEquipment = await _equipment.GetEquipmentByCategory(projId, category);
 
-            return Ok(availableMaterials);
+            return Ok(availableEquipment);
         }
 
         [HttpGet("Get-Categories")]

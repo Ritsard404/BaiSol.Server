@@ -13,6 +13,8 @@ namespace ProjectLibrary.Services.Interfaces
         Task<ICollection<GetEquipmentDTO>> GetAllEquipment();
         Task<ICollection<GetAllEquipmentCategory>> GetEquipmentCategories();
         Task<ICollection<AvailableByCategoryEquipmentDTO>> GetEquipmentByCategory(string projId, string category);
+        Task<int> GetQOHEquipment(int eqptId);
+
 
         Task<(bool, string)> UpdateQAndPEquipment(UpdateQAndPDTO updateEquipment);
         Task<(bool, string)> UpdateUAndDEquipment(UpdateUAndDDTO updateEquipment);
