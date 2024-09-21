@@ -382,6 +382,57 @@ namespace BaiSol.Server.Migrations
                     b.ToTable("ProjectWorkLog");
                 });
 
+            modelBuilder.Entity("DataLibrary.Models.Requisition", b =>
+                {
+                    b.Property<int>("ReqId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("ReqId"));
+
+                    b.Property<DateTimeOffset?>("ApprovedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ApprovedById")
+                        .HasColumnType("text");
+
+                    b.Property<int?>("EquipmentEQPTId")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("MaterialMTLId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("ProjectProjId")
+                        .HasColumnType("text");
+
+                    b.Property<int>("QuantityRequested")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTimeOffset>("SubmittedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("SubmittedById")
+                        .HasColumnType("text");
+
+                    b.HasKey("ReqId");
+
+                    b.HasIndex("ApprovedById");
+
+                    b.HasIndex("EquipmentEQPTId");
+
+                    b.HasIndex("MaterialMTLId");
+
+                    b.HasIndex("ProjectProjId");
+
+                    b.HasIndex("SubmittedById");
+
+                    b.ToTable("Requisition");
+                });
+
             modelBuilder.Entity("DataLibrary.Models.Supply", b =>
                 {
                     b.Property<int>("SuppId")
@@ -662,6 +713,39 @@ namespace BaiSol.Server.Migrations
                     b.Navigation("Installer");
 
                     b.Navigation("Project");
+                });
+
+            modelBuilder.Entity("DataLibrary.Models.Requisition", b =>
+                {
+                    b.HasOne("DataLibrary.Models.AppUsers", "ApprovedBy")
+                        .WithMany()
+                        .HasForeignKey("ApprovedById");
+
+                    b.HasOne("DataLibrary.Models.Equipment", "Equipment")
+                        .WithMany()
+                        .HasForeignKey("EquipmentEQPTId");
+
+                    b.HasOne("DataLibrary.Models.Material", "Material")
+                        .WithMany()
+                        .HasForeignKey("MaterialMTLId");
+
+                    b.HasOne("DataLibrary.Models.Project", "Project")
+                        .WithMany()
+                        .HasForeignKey("ProjectProjId");
+
+                    b.HasOne("DataLibrary.Models.AppUsers", "SubmittedBy")
+                        .WithMany()
+                        .HasForeignKey("SubmittedById");
+
+                    b.Navigation("ApprovedBy");
+
+                    b.Navigation("Equipment");
+
+                    b.Navigation("Material");
+
+                    b.Navigation("Project");
+
+                    b.Navigation("SubmittedBy");
                 });
 
             modelBuilder.Entity("DataLibrary.Models.Supply", b =>

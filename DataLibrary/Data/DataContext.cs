@@ -15,6 +15,7 @@ namespace DataLibrary.Data
         public DbSet<Labor> Labor { get; set; }
         public DbSet<ProjectWorkLog> ProjectWorkLog { get; set; }
         public DbSet<UserLogs> UserLogs { get; set; }
+        public DbSet<Requisition> Requisition { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

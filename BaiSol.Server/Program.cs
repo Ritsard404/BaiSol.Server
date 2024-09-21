@@ -67,7 +67,7 @@ namespace BaiSol.Server
                 .AddRoles<IdentityRole>()
                 .AddDefaultTokenProviders();
 
-            // JWT
+            // JWT Authentication
             builder.Services.AddAuthentication(options =>
             {
                 options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -142,6 +142,22 @@ namespace BaiSol.Server
 
             var app = builder.Build();
 
+            // Seed Default Admin User
+            using (var scope = app.Services.CreateScope())
+            {
+                var services = scope.ServiceProvider;
+                try
+                {
+                    var userManager = services.GetRequiredService<UserManager<AppUsers>>();
+                    var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
+                    SeedAdminUser(userManager, roleManager, builder.Configuration).Wait();
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"An error occurred while seeding the admin user: {ex.Message}");
+                }
+            }
+
             // Configure the HTTP request pipeline.
             if (app.Environment.IsDevelopment())
             {
@@ -159,6 +175,45 @@ namespace BaiSol.Server
             app.MapControllers();
 
             app.Run();
+        }
+
+        private static async Task SeedAdminUser(UserManager<AppUsers> userManager, RoleManager<IdentityRole> roleManager, IConfiguration configuration)
+        {
+            string adminEmail = configuration["OwnerEmail"] ?? "admin@domain.com";
+            string adminPassword = "Admin@1234"; // You can set a stronger password or fetch from configuration
+
+            // Check if the role exists, create if not
+            if (!await roleManager.RoleExistsAsync("Admin"))
+            {
+                await roleManager.CreateAsync(new IdentityRole(UserRoles.Admin));
+                await roleManager.CreateAsync(new IdentityRole(UserRoles.Facilitator));
+                await roleManager.CreateAsync(new IdentityRole(UserRoles.Client));
+            }
+
+            // Check if any users exist
+            if (!userManager.Users.Any())
+            {
+                var adminUser = new AppUsers
+                {
+                    UserName = adminEmail,
+                    Email = adminEmail,
+                    EmailConfirmed = true
+                };
+
+                var result = await userManager.CreateAsync(adminUser, adminPassword);
+                if (result.Succeeded)
+                {
+                    await userManager.AddToRoleAsync(adminUser, "Admin");
+                    Console.WriteLine("Default admin user created successfully.");
+                }
+                else
+                {
+                    foreach (var error in result.Errors)
+                    {
+                        Console.WriteLine($"Error creating admin user: {error.Description}");
+                    }
+                }
+            }
         }
     }
 }

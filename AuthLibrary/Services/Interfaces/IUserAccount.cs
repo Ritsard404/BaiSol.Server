@@ -11,7 +11,7 @@ namespace AuthLibrary.Services.Interfaces
         Task<RegisterResponse> CreateClientAccount(ClientDto clientDto);
         Task<ApprovalResponse> ApproveClient(string clientId);
         void CreateClient(Client client, Project project);
-        Task EnsureRoleExists(string roleName);
+        //Task EnsureRoleExists(string roleName);
         Task<ICollection<UsersDto>> GetUsersAsync();
         Task<ICollection<AdminUsersDto>> GetAdminUsers();
         Task<ICollection<UsersDto>> GetUsersByRole(string role);

@@ -5,6 +5,7 @@ using DataLibrary.Data;
 using DataLibrary.Models;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using static AuthLibrary.Services.Responses.AuthResponse;
 
@@ -12,6 +13,7 @@ namespace AuthLibrary.Services.Repositories
 {
     public class UserAccountRepository(DataContext _dataContext,
         UserManager<AppUsers> _userManager,
+        IConfiguration _configuration,
         RoleManager<IdentityRole> _roleManager,
         ILogger<UserAccountRepository> _logger
         ) : IUserAccount
@@ -65,9 +67,12 @@ namespace AuthLibrary.Services.Repositories
 
         public async Task<ICollection<UsersDto>> GetUsersByRole(string role)
         {
+            var ownerEmail = _configuration["OwnerEmail"];
+
             var users = await _dataContext.Users
                 .Include(user => user.Client)
-                //.Where(user => user.EmailConfirmed) // Consider re-enabling if needed
+                //.Where(user => user.EmailConfirmed || user.Email != ownerEmail) // Consider re-enabling if needed
+                .Where(u => u.Email != ownerEmail)
                 .ToListAsync();
 
             var userList = new List<UsersDto>();
@@ -179,6 +184,10 @@ namespace AuthLibrary.Services.Repositories
             // Check if the provided adminDto is null and return a response if it is.
             if (adminDto is null) return new RegisterResponse("Model is empty", false, null);
 
+            // Check the creator email.
+            var adminCreator = await _userManager.FindByEmailAsync(adminDto.AdminEmail);
+            if (adminCreator == null) return new RegisterResponse("Admin not exist!", false, null);
+
             // Create a new AppUsers object using the data from the provided adminDto.
             AppUsers newAdminUser = new AppUsers()
             {
@@ -206,29 +215,31 @@ namespace AuthLibrary.Services.Repositories
                 return new RegisterResponse("Error occurred: " + errors, false, null);
             }
 
-            // Ensure the roles exists in the system.
-            await EnsureRoleExists(UserRoles.Admin);
-            await EnsureRoleExists(UserRoles.Client);
-            await EnsureRoleExists(UserRoles.Facilitator);
+            //// Ensure the roles exists in the system.
+            //await EnsureRoleExists(UserRoles.Admin);
+            //await EnsureRoleExists(UserRoles.Client);
+            //await EnsureRoleExists(UserRoles.Facilitator);
 
-            // If the Admin role exists, add the new user to the Admin role.
-            if (await _roleManager.RoleExistsAsync(UserRoles.Admin))
-            {
-                await _userManager.AddToRoleAsync(newAdminUser, UserRoles.Admin);
-            }
+            //// If the Admin role exists, add the new user to the Admin role.
+            //if (await _roleManager.RoleExistsAsync(UserRoles.Admin))
+            //{
+            //    await _userManager.AddToRoleAsync(newAdminUser, UserRoles.Admin);
+            //}
+
+            await _userManager.AddToRoleAsync(newAdminUser, UserRoles.Admin);
 
             // Return a success response after the admin user has been successfully created and added to the Admin role.
             return new RegisterResponse("New Admin added successfully.", true, newAdminUser);
         }
 
         // This method ensures that a role exists in the system, creating it if it does not.
-        public async Task EnsureRoleExists(string roleName)
-        {
-            if (!await _roleManager.RoleExistsAsync(roleName))
-            {
-                await _roleManager.CreateAsync(new IdentityRole(roleName));
-            }
-        }
+        //public async Task EnsureRoleExists(string roleName)
+        //{
+        //    if (!await _roleManager.RoleExistsAsync(roleName))
+        //    {
+        //        await _roleManager.CreateAsync(new IdentityRole(roleName));
+        //    }
+        //}
 
         public async Task<RegisterResponse> CreateFacilitatorAccount(FacilitatorDto facilitatorDto)
         {
@@ -266,14 +277,14 @@ namespace AuthLibrary.Services.Repositories
                 return new RegisterResponse("Error occurred: " + errors, false, null);
             }
 
-            // If the Admin role not exists, add the roles.
-            if (await _roleManager.RoleExistsAsync(UserRoles.Admin))
-            {
-                // Ensure the roles exists in the system.
-                await EnsureRoleExists(UserRoles.Admin);
-                await EnsureRoleExists(UserRoles.Client);
-                await EnsureRoleExists(UserRoles.Facilitator);
-            }
+            //// If the Admin role not exists, add the roles.
+            //if (await _roleManager.RoleExistsAsync(UserRoles.Admin))
+            //{
+            //    // Ensure the roles exists in the system.
+            //    await EnsureRoleExists(UserRoles.Admin);
+            //    await EnsureRoleExists(UserRoles.Client);
+            //    await EnsureRoleExists(UserRoles.Facilitator);
+            //}
 
             await _userManager.AddToRoleAsync(newFacilitatorUser, UserRoles.Facilitator);
 
