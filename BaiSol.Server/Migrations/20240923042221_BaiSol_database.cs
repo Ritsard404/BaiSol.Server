@@ -7,7 +7,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace BaiSol.Server.Migrations
 {
     /// <inheritdoc />
-    public partial class BaiSol_Database : Migration
+    public partial class BaiSol_database : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -365,52 +365,6 @@ namespace BaiSol.Server.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "Requisition",
-                columns: table => new
-                {
-                    ReqId = table.Column<int>(type: "integer", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    SubmittedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
-                    ApprovedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
-                    Status = table.Column<string>(type: "text", nullable: false),
-                    QuantityRequested = table.Column<int>(type: "integer", nullable: false),
-                    MaterialMTLId = table.Column<int>(type: "integer", nullable: true),
-                    EquipmentEQPTId = table.Column<int>(type: "integer", nullable: true),
-                    ProjectProjId = table.Column<string>(type: "text", nullable: true),
-                    SubmittedById = table.Column<string>(type: "text", nullable: true),
-                    ApprovedById = table.Column<string>(type: "text", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_Requisition", x => x.ReqId);
-                    table.ForeignKey(
-                        name: "FK_Requisition_AspNetUsers_ApprovedById",
-                        column: x => x.ApprovedById,
-                        principalTable: "AspNetUsers",
-                        principalColumn: "Id");
-                    table.ForeignKey(
-                        name: "FK_Requisition_AspNetUsers_SubmittedById",
-                        column: x => x.SubmittedById,
-                        principalTable: "AspNetUsers",
-                        principalColumn: "Id");
-                    table.ForeignKey(
-                        name: "FK_Requisition_Equipment_EquipmentEQPTId",
-                        column: x => x.EquipmentEQPTId,
-                        principalTable: "Equipment",
-                        principalColumn: "EQPTId");
-                    table.ForeignKey(
-                        name: "FK_Requisition_Material_MaterialMTLId",
-                        column: x => x.MaterialMTLId,
-                        principalTable: "Material",
-                        principalColumn: "MTLId");
-                    table.ForeignKey(
-                        name: "FK_Requisition_Project_ProjectProjId",
-                        column: x => x.ProjectProjId,
-                        principalTable: "Project",
-                        principalColumn: "ProjId");
-                });
-
-            migrationBuilder.CreateTable(
                 name: "Supply",
                 columns: table => new
                 {
@@ -441,6 +395,41 @@ namespace BaiSol.Server.Migrations
                         column: x => x.ProjectProjId,
                         principalTable: "Project",
                         principalColumn: "ProjId");
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Requisition",
+                columns: table => new
+                {
+                    ReqId = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    SubmittedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    ApprovedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
+                    Status = table.Column<string>(type: "text", nullable: false),
+                    QuantityRequested = table.Column<int>(type: "integer", nullable: false),
+                    RequestSupplySuppId = table.Column<int>(type: "integer", nullable: false),
+                    SubmittedById = table.Column<string>(type: "text", nullable: true),
+                    ApprovedById = table.Column<string>(type: "text", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Requisition", x => x.ReqId);
+                    table.ForeignKey(
+                        name: "FK_Requisition_AspNetUsers_ApprovedById",
+                        column: x => x.ApprovedById,
+                        principalTable: "AspNetUsers",
+                        principalColumn: "Id");
+                    table.ForeignKey(
+                        name: "FK_Requisition_AspNetUsers_SubmittedById",
+                        column: x => x.SubmittedById,
+                        principalTable: "AspNetUsers",
+                        principalColumn: "Id");
+                    table.ForeignKey(
+                        name: "FK_Requisition_Supply_RequestSupplySuppId",
+                        column: x => x.RequestSupplySuppId,
+                        principalTable: "Supply",
+                        principalColumn: "SuppId",
+                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateIndex(
@@ -526,19 +515,9 @@ namespace BaiSol.Server.Migrations
                 column: "ApprovedById");
 
             migrationBuilder.CreateIndex(
-                name: "IX_Requisition_EquipmentEQPTId",
+                name: "IX_Requisition_RequestSupplySuppId",
                 table: "Requisition",
-                column: "EquipmentEQPTId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_Requisition_MaterialMTLId",
-                table: "Requisition",
-                column: "MaterialMTLId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_Requisition_ProjectProjId",
-                table: "Requisition",
-                column: "ProjectProjId");
+                column: "RequestSupplySuppId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Requisition_SubmittedById",
@@ -594,9 +573,6 @@ namespace BaiSol.Server.Migrations
                 name: "Requisition");
 
             migrationBuilder.DropTable(
-                name: "Supply");
-
-            migrationBuilder.DropTable(
                 name: "UserLogs");
 
             migrationBuilder.DropTable(
@@ -604,6 +580,9 @@ namespace BaiSol.Server.Migrations
 
             migrationBuilder.DropTable(
                 name: "Installer");
+
+            migrationBuilder.DropTable(
+                name: "Supply");
 
             migrationBuilder.DropTable(
                 name: "Equipment");

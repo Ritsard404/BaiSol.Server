@@ -51,6 +51,7 @@ namespace BaiSol.Server
             builder.Services.AddScoped<IQuote, QuoteRepository>();
             builder.Services.AddScoped<IProject, ProjectRepository>();
             builder.Services.AddScoped<IEquipment, EquipmentRepository>();
+            builder.Services.AddScoped<IRequisition, RequisitionRepository>();
 
 
             // Add Email Config

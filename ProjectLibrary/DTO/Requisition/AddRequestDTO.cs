@@ -7,17 +7,15 @@ namespace ProjectLibrary.DTO.Requisition
 {
     public class RequestDetail
     {
-        public int QuantityRequested { get; set; }
-        public int MtlId { get; set; }
-        public int EqptId { get; set; }
+        public required int QuantityRequested { get; set; }
+        public required int SuppId { get; set; }
     }
 
     public class AddRequestDTO
     {
-        public required string ProjId { get; set; }
         [EmailAddress]
         public required string SubmittedBy { get; set; }
-        public required List<RequestDetail>? RequestDetails { get; set; } = new();
+        public required List<RequestDetail> RequestDetails { get; set; } = new();
         [JsonIgnore]
         public string? UserIpAddress { get; set; }
     }

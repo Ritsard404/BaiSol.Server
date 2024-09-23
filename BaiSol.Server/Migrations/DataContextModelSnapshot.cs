@@ -396,16 +396,10 @@ namespace BaiSol.Server.Migrations
                     b.Property<string>("ApprovedById")
                         .HasColumnType("text");
 
-                    b.Property<int?>("EquipmentEQPTId")
-                        .HasColumnType("integer");
-
-                    b.Property<int?>("MaterialMTLId")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("ProjectProjId")
-                        .HasColumnType("text");
-
                     b.Property<int>("QuantityRequested")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("RequestSupplySuppId")
                         .HasColumnType("integer");
 
                     b.Property<string>("Status")
@@ -422,11 +416,7 @@ namespace BaiSol.Server.Migrations
 
                     b.HasIndex("ApprovedById");
 
-                    b.HasIndex("EquipmentEQPTId");
-
-                    b.HasIndex("MaterialMTLId");
-
-                    b.HasIndex("ProjectProjId");
+                    b.HasIndex("RequestSupplySuppId");
 
                     b.HasIndex("SubmittedById");
 
@@ -721,17 +711,11 @@ namespace BaiSol.Server.Migrations
                         .WithMany()
                         .HasForeignKey("ApprovedById");
 
-                    b.HasOne("DataLibrary.Models.Equipment", "Equipment")
+                    b.HasOne("DataLibrary.Models.Supply", "RequestSupply")
                         .WithMany()
-                        .HasForeignKey("EquipmentEQPTId");
-
-                    b.HasOne("DataLibrary.Models.Material", "Material")
-                        .WithMany()
-                        .HasForeignKey("MaterialMTLId");
-
-                    b.HasOne("DataLibrary.Models.Project", "Project")
-                        .WithMany()
-                        .HasForeignKey("ProjectProjId");
+                        .HasForeignKey("RequestSupplySuppId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.HasOne("DataLibrary.Models.AppUsers", "SubmittedBy")
                         .WithMany()
@@ -739,11 +723,7 @@ namespace BaiSol.Server.Migrations
 
                     b.Navigation("ApprovedBy");
 
-                    b.Navigation("Equipment");
-
-                    b.Navigation("Material");
-
-                    b.Navigation("Project");
+                    b.Navigation("RequestSupply");
 
                     b.Navigation("SubmittedBy");
                 });
