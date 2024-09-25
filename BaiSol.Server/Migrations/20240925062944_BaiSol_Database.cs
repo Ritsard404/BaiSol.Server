@@ -7,7 +7,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace BaiSol.Server.Migrations
 {
     /// <inheritdoc />
-    public partial class BaiSol_database : Migration
+    public partial class BaiSol_Database : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -404,19 +404,19 @@ namespace BaiSol.Server.Migrations
                     ReqId = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     SubmittedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
-                    ApprovedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
+                    ReviewedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
                     Status = table.Column<string>(type: "text", nullable: false),
                     QuantityRequested = table.Column<int>(type: "integer", nullable: false),
                     RequestSupplySuppId = table.Column<int>(type: "integer", nullable: false),
                     SubmittedById = table.Column<string>(type: "text", nullable: true),
-                    ApprovedById = table.Column<string>(type: "text", nullable: true)
+                    ReviewedById = table.Column<string>(type: "text", nullable: true)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Requisition", x => x.ReqId);
                     table.ForeignKey(
-                        name: "FK_Requisition_AspNetUsers_ApprovedById",
-                        column: x => x.ApprovedById,
+                        name: "FK_Requisition_AspNetUsers_ReviewedById",
+                        column: x => x.ReviewedById,
                         principalTable: "AspNetUsers",
                         principalColumn: "Id");
                     table.ForeignKey(
@@ -510,14 +510,14 @@ namespace BaiSol.Server.Migrations
                 column: "ProjectProjId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_Requisition_ApprovedById",
-                table: "Requisition",
-                column: "ApprovedById");
-
-            migrationBuilder.CreateIndex(
                 name: "IX_Requisition_RequestSupplySuppId",
                 table: "Requisition",
                 column: "RequestSupplySuppId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Requisition_ReviewedById",
+                table: "Requisition",
+                column: "ReviewedById");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Requisition_SubmittedById",

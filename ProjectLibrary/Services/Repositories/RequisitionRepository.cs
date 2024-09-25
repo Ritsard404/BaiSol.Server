@@ -15,7 +15,7 @@ namespace ProjectLibrary.Services.Repositories
 {
     public class RequisitionRepository(DataContext _dataContext, UserManager<AppUsers> _userManager) : IRequisition
     {
-        public async Task<List<Requisition>> AllRequest()
+        public async Task<List<RequestsDTO>> AllRequest()
         {
             return await _dataContext.Requisition
                 .OrderBy(p => p.RequestSupply.Project)
@@ -24,6 +24,22 @@ namespace ProjectLibrary.Services.Repositories
                 .ThenBy(m => m.RequestSupply.Material.MTLCategory)
                 .ThenBy(m => m.RequestSupply.Equipment)
                 .ThenBy(m => m.RequestSupply.Equipment.EQPTCategory)
+                .Select(r => new RequestsDTO
+                {
+                    ReqId = r.ReqId,
+                    SubmittedAt = r.SubmittedAt.ToString("MMM dd, yyyy HH:mm:ss"),
+                    ReviewedAt = r.ReviewedAt != null
+                        ? r.ReviewedAt.Value.ToString("MMM dd, yyyy HH:mm:ss")
+                        : "Not Approved",
+                    Status = r.Status,
+                    QuantityRequested = r.QuantityRequested,
+                    RequestSupply = r.RequestSupply.Material.MTLDescript ?? r.RequestSupply.Equipment.EQPTDescript,
+                    SupplyCategory = r.RequestSupply.Material != null ? "Material" : "Equipment",
+                    SubmittedBy = r.SubmittedBy.Email,
+                    ReviewedBy = r.ReviewedBy != null
+                        ? r.ReviewedBy.Email
+                        : "N/A"
+                })
                 .ToListAsync();
         }
 
@@ -31,6 +47,14 @@ namespace ProjectLibrary.Services.Repositories
         {
             if (approveRequest.reqId == null)
                 return (false, "Empty requested supply!");
+
+            // Fetch the user by email and ensure the user exists
+            var user = await _userManager.FindByEmailAsync(approveRequest.userEmail);
+            if (user == null) return (false, "Invalid user");
+
+            //var userRole = await _userManager.GetRolesAsync(user);
+            //if (!userRole.Contains("Admin")) 
+            //    return (false, "Invalid user");
 
             // Retrieve all the requisitions that match the provided IDs
             var requests = await _dataContext.Requisition
@@ -45,6 +69,11 @@ namespace ProjectLibrary.Services.Repositories
             var missingIds = approveRequest.reqId.Except(requests.Select(r => r.ReqId)).ToList();
             if (missingIds.Any())
                 return (false, $"Missing request IDs: {string.Join(", ", missingIds)}");
+
+            // Validate if any requests have QuantityRequested <= 0
+            var invalidRequests = requests.Where(r => r.QuantityRequested <= 0).ToList();
+            if (invalidRequests.Any())
+                return (false, "Quantity Requested cannot be 0 or below.");
 
             // Approve requests and adjust supplies
             foreach (var request in requests)
@@ -126,6 +155,14 @@ namespace ProjectLibrary.Services.Repositories
             if (declineRequest.reqId == null)
                 return (false, "Empty requested supply!");
 
+            // Fetch the user by email and ensure the user exists
+            var user = await _userManager.FindByEmailAsync(declineRequest.userEmail);
+            if (user == null) return (false, "Invalid user");
+
+            var userRole = await _userManager.GetRolesAsync(user);
+            if (!userRole.Contains("Admin"))
+                return (false, "Invalid user");
+
             // Retrieve all the requisitions that match the provided IDs
             var requests = await _dataContext.Requisition
                 .Where(r => declineRequest.reqId.Contains(r.ReqId))
@@ -166,6 +203,14 @@ namespace ProjectLibrary.Services.Repositories
             // Retrieve all the requisitions that match the provided IDs
             var request = await _dataContext.Requisition
                 .FirstOrDefaultAsync(i => i.ReqId == deleteRequest.reqId);
+
+            // Fetch the user by email and ensure the user exists
+            var user = await _userManager.FindByEmailAsync(deleteRequest.userEmail);
+            if (user == null) return (false, "Invalid user");
+
+            var userRole = await _userManager.GetRolesAsync(user);
+            if (!userRole.Contains("Facilitator"))
+                return (false, "Invalid user");
 
             // Check if the found request are empty
             if (request == null)
@@ -210,6 +255,11 @@ namespace ProjectLibrary.Services.Repositories
             // Fetch the user by email and ensure the user exists
             var user = await _userManager.FindByEmailAsync(addRequest.SubmittedBy);
             if (user == null) return (false, "User does not exist.");
+            // Fetch the user by email and ensure the user exists
+
+            //var userRole = await _userManager.GetRolesAsync(user);
+            //if (!userRole.Contains("Facilitator"))
+            //    return (false, "Invalid user");
 
             foreach (var detail in addRequest.RequestDetails)
             {
@@ -243,7 +293,7 @@ namespace ProjectLibrary.Services.Repositories
             return (true, "Request successfully sent!");
         }
 
-        public async Task<List<Requisition>> SentRequestByProj(string projId)
+        public async Task<List<RequestsDTO>> SentRequestByProj(string projId)
         {
             return await _dataContext.Requisition
                 .Where(id => id.RequestSupply.Project.ProjId == projId)
@@ -252,6 +302,22 @@ namespace ProjectLibrary.Services.Repositories
                 .ThenBy(m => m.RequestSupply.Material.MTLCategory)
                 .ThenBy(m => m.RequestSupply.Equipment)
                 .ThenBy(m => m.RequestSupply.Equipment.EQPTCategory)
+                .Select(r => new RequestsDTO
+                {
+                    ReqId = r.ReqId,
+                    SubmittedAt = r.SubmittedAt.ToString("MMM dd, yyyy HH:mm:ss"), // Formatting SubmittedAt
+                    ReviewedAt = r.ReviewedAt.HasValue
+                        ? r.ReviewedAt.Value.ToString("MMM dd, yyyy HH:mm:ss")    // Formatting ReviewedAt if it has a value
+                        : "",                                                      // Empty string if null
+                    Status = r.Status,
+                    QuantityRequested = r.QuantityRequested,
+                    RequestSupply = r.RequestSupply.Material.MTLDescript ?? r.RequestSupply.Equipment.EQPTDescript,
+                    SupplyCategory = r.RequestSupply.Material != null ? "Material" : "Equipment",
+                    SubmittedBy = r.SubmittedBy.Email,
+                    ReviewedBy = r.ReviewedBy != null
+                        ? r.ReviewedBy.Email
+                        : "N/A"
+                })
                 .ToListAsync();
         }
 
@@ -261,6 +327,14 @@ namespace ProjectLibrary.Services.Repositories
             // Retrieve all the requisitions that match the provided IDs
             var request = await _dataContext.Requisition
                 .FirstOrDefaultAsync(i => i.ReqId == updateQuantity.reqId);
+
+            // Fetch the user by email and ensure the user exists
+            var user = await _userManager.FindByEmailAsync(updateQuantity.userEmail);
+            if (user == null) return (false, "Invalid user");
+
+            var userRole = await _userManager.GetRolesAsync(user);
+            if (!userRole.Contains("Facilitator"))
+                return (false, "Invalid user");
 
             // Check if the found request are empty
             if (request == null)

@@ -390,17 +390,17 @@ namespace BaiSol.Server.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("ReqId"));
 
-                    b.Property<DateTimeOffset?>("ApprovedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("ApprovedById")
-                        .HasColumnType("text");
-
                     b.Property<int>("QuantityRequested")
                         .HasColumnType("integer");
 
                     b.Property<int>("RequestSupplySuppId")
                         .HasColumnType("integer");
+
+                    b.Property<DateTimeOffset?>("ReviewedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ReviewedById")
+                        .HasColumnType("text");
 
                     b.Property<string>("Status")
                         .IsRequired()
@@ -414,9 +414,9 @@ namespace BaiSol.Server.Migrations
 
                     b.HasKey("ReqId");
 
-                    b.HasIndex("ApprovedById");
-
                     b.HasIndex("RequestSupplySuppId");
+
+                    b.HasIndex("ReviewedById");
 
                     b.HasIndex("SubmittedById");
 
@@ -707,23 +707,23 @@ namespace BaiSol.Server.Migrations
 
             modelBuilder.Entity("DataLibrary.Models.Requisition", b =>
                 {
-                    b.HasOne("DataLibrary.Models.AppUsers", "ApprovedBy")
-                        .WithMany()
-                        .HasForeignKey("ApprovedById");
-
                     b.HasOne("DataLibrary.Models.Supply", "RequestSupply")
                         .WithMany()
                         .HasForeignKey("RequestSupplySuppId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("DataLibrary.Models.AppUsers", "ReviewedBy")
+                        .WithMany()
+                        .HasForeignKey("ReviewedById");
+
                     b.HasOne("DataLibrary.Models.AppUsers", "SubmittedBy")
                         .WithMany()
                         .HasForeignKey("SubmittedById");
 
-                    b.Navigation("ApprovedBy");
-
                     b.Navigation("RequestSupply");
+
+                    b.Navigation("ReviewedBy");
 
                     b.Navigation("SubmittedBy");
                 });
