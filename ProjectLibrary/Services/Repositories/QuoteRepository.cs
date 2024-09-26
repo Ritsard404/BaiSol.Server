@@ -201,7 +201,10 @@ namespace ProjectLibrary.Services.Repositories
             var equipment = await _dataContext.Equipment
                 .FirstOrDefaultAsync(i => i.EQPTId == deleteEquipmentSupply.EQPTId);
 
-            if (supply == null || equipment == null)
+            var isSupplyUsed = await _dataContext.Requisition
+                .FirstOrDefaultAsync(i => i.RequestSupply.SuppId == deleteEquipmentSupply.SuppId);
+
+            if (supply == null || equipment == null || isSupplyUsed == null)
                 return false;
 
             var logMessage = $"Equipment named {equipment?.EQPTDescript ?? "unknown"} that is assigned to project {supply?.Project?.ProjName ?? "unknown"} was deleted with a quantity of {supply?.EQPTQuantity ?? 0}.";
@@ -250,11 +253,16 @@ namespace ProjectLibrary.Services.Repositories
             var material = await _dataContext.Material
                 .FirstOrDefaultAsync(i => i.MTLId == mtlId);
 
+            var isSupplyUsed = await _dataContext.Requisition
+                .FirstOrDefaultAsync(i => i.RequestSupply.SuppId == suppId);
+
             // Check if the material entity exists
             // Material not found, return false
             if (material == null) return false;
 
             if (supply == null) return false;
+
+            if (isSupplyUsed == null) return false;
 
             material.MTLQOH = material.MTLQOH + (supply.MTLQuantity ?? 0);
 
@@ -552,7 +560,7 @@ namespace ProjectLibrary.Services.Repositories
         {
             // Retrieve the Supply entity by suppId
             var supply = await _dataContext.Supply
-                .Include(p=>p.Project)
+                .Include(p => p.Project)
                 .FirstOrDefaultAsync(i => i.SuppId == updateEquipmentSupply.SuppId);
             if (supply == null)
                 return false;

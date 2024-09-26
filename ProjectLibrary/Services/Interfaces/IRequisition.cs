@@ -11,8 +11,8 @@ namespace ProjectLibrary.Services.Interfaces
     public interface IRequisition
     {
         Task<(bool, string)> RequestSupply(AddRequestDTO addRequest);
-        Task<List<Requisition>> AllRequest();
-        Task<List<Requisition>> SentRequestByProj(string projId);
+        Task<List<RequestsDTO>> AllRequest();
+        Task<List<RequestsDTO>> SentRequestByProj(string projId);
         Task<(bool, string)> ApproveRequest(StatusRequestDTO approveRequest);
         Task<(bool, string)> DeclineRequest(StatusRequestDTO declineRequest);
         Task<(bool, string)> UpdateRequest(UpdateQuantity updateQuantity);
