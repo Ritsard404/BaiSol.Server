@@ -95,7 +95,7 @@ namespace ProjectLibrary.Services.Repositories
                 {
                     request.RequestSupply.Material.MTLQOH -= request.QuantityRequested;
                     request.RequestSupply.Material.UpdatedAt = DateTimeOffset.UtcNow;
-                    supply!.MTLQuantity += request.QuantityRequested;
+                    //supply!.MTLQuantity += request.QuantityRequested;
 
                     await LogUserActionAsync(
                         approveRequest.userEmail,
@@ -106,14 +106,14 @@ namespace ProjectLibrary.Services.Repositories
                         approveRequest.UserIpAddress
                     );
 
-                    await LogUserActionAsync(
-                        approveRequest.userEmail,
-                        "Update",
-                        "Supply",
-                        request.RequestSupply.SuppId.ToString(),
-                        $"Updated the material quantity because of the approved requests supply, added by {request.QuantityRequested}",
-                        approveRequest.UserIpAddress
-                    );
+                    //await LogUserActionAsync(
+                    //    approveRequest.userEmail,
+                    //    "Update",
+                    //    "Supply",
+                    //    request.RequestSupply.SuppId.ToString(),
+                    //    $"Updated the material quantity because of the approved requests supply, added by {request.QuantityRequested}",
+                    //    approveRequest.UserIpAddress
+                    //);
                 }
 
                 // Adjust equipment quantities
@@ -121,7 +121,7 @@ namespace ProjectLibrary.Services.Repositories
                 {
                     request.RequestSupply.Equipment.EQPTQOH -= request.QuantityRequested;
                     request.RequestSupply.Equipment.UpdatedAt = DateTimeOffset.UtcNow;
-                    supply!.EQPTQuantity += request.QuantityRequested;
+                    //supply!.EQPTQuantity += request.QuantityRequested;
 
                     await LogUserActionAsync(
                         approveRequest.userEmail,
@@ -132,14 +132,14 @@ namespace ProjectLibrary.Services.Repositories
                         approveRequest.UserIpAddress
                     );
 
-                    await LogUserActionAsync(
-                        approveRequest.userEmail,
-                        "Update",
-                        "Supply",
-                        request.RequestSupply.SuppId.ToString(),
-                        $"Updated the equipment quantity because of the approved requests supply, added by {request.QuantityRequested}",
-                        approveRequest.UserIpAddress
-                    );
+                    //await LogUserActionAsync(
+                    //    approveRequest.userEmail,
+                    //    "Update",
+                    //    "Supply",
+                    //    request.RequestSupply.SuppId.ToString(),
+                    //    $"Updated the equipment quantity because of the approved requests supply, added by {request.QuantityRequested}",
+                    //    approveRequest.UserIpAddress
+                    //);
                 }
 
 
@@ -249,7 +249,7 @@ namespace ProjectLibrary.Services.Repositories
         {
             var supplies = await _dataContext.Supply
                 .Where(p => p.Project.ProjId == projId
-                             && !_dataContext.Requisition.Any(r => r.RequestSupply.SuppId == p.SuppId && r.Status == "OnReview")
+                             && !_dataContext.Requisition.Any(r => r.RequestSupply.SuppId == p.SuppId && (r.Status == "OnReview" || r.Status == "Approved"))
                              && (supplyCtgry.Equals("Material", StringComparison.OrdinalIgnoreCase) ? p.Material != null : true)
                              && (supplyCtgry.Equals("Equipment", StringComparison.OrdinalIgnoreCase) ? p.Equipment != null : true))
                 .Select(s => new AvailableRequestSupplies

@@ -7,6 +7,8 @@ using BaseLibrary.Services.Interfaces;
 using BaseLibrary.Services.Repositories;
 using DataLibrary.Data;
 using DataLibrary.Models;
+using FacilitatorLibrary.Services.Interfaces;
+using FacilitatorLibrary.Services.Repositories;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Identity;
@@ -52,6 +54,10 @@ namespace BaiSol.Server
             builder.Services.AddScoped<IProject, ProjectRepository>();
             builder.Services.AddScoped<IEquipment, EquipmentRepository>();
             builder.Services.AddScoped<IRequisition, RequisitionRepository>();
+
+            // Facilitator
+            builder.Services.AddScoped<IRequestSupply, RequestSupplyRepository>();
+            builder.Services.AddScoped<IAssignedSupply, AssignedSupplyRepository>();
 
 
             // Add Email Config
