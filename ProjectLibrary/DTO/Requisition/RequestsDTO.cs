@@ -13,7 +13,9 @@ namespace ProjectLibrary.DTO.Requisition
         public string? ReviewedAt { get; set; }
         public required string Status { get; set; }
         public required int QuantityRequested { get; set; }
+        public required int QOH { get; set; }
         public required string RequestSupply { get; set; }
+        public required string ProjectName { get; set; }
         public required string SupplyCategory { get; set; }
         public required string SubmittedBy { get; set; }
         public string? ReviewedBy { get; set; }
