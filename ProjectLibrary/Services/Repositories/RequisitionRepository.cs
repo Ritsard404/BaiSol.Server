@@ -277,6 +277,13 @@ namespace ProjectLibrary.Services.Repositories
             if (user == null) return (false, "User does not exist.");
             // Fetch the user by email and ensure the user exists
 
+
+            //// Retrieve the assigned facilitator's project information based on the user email
+            //var assignedFacilitator = await _dataContext.ProjectWorkLog
+            //    .Where(e => e.Facilitator.Email == addRequest.SubmittedBy && e.Project.Status != "OnWork")
+            //    .FirstOrDefaultAsync();
+            //if (assignedFacilitator != null) return (false, "Cannot submit request");
+
             //var userRole = await _userManager.GetRolesAsync(user);
             //if (!userRole.Contains("Facilitator"))
             //    return (false, "Invalid user");

@@ -1,4 +1,5 @@
-﻿using FacilitatorLibrary.Services.Interfaces;
+﻿using FacilitatorLibrary.DTO.Request;
+using FacilitatorLibrary.Services.Interfaces;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
@@ -22,6 +23,30 @@ namespace BaiSol.Server.Controllers.Facilitator
             return Ok(requests);
         }
 
+        [HttpPut]
+        public async Task<IActionResult> AcknowledgeRequest(AcknowledgeRequestDTO acknowledgeRequest)
+        {
+            // Retrieve the client IP address
+            var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
+
+            if (acknowledgeRequest == null) return BadRequest(ModelState);
+
+            // Validate IP address
+            if (string.IsNullOrWhiteSpace(ipAddress)) return BadRequest("IP address is required and cannot be empty");
+            acknowledgeRequest.UserIpAddress = ipAddress;
+
+            var (success, message) = await _requestSupply.AcknowledgeRequest(acknowledgeRequest);
+
+            if (success)
+            {
+                return Ok(message);
+            }
+            else
+            {
+                return BadRequest(message);
+            }
+        }
+
         [HttpGet]
         public async Task<IActionResult> AssignedMaterialsSupply(string userEmail)
         {
@@ -35,5 +60,6 @@ namespace BaiSol.Server.Controllers.Facilitator
             var requests = await _assignedSupply.GetAssignedEquipment(userEmail);
             return Ok(requests);
         }
+
     }
 }

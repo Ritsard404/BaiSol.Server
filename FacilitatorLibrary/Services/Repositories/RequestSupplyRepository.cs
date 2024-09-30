@@ -168,7 +168,6 @@ namespace FacilitatorLibrary.Services.Repositories
                         : "",                                                      // Empty string if null
                     Status = r.Status,
                     QuantityRequested = r.QuantityRequested,
-                    QOH = r.RequestSupply.Material != null ? r.RequestSupply.Material.MTLQOH : r.RequestSupply.Equipment.EQPTQOH,
                     RequestSupply = r.RequestSupply.Material.MTLDescript ?? r.RequestSupply.Equipment.EQPTDescript,
                     ProjectName = r.RequestSupply.Project.ProjName,
                     SupplyCategory = r.RequestSupply.Material != null ? "Material" : "Equipment",
