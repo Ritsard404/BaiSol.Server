@@ -31,6 +31,9 @@ namespace FacilitatorLibrary.Services.Repositories
             var requests = await _dataContext.Requisition
                 .Where(r => acknowledgeRequest.reqId.Contains(r.ReqId))
                 .Include(m => m.RequestSupply)
+                .ThenInclude(rs => rs.Material)
+                .Include(r => r.RequestSupply)
+                .ThenInclude(rs => rs.Equipment)
                 .ToListAsync();
 
             // Check if the found requests are empty
@@ -55,6 +58,7 @@ namespace FacilitatorLibrary.Services.Repositories
             foreach (var request in requests)
             {
                 request.Status = "Acknowledged";
+
                 var supply = await _dataContext.Supply
                     .FirstOrDefaultAsync(s => s.SuppId == request.RequestSupply.SuppId);
 
@@ -101,7 +105,7 @@ namespace FacilitatorLibrary.Services.Repositories
                     "Update",
                     "Requisition",
                     request.ReqId.ToString(),
-                    "Request acknowledge by the admin.",
+                    "Request acknowledge by the facilitator.",
                     acknowledgeRequest.UserIpAddress
                 );
             }
@@ -174,7 +178,7 @@ namespace FacilitatorLibrary.Services.Repositories
                     SubmittedBy = r.SubmittedBy.Email,
                     ReviewedBy = r.ReviewedBy != null
                         ? r.ReviewedBy.Email
-                        : "N/A"
+                        : ""
                 })
                 .ToListAsync();
         }
