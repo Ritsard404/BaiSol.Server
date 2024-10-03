@@ -1,4 +1,5 @@
 ﻿using DataLibrary.Models;
+using DataLibrary.Models.Gantt;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
@@ -16,6 +17,10 @@ namespace DataLibrary.Data
         public DbSet<ProjectWorkLog> ProjectWorkLog { get; set; }
         public DbSet<UserLogs> UserLogs { get; set; }
         public DbSet<Requisition> Requisition { get; set; }
+        public DbSet<GanttData> GanttData { get; set; }
+        public DbSet<SubTask> SubTask { get; set; }
+
+
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

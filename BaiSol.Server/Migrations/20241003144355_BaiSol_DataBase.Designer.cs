@@ -12,8 +12,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace BaiSol.Server.Migrations
 {
     [DbContext(typeof(DataContext))]
-    [Migration("20240925062944_BaiSol_Database")]
-    partial class BaiSol_Database
+    [Migration("20241003144355_BaiSol_DataBase")]
+    partial class BaiSol_DataBase
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -177,6 +177,91 @@ namespace BaiSol.Server.Migrations
                     b.HasKey("EQPTId");
 
                     b.ToTable("Equipment");
+                });
+
+            modelBuilder.Entity("DataLibrary.Models.Gantt.GanttData", b =>
+                {
+                    b.Property<int>("TaskId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasAnnotation("Relational:JsonPropertyName", "TaskId");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("TaskId"));
+
+                    b.Property<DateTime?>("ActualEndDate")
+                        .HasColumnType("timestamp with time zone")
+                        .HasAnnotation("Relational:JsonPropertyName", "ActualEndDate");
+
+                    b.Property<DateTime?>("ActualStartDate")
+                        .HasColumnType("timestamp with time zone")
+                        .HasAnnotation("Relational:JsonPropertyName", "ActualStartDate");
+
+                    b.Property<DateTime?>("PlannedEndDate")
+                        .HasColumnType("timestamp with time zone")
+                        .HasAnnotation("Relational:JsonPropertyName", "PlannedEndDate");
+
+                    b.Property<DateTime?>("PlannedStartDate")
+                        .HasColumnType("timestamp with time zone")
+                        .HasAnnotation("Relational:JsonPropertyName", "PlannedStartDate");
+
+                    b.Property<string>("TaskName")
+                        .HasColumnType("text")
+                        .HasAnnotation("Relational:JsonPropertyName", "TaskName");
+
+                    b.HasKey("TaskId");
+
+                    b.ToTable("GanttData");
+                });
+
+            modelBuilder.Entity("DataLibrary.Models.Gantt.SubTask", b =>
+                {
+                    b.Property<int>("TaskId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasAnnotation("Relational:JsonPropertyName", "TaskId");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("TaskId"));
+
+                    b.Property<DateTime?>("ActualEndDate")
+                        .HasColumnType("timestamp with time zone")
+                        .HasAnnotation("Relational:JsonPropertyName", "ActualEndDate");
+
+                    b.Property<DateTime?>("ActualStartDate")
+                        .HasColumnType("timestamp with time zone")
+                        .HasAnnotation("Relational:JsonPropertyName", "ActualStartDate");
+
+                    b.Property<int?>("GanttDataTaskId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("PlannedEndDate")
+                        .HasColumnType("timestamp with time zone")
+                        .HasAnnotation("Relational:JsonPropertyName", "PlannedEndDate");
+
+                    b.Property<DateTime?>("PlannedStartDate")
+                        .HasColumnType("timestamp with time zone")
+                        .HasAnnotation("Relational:JsonPropertyName", "PlannedStartDate");
+
+                    b.Property<string>("Predecessor")
+                        .HasColumnType("text")
+                        .HasAnnotation("Relational:JsonPropertyName", "Predecessor");
+
+                    b.Property<int?>("Progress")
+                        .HasColumnType("integer")
+                        .HasAnnotation("Relational:JsonPropertyName", "Progress");
+
+                    b.Property<string>("TaskName")
+                        .HasColumnType("text")
+                        .HasAnnotation("Relational:JsonPropertyName", "TaskName");
+
+                    b.Property<int?>("Week")
+                        .HasColumnType("integer")
+                        .HasAnnotation("Relational:JsonPropertyName", "Week");
+
+                    b.HasKey("TaskId");
+
+                    b.HasIndex("GanttDataTaskId");
+
+                    b.ToTable("SubTask");
                 });
 
             modelBuilder.Entity("DataLibrary.Models.Installer", b =>
@@ -654,6 +739,13 @@ namespace BaiSol.Server.Migrations
                     b.Navigation("Client");
                 });
 
+            modelBuilder.Entity("DataLibrary.Models.Gantt.SubTask", b =>
+                {
+                    b.HasOne("DataLibrary.Models.Gantt.GanttData", null)
+                        .WithMany("SubTasks")
+                        .HasForeignKey("GanttDataTaskId");
+                });
+
             modelBuilder.Entity("DataLibrary.Models.Installer", b =>
                 {
                     b.HasOne("DataLibrary.Models.AppUsers", "Admin")
@@ -822,6 +914,11 @@ namespace BaiSol.Server.Migrations
             modelBuilder.Entity("DataLibrary.Models.Client", b =>
                 {
                     b.Navigation("Admin");
+                });
+
+            modelBuilder.Entity("DataLibrary.Models.Gantt.GanttData", b =>
+                {
+                    b.Navigation("SubTasks");
                 });
 #pragma warning restore 612, 618
         }

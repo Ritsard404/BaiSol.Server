@@ -59,6 +59,9 @@ namespace BaiSol.Server
             builder.Services.AddScoped<IRequestSupply, RequestSupplyRepository>();
             builder.Services.AddScoped<IAssignedSupply, AssignedSupplyRepository>();
 
+            // Gantt
+            builder.Services.AddScoped<IGanttRepository, GanttRepository>();
+
 
             // Add Email Config
             var emailConfig = builder.Configuration
