@@ -7,7 +7,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace BaiSol.Server.Migrations
 {
     /// <inheritdoc />
-    public partial class BaiSol_DataBase : Migration
+    public partial class BaiSol_Database : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -302,6 +302,8 @@ namespace BaiSol.Server.Migrations
                     Status = table.Column<string>(type: "text", nullable: false),
                     UpdatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
                     CreatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    DiscountRate = table.Column<decimal>(type: "numeric", nullable: true),
+                    VatRate = table.Column<decimal>(type: "numeric", nullable: true),
                     ClientId = table.Column<string>(type: "text", nullable: true)
                 },
                 constraints: table =>

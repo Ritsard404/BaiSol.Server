@@ -87,5 +87,26 @@ namespace BaiSol.Server.Controllers.Projects
 
             return Ok("Work end updated!");
         }
+
+        [HttpGet("[action]")]
+        public async Task<IActionResult> ProjectQuotationInfo(string? projId, string? customerEmail)
+        {
+            var info = await _project.ProjectQuotationInfo(projId, customerEmail);
+            return Ok(info); // Wrap the result in an Ok result
+        }
+
+        [HttpGet("[action]")]
+        public async Task<IActionResult> ProjectQuotationSupply(string? projId, string? customerEmail)
+        {
+            var supply = await _project.ProjectQuotationSupply(projId, customerEmail);
+            return Ok(supply); // Wrap the result in an Ok result
+        }
+
+        [HttpGet("[action]")]
+        public async Task<IActionResult> ProjectQuotationExpense(string? projId, string? customerEmail)
+        {
+            var expense = await _project.ProjectQuotationExpense(projId, customerEmail);
+            return Ok(expense); // Wrap the result in an Ok result
+        }
     }
 }

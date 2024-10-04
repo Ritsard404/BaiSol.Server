@@ -90,7 +90,7 @@ namespace BaiSol.Server.Controllers.Gantt
                 }
 
                 // Update the record fields
-                result.TaskId = task.TaskId;
+                //result.TaskId = task.TaskId;
                 result.TaskName = task.TaskName;
                 result.PlannedStartDate = task.PlannedStartDate;
                 result.PlannedEndDate = task.PlannedEndDate;
@@ -108,7 +108,7 @@ namespace BaiSol.Server.Controllers.Gantt
                         if (subResult != null)
                         {
 
-                            subResult.TaskId = item.TaskId;
+                            //subResult.TaskId = item.TaskId;
                             subResult.TaskName = item.TaskName;
                             subResult.PlannedStartDate = item.PlannedStartDate;
                             subResult.PlannedEndDate = item.PlannedEndDate;

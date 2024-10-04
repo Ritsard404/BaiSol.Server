@@ -12,8 +12,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace BaiSol.Server.Migrations
 {
     [DbContext(typeof(DataContext))]
-    [Migration("20241003144355_BaiSol_DataBase")]
-    partial class BaiSol_DataBase
+    [Migration("20241004145458_BaiSol_Database")]
+    partial class BaiSol_Database
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -262,6 +262,8 @@ namespace BaiSol.Server.Migrations
                     b.HasIndex("GanttDataTaskId");
 
                     b.ToTable("SubTask");
+
+                    b.HasAnnotation("Relational:JsonPropertyName", "SubTasks");
                 });
 
             modelBuilder.Entity("DataLibrary.Models.Installer", b =>
@@ -403,6 +405,9 @@ namespace BaiSol.Server.Migrations
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<decimal?>("DiscountRate")
+                        .HasColumnType("numeric");
+
                     b.Property<string>("ProjDescript")
                         .IsRequired()
                         .HasColumnType("text");
@@ -417,6 +422,9 @@ namespace BaiSol.Server.Migrations
 
                     b.Property<DateTimeOffset>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<decimal?>("VatRate")
+                        .HasColumnType("numeric");
 
                     b.HasKey("ProjId");
 

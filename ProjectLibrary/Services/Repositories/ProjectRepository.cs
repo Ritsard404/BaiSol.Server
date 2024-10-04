@@ -4,6 +4,7 @@ using DataLibrary.Data;
 using DataLibrary.Models;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 using ProjectLibrary.DTO.Project;
 using ProjectLibrary.DTO.Quote;
 using ProjectLibrary.Services.Interfaces;
@@ -144,6 +145,204 @@ namespace ProjectLibrary.Services.Repositories
             return await _dataContext.Project.AnyAsync(p => p.ProjId == projId);
         }
 
+        public async Task<ProjectQuotationTotalExpense> ProjectQuotationExpense(string? projId, string? customerEmail)
+        {
+            decimal overallMaterialTotal = 0;
+            decimal overallLaborProjectTotal = 0;
+            decimal total = 0;
+            List<Project> projectInfo = new List<Project>();
+
+
+            if (!string.IsNullOrEmpty(projId) || !string.IsNullOrEmpty(customerEmail))
+            {
+                var materialSupply = await _dataContext.Supply
+                    .Include(i => i.Material)
+                    .Include(p => p.Project.Client)
+                    .Where(p => projId != null ? p.Project.ProjId == projId : p.Project.Client.Email == customerEmail)
+                    .ToListAsync();
+
+                overallMaterialTotal = materialSupply
+                    .Where(m => m.Material != null)
+                    .GroupBy(m => m.Material.MTLDescript)
+                    .Select(group =>
+                    {
+                        var quantity = group.Sum(m => m.MTLQuantity ?? 0);
+                        var price = group.First().Material.MTLPrice;
+                        var unitCost = quantity * price;
+                        var buildUpCost = unitCost * 1.2m; // Assuming 20% build-up cost
+                        return unitCost + buildUpCost; // Return total cost for this group
+                    })
+                    .Sum() + (materialSupply.Sum(m => (m.Material?.MTLPrice ?? 0) * (m.MTLQuantity ?? 0)) * 0.3m); // Add profit
+
+                overallLaborProjectTotal = await _dataContext.Labor
+                    .Where(p => projId != null ? p.Project.ProjId == projId : p.Project.Client.Email == customerEmail)
+                    .SumAsync(o => o.LaborCost) * 1.3m;
+
+                projectInfo = await _dataContext.Project
+                    .Include(c => c.Client)
+                    .Include(c => c.Client.Client)
+                    .Where(p => projId != null ? p.ProjId == projId : p.Client.Email == customerEmail)
+                    .ToListAsync();
+
+                total = overallMaterialTotal + overallLaborProjectTotal;
+            }
+
+            var result = projectInfo.Select(i =>
+            {
+                decimal discountRate = i.DiscountRate ?? 0;
+                decimal vatRate = i.VatRate ?? 0;
+
+                // Calculate total
+                decimal total = overallMaterialTotal + overallLaborProjectTotal;
+
+                // Calculate subtotal after discount
+                decimal subtotalAfterDiscount = total - (discountRate * total);
+
+                // Calculate VAT
+                decimal vatAmount = subtotalAfterDiscount * vatRate;
+
+                // Calculate final total
+                decimal finalTotal = subtotalAfterDiscount + vatAmount;
+
+                // Create an instance of ProjectQuotationSupply for TotalLaborCost
+                var totalLaborCost = new ProjectQuotationSupply
+                {
+                    description = "Total Labor and Installation Cost", // You can modify this as needed
+                    lineTotal = overallLaborProjectTotal.ToString("#,##0.00") // Ensure the line total is formatted as a string
+                };
+
+                // Create an instance of ProjectQuotationSupply for TotalLaborCost
+                var totalMaterialCost = new ProjectQuotationSupply
+                {
+                    description = "Total Material Cost", // You can modify this as needed
+                    lineTotal = overallMaterialTotal.ToString("#,##0.00") // Ensure the line total is formatted as a string
+                };
+
+
+                return new ProjectQuotationTotalExpense
+                {
+                    QuoteId = i.ProjId,
+                    SubTotal = total.ToString("#,##0.00"),
+                    Discount = (discountRate * total).ToString("#,##0.00"),
+                    DiscountRate = (discountRate * 100).ToString("0.##") + "%",
+                    SubTotalAfterDiscount = subtotalAfterDiscount.ToString("#,##0.00"),
+                    VAT = vatAmount.ToString("#,##0.00"),
+                    VatRate = (vatRate * 100).ToString("0.##") + "%",
+                    Total = finalTotal.ToString("#,##0.00"),
+                    TotalLaborCost = totalLaborCost,
+                    TotalMaterialCost = totalMaterialCost
+                };
+            }).FirstOrDefault();
+
+            return result;
+        }
+
+        public async Task<ProjectQuotationInfoDTO> ProjectQuotationInfo(string? projId, string? customerEmail)
+        {
+            List<Project> projectInfo = new List<Project>();
+
+            if (!string.IsNullOrEmpty(projId) || !string.IsNullOrEmpty(customerEmail))
+            {
+                projectInfo = await _dataContext.Project
+                    .Include(p => p.Client)
+                    .Include(p => p.Client.Client)
+                    .Where(p => projId != null ? p.ProjId == projId : p.Client.Email == customerEmail)
+                    .ToListAsync();
+            }
+
+
+            // If no data is found, return an empty list
+            if (projectInfo == null || !projectInfo.Any())
+            {
+                return new ProjectQuotationInfoDTO();  // Return an empty collection
+            }
+
+            var result = projectInfo.Select(i => new ProjectQuotationInfoDTO
+            {
+                customerId = i.Client.Id,
+                customerEmail = i.Client.Email,
+                customerName = i.Client.UserName.Replace("_", " "),
+                customerAddress = i.Client.Client.ClientAddress,
+                projectDescription = i.ProjDescript,
+                projectDateCreation = i.CreatedAt.ToString("MMMM dd, yyyy"),
+                projectDateValidity = i.CreatedAt.AddDays(7).ToString("MMMM dd, yyyy")
+
+            }).FirstOrDefault();
+
+            return result;
+        }
+
+        public async Task<ICollection<ProjectQuotationSupply>> ProjectQuotationSupply(string? projId, string? customerEmail)
+        {
+
+            List<Supply> quotationData = new List<Supply>();
+
+            if (!string.IsNullOrEmpty(projId) || !string.IsNullOrEmpty(customerEmail))
+            {
+
+                quotationData = await _dataContext.Supply
+                   .Include(m => m.Material)
+                   .Include(m => m.Equipment)
+                   .Include(m => m.Project)
+                   .Where(p => projId != null ? p.Project.ProjId == projId : p.Project.Client.Email == customerEmail)
+                   .OrderBy(c => c.Material.MTLCategory)
+                   .ToListAsync();
+            }
+
+            // If no data is found, return an empty list
+            if (quotationData == null || !quotationData.Any())
+            {
+                return new List<ProjectQuotationSupply>();  // Return an empty collection
+            }
+
+            var result = quotationData.Select(supply => new ProjectQuotationSupply
+            {
+                description = supply.Material?.MTLDescript ?? "No Description",  // Provide a default description if null
+                lineTotal = supply.Material?.MTLPrice.ToString("#,##0.00") ?? "0.00"    // Assuming there's a price field in Material
+            }).ToList();
+
+            return result;
+        }
+
+
+
+        //public async Task<ICollection<ProjectQuotationInfoDTO>> ProjectQuotationInfoByProjId(string projId)
+        //{
+        //    //return await _dataContext.Project
+        //    //   .Include(p => p.Client)
+        //    //   .Include(p => p.Client.Client)
+        //    //   .Where(p => p.Client.Id == clientId)
+        //    //   .Select(p => new GetProjects
+        //    //   {
+        //    //       ProjId = p.ProjId,
+        //    //       ProjName = p.ProjName,
+        //    //       ProjDescript = p.ProjDescript,
+        //    //       Status = p.Status,
+        //    //       CreatedAt = p.CreatedAt.ToString("MMM dd, yyyy"),
+        //    //       UpdatedAt = p.UpdatedAt.ToString("MMM dd, yyyy"),
+        //    //       ClientId = p.Client.Id,
+        //    //       ClientName = p.Client.NormalizedUserName,
+        //    //       ClientAddress = p.Client.Client.ClientAddress
+        //    //   })
+        //    //   .ToListAsync();
+
+        //    var projectInfo = await _dataContext.Project
+        //         .Include(p => p.Client)
+        //         .Include(p => p.Client.Client )
+        //         .Where(p => p.ProjId == projId)
+        //         .ToListAsync();
+
+        //    var quotationData = await _dataContext.Supply
+        //        .Include(m => m.Material)
+        //        .Include(m => m.Equipment)
+        //        .Include(m => m.Project)
+        //        .Where(p => p.Project.ProjId == projId)
+        //        .ToListAsync();
+
+
+        //    throw new NotImplementedException();
+
+        //}
 
         public async Task<bool> Save()
         {

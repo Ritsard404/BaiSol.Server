@@ -14,5 +14,10 @@ namespace ProjectLibrary.Services.Interfaces
         Task<bool> UpdatePersonnelWorkEnded(string projId, string reasonEnded);
         Task<bool> Save();
 
+        // Project Quotation
+        Task<ProjectQuotationInfoDTO> ProjectQuotationInfo(string? projId, string? customerEmail);
+        Task<ICollection<ProjectQuotationSupply>> ProjectQuotationSupply(string? projId, string? customerEmail);
+        Task<ProjectQuotationTotalExpense> ProjectQuotationExpense(string? projId, string? customerEmail);
+
     }
 }
