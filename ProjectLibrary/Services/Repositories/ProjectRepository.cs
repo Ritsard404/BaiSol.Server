@@ -116,6 +116,45 @@ namespace ProjectLibrary.Services.Repositories
                 .ToListAsync();
         }
 
+        public async Task<ClientProjectInfoDTO> GetClientProjectInfo(string projId)
+        {
+            var projectData = await _dataContext.Project
+                .Include(p => p.Client)
+                .Include(p => p.Client.Client)
+                .Where(i => i.ProjId == projId)
+                .Select(d => new
+                {
+                    d.ProjId,
+                    d.ProjName,
+                    d.ProjDescript,
+                    DiscountRate = (d.DiscountRate ?? 0) * 100,
+                    VatRate = (d.VatRate ?? 0) * 100,
+                    clientId = d.Client.Id,
+                    UserName = d.Client.UserName,
+                    clientContactNum = d.Client.Client.ClientContactNum,
+                    clientAddress = d.Client.Client.ClientAddress,
+                    clientMonthlyElectricBill = d.Client.Client.ClientMonthlyElectricBill
+                })
+                .FirstOrDefaultAsync();
+
+            var usernameParts = projectData?.UserName?.Split('_') ?? new string[0];
+
+            return new ClientProjectInfoDTO
+            {
+                ProjId = projectData?.ProjId ?? "",
+                ProjName = projectData?.ProjName,
+                ProjDescript = projectData?.ProjDescript,
+                DiscountRate = projectData?.DiscountRate ?? 0,
+                VatRate = projectData?.VatRate ?? 0,
+                clientId = projectData?.clientId ?? "",
+                clientFName = usernameParts.Length > 0 ? usernameParts[0] : string.Empty,
+                clientLName = usernameParts.Length > 1 ? usernameParts[1] : string.Empty,
+                clientContactNum = projectData?.clientContactNum,
+                clientAddress = projectData?.clientAddress,
+                clientMonthlyElectricBill = projectData.clientMonthlyElectricBill
+            };
+        }
+
         public async Task<ICollection<GetProjects>> GetClientsProject()
         {
             var projects = await _dataContext.Project
@@ -155,24 +194,45 @@ namespace ProjectLibrary.Services.Repositories
 
             if (!string.IsNullOrEmpty(projId) || !string.IsNullOrEmpty(customerEmail))
             {
+                // Fetch material supply using both projId and customerEmail
                 var materialSupply = await _dataContext.Supply
                     .Include(i => i.Material)
                     .Include(p => p.Project.Client)
-                    .Where(p => projId != null ? p.Project.ProjId == projId : p.Project.Client.Email == customerEmail)
+                    .Where(p =>
+                        (projId != null && p.Project.ProjId == projId))
                     .ToListAsync();
 
-                overallMaterialTotal = materialSupply
+                // Prioritize customerEmail data if projId is empty
+                if (!materialSupply.Any())
+                {
+                    materialSupply = await _dataContext.Supply
+                        .Include(i => i.Material)
+                        .Include(p => p.Project.Client)
+                        .Where(p => p.Project.Client.Email == customerEmail)
+                        .ToListAsync();
+                }
+
+                // Calculate total unit cost and build-up cost in one pass
+                var (totalUnitCostSum, buildUpCostSum) = materialSupply
                     .Where(m => m.Material != null)
                     .GroupBy(m => m.Material.MTLDescript)
-                    .Select(group =>
-                    {
-                        var quantity = group.Sum(m => m.MTLQuantity ?? 0);
-                        var price = group.First().Material.MTLPrice;
-                        var unitCost = quantity * price;
-                        var buildUpCost = unitCost * 1.2m; // Assuming 20% build-up cost
-                        return unitCost + buildUpCost; // Return total cost for this group
-                    })
-                    .Sum() + (materialSupply.Sum(m => (m.Material?.MTLPrice ?? 0) * (m.MTLQuantity ?? 0)) * 0.3m); // Add profit
+                    .Aggregate(
+                        (totalUnitCost: 0m, buildUpCost: 0m),
+                        (acc, group) =>
+                        {
+                            var quantity = group.Sum(m => m.MTLQuantity ?? 0);
+                            var price = group.First().Material.MTLPrice;
+                            var unitCost = quantity * price;
+                            var buildUpCost = unitCost * 1.2m;
+
+                            return (acc.totalUnitCost + unitCost, acc.buildUpCost + buildUpCost);
+                        }
+                    );
+
+                // Calculate profit and overall totals
+                var profitPercentage = 0.3m;
+                var profit = totalUnitCostSum * profitPercentage;
+                overallMaterialTotal = totalUnitCostSum + profit;
 
                 overallLaborProjectTotal = await _dataContext.Labor
                     .Where(p => projId != null ? p.Project.ProjId == projId : p.Project.Client.Email == customerEmail)
@@ -263,6 +323,7 @@ namespace ProjectLibrary.Services.Repositories
                 customerEmail = i.Client.Email,
                 customerName = i.Client.UserName.Replace("_", " "),
                 customerAddress = i.Client.Client.ClientAddress,
+                projectId = i.ProjId,
                 projectDescription = i.ProjDescript,
                 projectDateCreation = i.CreatedAt.ToString("MMMM dd, yyyy"),
                 projectDateValidity = i.CreatedAt.AddDays(7).ToString("MMMM dd, yyyy")
@@ -350,22 +411,51 @@ namespace ProjectLibrary.Services.Repositories
             return await saved > 0 ? true : false;
         }
 
-        public async Task<bool> UpdateClientProject(UpdateProject updateProject)
+        public async Task<(bool, string)> UpdateClientProject(ClientProjectInfoDTO updateProject)
         {
             // Retrieve the project entity
             var project = await _dataContext.Project
                 .FindAsync(updateProject.ProjId);
 
-            if (project == null) return false;
+            if (project == null) return (false, "Project not found");
 
+            // Retrieve the client entity using the client ID from the DTO, assuming it's available
+            var client = await _userManager.Users
+                .Include(c => c.Client) // Ensure the related Client entity is included
+                .FirstOrDefaultAsync(c => c.Id == updateProject.clientId); // Use clientId instead of projId
+
+            if (client == null) return (false, "Client not found");
+
+            // Update project properties
             project.ProjName = updateProject.ProjName;
             project.ProjDescript = updateProject.ProjDescript;
-            project.UpdatedAt = DateTimeOffset.Now;
+            project.UpdatedAt = DateTimeOffset.UtcNow;
+            project.DiscountRate = updateProject.DiscountRate / 100;
+            project.VatRate = updateProject.VatRate / 100;
 
+            // Update client properties
+            client.UserName = updateProject.clientFName + "_" + updateProject.clientLName;
+            client.Client.ClientContactNum = updateProject.clientContactNum;
+            client.Client.ClientAddress = updateProject.clientAddress;
+            client.Client.ClientMonthlyElectricBill = updateProject.clientMonthlyElectricBill;
+            client.UpdatedAt = DateTimeOffset.UtcNow;
+
+            // Update the project entity in the context
             _dataContext.Project.Update(project);
 
-            return await Save();
+            // Update the client entity
+            var updateResult = await _userManager.UpdateAsync(client);
+            if (!updateResult.Succeeded) // Check if the update was successful
+            {
+                return (false, "Failed to update client: " + string.Join(", ", updateResult.Errors.Select(e => e.Description)));
+            }
+
+            // Save changes
+            await _dataContext.SaveChangesAsync(); // Ensure changes are saved to the database
+
+            return (true, "Client Info successfully updated!");
         }
+
 
         public async Task<bool> UpdatePersonnelWorkEnded(string projId, string reasonEnded)
         {
