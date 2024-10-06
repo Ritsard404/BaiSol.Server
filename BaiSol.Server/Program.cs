@@ -5,6 +5,8 @@ using AuthLibrary.Services.Repositories;
 using BaiSol.Server.Models.Email;
 using BaseLibrary.Services.Interfaces;
 using BaseLibrary.Services.Repositories;
+using ClientLibrary.Services.Interfaces;
+using ClientLibrary.Services.Repositories;
 using DataLibrary.Data;
 using DataLibrary.Models;
 using FacilitatorLibrary.Services.Interfaces;
@@ -58,6 +60,9 @@ namespace BaiSol.Server
             // Facilitator
             builder.Services.AddScoped<IRequestSupply, RequestSupplyRepository>();
             builder.Services.AddScoped<IAssignedSupply, AssignedSupplyRepository>();
+
+            // Client
+            builder.Services.AddScoped<IClientProject, ClientProjectRepository>();
 
             // Gantt
             builder.Services.AddScoped<IGanttRepository, GanttRepository>();

@@ -359,7 +359,7 @@ namespace ProjectLibrary.Services.Repositories
             var result = quotationData.Select(supply => new ProjectQuotationSupply
             {
                 description = supply.Material?.MTLDescript ?? "No Description",  // Provide a default description if null
-                lineTotal = supply.Material?.MTLPrice.ToString("#,##0.00") ?? "0.00"    // Assuming there's a price field in Material
+                lineTotal = (((decimal)(supply.MTLQuantity) * (supply.Material?.MTLPrice ?? 0)) * 1.3m).ToString("#,##0.00") // Ensure the multiplication is performed correctly
             }).ToList();
 
             return result;

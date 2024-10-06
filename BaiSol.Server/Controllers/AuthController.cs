@@ -77,7 +77,7 @@ namespace BaiSol.Server.Controllers
             if (user != null)
             {
                 var token = await _userManager.GeneratePasswordResetTokenAsync(user);
-                var reactAppUrl = _config["FrontEnd_Url"];
+                var reactAppUrl = _config.GetSection("FrontEnd_Url").Get<string[]>()[0];
                 var forgotPasswordLink = $"{reactAppUrl}/change-password?token={token}&email={user.Email}";
                 //var forgotPasswordLink = Url.Action(nameof(ResetPassword), "Account", new { token, user.Email }, Request.Scheme);
 
