@@ -80,6 +80,27 @@ namespace BaiSol.Server.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "GanttData2",
+                columns: table => new
+                {
+                    TaskId = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    TaskName = table.Column<string>(type: "text", nullable: true),
+                    PlannedStartDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    PlannedEndDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    ActualStartDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    ActualEndDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    Progress = table.Column<int>(type: "integer", nullable: true),
+                    Duration = table.Column<int>(type: "integer", nullable: true),
+                    Predecessor = table.Column<string>(type: "text", nullable: true),
+                    ParentId = table.Column<int>(type: "integer", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_GanttData2", x => x.TaskId);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "Material",
                 columns: table => new
                 {
@@ -612,6 +633,9 @@ namespace BaiSol.Server.Migrations
 
             migrationBuilder.DropTable(
                 name: "AspNetUserTokens");
+
+            migrationBuilder.DropTable(
+                name: "GanttData2");
 
             migrationBuilder.DropTable(
                 name: "Labor");

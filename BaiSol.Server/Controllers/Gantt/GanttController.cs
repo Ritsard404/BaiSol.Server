@@ -134,24 +134,38 @@ namespace BaiSol.Server.Controllers.Gantt
         [HttpDelete("{id:int}")]
         public async Task<IActionResult> Delete(int id)
         {
-            var itemToRemove = await _dataContext.GanttData
-                .Include(s=>s.SubTasks)
-                .FirstOrDefaultAsync(or => or.TaskId.Equals(id));
-            if (itemToRemove == null)
+            // Try to find the main task (GanttData) with its subtasks
+            var task = await _dataContext.GanttData
+                .Include(s => s.SubTasks)
+                .FirstOrDefaultAsync(t => t.TaskId == id);
+
+            // If the main task exists, delete it and its subtasks
+            if (task != null)
             {
-                return NotFound($"Task with ID {id} not found."); // Return 404 Not Found
+                if (task.SubTasks?.Any() == true)
+                {
+                    _dataContext.SubTask.RemoveRange(task.SubTasks);
+                }
+
+                _dataContext.GanttData.Remove(task);
+            }
+            else
+            {
+                // If not a main task, check if it's a subtask
+                var subTask = await _dataContext.SubTask.FirstOrDefaultAsync(st => st.TaskId == id);
+                if (subTask != null)
+                {
+                    _dataContext.SubTask.Remove(subTask);
+                }
+                else
+                {
+                    return NotFound($"Task or subtask with ID {id} not found.");
+                }
             }
 
-            // Remove all SubTasks associated with the GanttData item
-            if (itemToRemove.SubTasks != null && itemToRemove.SubTasks.Any())
-            {
-                _dataContext.SubTask.RemoveRange(itemToRemove.SubTasks);
-            }
-
-            _dataContext.GanttData.Remove(itemToRemove);
             await _dataContext.SaveChangesAsync();
-
             return NoContent(); // Return 204 No Content
         }
+
     }
 }
