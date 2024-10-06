@@ -36,7 +36,9 @@
 	<ItemGroup>
 	  <ProjectReference Include="..\AuthLibrary\AuthLibrary.csproj" />
 	  <ProjectReference Include="..\BaseLibrary\BaseLibrary.csproj" />
+	  <ProjectReference Include="..\ClientLibrary\ClientLibrary.csproj" />
 	  <ProjectReference Include="..\DataLibrary\DataLibrary.csproj" />
+	  <ProjectReference Include="..\FacilitatorLibrary\FacilitatorLibrary.csproj" />
 	  <ProjectReference Include="..\ProjectLibrary\ProjectLibrary.csproj" />
 	</ItemGroup>
 

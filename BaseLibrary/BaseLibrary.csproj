@@ -6,6 +6,15 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <ItemGroup>
+    <Compile Remove="DTO\**" />
+    <Compile Remove="Services\Responses\**" />
+    <EmbeddedResource Remove="DTO\**" />
+    <EmbeddedResource Remove="Services\Responses\**" />
+    <None Remove="DTO\**" />
+    <None Remove="Services\Responses\**" />
+  </ItemGroup>
+
 	<ItemGroup>
 
 		<PackageReference Include="MailKit" Version="4.6.0" />
@@ -14,8 +23,7 @@
 	</ItemGroup>
 
   <ItemGroup>
-    <Folder Include="DTO\" />
-    <Folder Include="Services\Responses\" />
+    <ProjectReference Include="..\DataLibrary\DataLibrary.csproj" />
   </ItemGroup>
 
 </Project>

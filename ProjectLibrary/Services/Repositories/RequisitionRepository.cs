@@ -55,14 +55,17 @@ namespace ProjectLibrary.Services.Repositories
             var user = await _userManager.FindByEmailAsync(approveRequest.userEmail);
             if (user == null) return (false, "Invalid user");
 
-            //var userRole = await _userManager.GetRolesAsync(user);
-            //if (!userRole.Contains("Admin")) 
-            //    return (false, "Invalid user");
+            var userRole = await _userManager.GetRolesAsync(user);
+            if (!userRole.Contains("Admin"))
+                return (false, "Invalid user");
 
             // Retrieve all the requisitions that match the provided IDs
             var requests = await _dataContext.Requisition
                 .Where(r => approveRequest.reqId.Contains(r.ReqId))
                 .Include(m => m.RequestSupply)
+                .ThenInclude(rs => rs.Material)
+                .Include(r => r.RequestSupply)
+                .ThenInclude(rs => rs.Equipment)
                 .ToListAsync();
 
             // Check if the found requests are empty
@@ -87,6 +90,9 @@ namespace ProjectLibrary.Services.Repositories
             foreach (var request in requests)
             {
                 request.Status = "Approved";
+                request.ReviewedAt = DateTimeOffset.UtcNow;
+                request.ReviewedBy = user;
+
                 var supply = await _dataContext.Supply
                     .FirstOrDefaultAsync(s => s.SuppId == request.RequestSupply.SuppId);
 
@@ -95,7 +101,8 @@ namespace ProjectLibrary.Services.Repositories
                 {
                     request.RequestSupply.Material.MTLQOH -= request.QuantityRequested;
                     request.RequestSupply.Material.UpdatedAt = DateTimeOffset.UtcNow;
-                    supply!.MTLQuantity += request.QuantityRequested;
+                    //supply!.MTLQuantity += request.QuantityRequested;
+
 
                     await LogUserActionAsync(
                         approveRequest.userEmail,
@@ -106,14 +113,6 @@ namespace ProjectLibrary.Services.Repositories
                         approveRequest.UserIpAddress
                     );
 
-                    await LogUserActionAsync(
-                        approveRequest.userEmail,
-                        "Update",
-                        "Supply",
-                        request.RequestSupply.SuppId.ToString(),
-                        $"Updated the material quantity because of the approved requests supply, added by {request.QuantityRequested}",
-                        approveRequest.UserIpAddress
-                    );
                 }
 
                 // Adjust equipment quantities
@@ -121,7 +120,7 @@ namespace ProjectLibrary.Services.Repositories
                 {
                     request.RequestSupply.Equipment.EQPTQOH -= request.QuantityRequested;
                     request.RequestSupply.Equipment.UpdatedAt = DateTimeOffset.UtcNow;
-                    supply!.EQPTQuantity += request.QuantityRequested;
+                    //supply!.EQPTQuantity += request.QuantityRequested;
 
                     await LogUserActionAsync(
                         approveRequest.userEmail,
@@ -132,17 +131,7 @@ namespace ProjectLibrary.Services.Repositories
                         approveRequest.UserIpAddress
                     );
 
-                    await LogUserActionAsync(
-                        approveRequest.userEmail,
-                        "Update",
-                        "Supply",
-                        request.RequestSupply.SuppId.ToString(),
-                        $"Updated the equipment quantity because of the approved requests supply, added by {request.QuantityRequested}",
-                        approveRequest.UserIpAddress
-                    );
                 }
-
-
 
                 await LogUserActionAsync(
                     approveRequest.userEmail,
@@ -193,6 +182,8 @@ namespace ProjectLibrary.Services.Repositories
             foreach (var request in requests)
             {
                 request.Status = "Declined";
+                request.ReviewedAt = DateTimeOffset.UtcNow;
+                request.ReviewedBy = user;
 
                 await LogUserActionAsync(
                     declineRequest.userEmail,
@@ -249,7 +240,7 @@ namespace ProjectLibrary.Services.Repositories
         {
             var supplies = await _dataContext.Supply
                 .Where(p => p.Project.ProjId == projId
-                             && !_dataContext.Requisition.Any(r => r.RequestSupply.SuppId == p.SuppId && r.Status == "OnReview")
+                             && !_dataContext.Requisition.Any(r => r.RequestSupply.SuppId == p.SuppId && (r.Status == "OnReview" || r.Status == "Approved"))
                              && (supplyCtgry.Equals("Material", StringComparison.OrdinalIgnoreCase) ? p.Material != null : true)
                              && (supplyCtgry.Equals("Equipment", StringComparison.OrdinalIgnoreCase) ? p.Equipment != null : true))
                 .Select(s => new AvailableRequestSupplies
@@ -277,6 +268,13 @@ namespace ProjectLibrary.Services.Repositories
             if (user == null) return (false, "User does not exist.");
             // Fetch the user by email and ensure the user exists
 
+
+            //// Retrieve the assigned facilitator's project information based on the user email
+            //var assignedFacilitator = await _dataContext.ProjectWorkLog
+            //    .Where(e => e.Facilitator.Email == addRequest.SubmittedBy && e.Project.Status != "OnWork")
+            //    .FirstOrDefaultAsync();
+            //if (assignedFacilitator != null) return (false, "Cannot submit request");
+
             //var userRole = await _userManager.GetRolesAsync(user);
             //if (!userRole.Contains("Facilitator"))
             //    return (false, "Invalid user");
@@ -290,10 +288,16 @@ namespace ProjectLibrary.Services.Repositories
                 if (supply == null)
                     return (false, $"Supply with ID {detail.SuppId} not found.");
 
-                var supplyOnReview = await _dataContext.Requisition
-                    .FirstOrDefaultAsync(s => s.RequestSupply == supply);
-                if (supplyOnReview != null)
-                    return (false, $"Supply still on review");
+                var supplyStatus = await _dataContext.Requisition
+                    .Where(s => s.RequestSupply == supply)
+                    .Select(s => s.Status)
+                    .ToListAsync();
+
+                if (supplyStatus.Contains("OnReview"))
+                    return (false, "Supply still on review");
+
+                if (supplyStatus.Contains("Approved"))
+                    return (false, "Supply needs to be acknowledged before requesting again.");
 
 
                 var request = new Requisition
