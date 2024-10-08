@@ -30,7 +30,16 @@ namespace DataLibrary.Models.Gantt
         [JsonPropertyName("ActualEndDate")]
         public DateTime? ActualEndDate { get; set; }
 
-        [JsonPropertyName("SubTasks")]
-        public ICollection<SubTask>? SubTasks { get; set; }
+        [JsonPropertyName("Progress")]
+        public int? Progress { get; set; }
+
+        [JsonPropertyName("Duration")]
+        public int? Duration { get; set; }
+
+        [JsonPropertyName("Predecessor")]
+        public string? Predecessor { get; set; }
+
+        [JsonPropertyName("ParentId")]
+        public int? ParentId { get; set; }
     }
 }

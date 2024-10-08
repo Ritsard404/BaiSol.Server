@@ -1,19 +1,16 @@
-﻿using BaseLibrary.Services.Interfaces;
-using DataLibrary.Data;
+﻿using DataLibrary.Data;
 using DataLibrary.Models.Gantt;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using ProjectLibrary.DTO.Project;
 using System.Text.Json.Serialization;
 
 namespace BaiSol.Server.Controllers.Gantt
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class GanttController(IGanttRepository _ganttRepository, DataContext _dataContext) : ControllerBase
+    public class GanttController(DataContext _dataContext) : ControllerBase
     {
-
         public class GanttResponse<T>
         {
             [JsonPropertyName("Items")]
@@ -23,11 +20,11 @@ namespace BaiSol.Server.Controllers.Gantt
             public int Count { get; set; }
         }
 
+
         [HttpGet]
         public async Task<IActionResult> Get()
         {
             var dataList = await _dataContext.GanttData
-                .Include(s=>s.SubTasks)
                 .ToListAsync();
 
             var response = new GanttResponse<List<GanttData>>
@@ -42,129 +39,63 @@ namespace BaiSol.Server.Controllers.Gantt
         [HttpPost]
         public async Task<IActionResult> Post([FromBody] GanttData[] data)
         {
-            if (data == null || data.Length == 0)
-            {
-                return BadRequest("No data provided.");
-            }
-
-
-            // Process each GanttData entry
-            foreach (var ganttData in data)
-            {
-                // Check if SubTasks are not null and have elements
-                if (ganttData.SubTasks != null && ganttData.SubTasks.Any())
-                {
-                    //foreach (var subTask in ganttData.SubTasks)
-                    //{
-                    //    // Set the foreign key to link SubTask with its GanttData
-                    //    subTask.GanttDataId = ganttData.TaskId; // Ensure you have a GanttDataId in SubTask
-                    //}
-
-                    // Add SubTasks to the DbContext
-                    await _dataContext.SubTask.AddRangeAsync(ganttData.SubTasks);
-                }
-            }
-
-            // Add each GanttData object to the DbContext
             await _dataContext.GanttData.AddRangeAsync(data);
             await _dataContext.SaveChangesAsync();
-
-            return CreatedAtAction(nameof(Get), new { id = data[0].TaskId }, data); // Return 201 Created
+            return Ok(data);
         }
 
         [HttpPut]
-        public async Task<IActionResult> Put([FromBody] GanttData[] data)
+        public async Task<IActionResult> Put([FromBody] GanttData[] value)
         {
-            if (data == null || data.Length == 0)
+            if (value == null || value.Length == 0)
             {
-                return BadRequest("No data provided.");
+                return BadRequest("Data is null or empty.");
             }
 
-            foreach (var task in data)
+            foreach (var updatedData in value)
             {
-                var result = await _dataContext.GanttData.FirstOrDefaultAsync(or => or.TaskId == task.TaskId);
+                var existingData = await _dataContext.GanttData.FindAsync(updatedData.TaskId);
 
-                if (result == null)
+                if (existingData == null)
                 {
-                    return NotFound($"Task with ID {task.TaskId} not found."); // Return 404 Not Found
+                    return NotFound($"GanttData with TaskId {updatedData.TaskId} not found.");
                 }
 
-                // Update the record fields
-                //result.TaskId = task.TaskId;
-                result.TaskName = task.TaskName;
-                result.PlannedStartDate = task.PlannedStartDate;
-                result.PlannedEndDate = task.PlannedEndDate;
-                result.ActualStartDate = task.ActualStartDate;
-                result.ActualEndDate = task.ActualEndDate;
-
-
-                if (result.SubTasks != null)
-                {
-                    foreach (var item in result.SubTasks)
-                    {
-                        var subResult = await _dataContext.SubTask.FirstOrDefaultAsync(or => or.TaskId == item.TaskId);
-
-
-                        if (subResult != null)
-                        {
-
-                            //subResult.TaskId = item.TaskId;
-                            subResult.TaskName = item.TaskName;
-                            subResult.PlannedStartDate = item.PlannedStartDate;
-                            subResult.PlannedEndDate = item.PlannedEndDate;
-                            subResult.ActualStartDate = item.ActualStartDate;
-                            subResult.ActualEndDate = item.ActualEndDate;
-                            subResult.ActualStartDate = item.ActualStartDate;
-                            subResult.ActualEndDate = item.ActualEndDate;
-                            subResult.Progress = item.Progress;
-                            subResult.Predecessor = item.Predecessor;
-                        }
-
-                    }
-                }
-
-
+                // Update properties
+                existingData.TaskName = updatedData.TaskName;
+                existingData.PlannedStartDate = updatedData.PlannedStartDate;
+                existingData.PlannedEndDate = updatedData.PlannedEndDate;
+                existingData.ActualStartDate = updatedData.ActualStartDate;
+                existingData.ActualEndDate = updatedData.ActualEndDate;
+                existingData.Progress = updatedData.Progress;
+                existingData.Duration = updatedData.Duration;
+                existingData.Predecessor = updatedData.Predecessor;
+                existingData.ParentId = updatedData.ParentId;
             }
 
             await _dataContext.SaveChangesAsync();
-
-            return Ok(data); // Return 200 OK
+            return Ok(value);
         }
 
         [HttpDelete("{id:int}")]
         public async Task<IActionResult> Delete(int id)
         {
-            // Try to find the main task (GanttData) with its subtasks
-            var task = await _dataContext.GanttData
-                .Include(s => s.SubTasks)
-                .FirstOrDefaultAsync(t => t.TaskId == id);
+            // Find the existing record by TaskId
+            var existingData = await _dataContext.GanttData.FindAsync(id);
 
-            // If the main task exists, delete it and its subtasks
-            if (task != null)
+            if (existingData == null)
             {
-                if (task.SubTasks?.Any() == true)
-                {
-                    _dataContext.SubTask.RemoveRange(task.SubTasks);
-                }
-
-                _dataContext.GanttData.Remove(task);
-            }
-            else
-            {
-                // If not a main task, check if it's a subtask
-                var subTask = await _dataContext.SubTask.FirstOrDefaultAsync(st => st.TaskId == id);
-                if (subTask != null)
-                {
-                    _dataContext.SubTask.Remove(subTask);
-                }
-                else
-                {
-                    return NotFound($"Task or subtask with ID {id} not found.");
-                }
+                // Return a NotFound result if the record does not exist
+                return NotFound($"GanttData with TaskId {id} not found.");
             }
 
+            // Remove the existing record
+            _dataContext.GanttData.Remove(existingData);
+
+            // Save changes to the database
             await _dataContext.SaveChangesAsync();
-            return NoContent(); // Return 204 No Content
+
+            return Ok(id);
         }
 
     }

@@ -18,8 +18,6 @@ namespace DataLibrary.Data
         public DbSet<UserLogs> UserLogs { get; set; }
         public DbSet<Requisition> Requisition { get; set; }
         public DbSet<GanttData> GanttData { get; set; }
-        public DbSet<SubTask> SubTask { get; set; }
-        public DbSet<GanttData2> GanttData2 { get; set; }
 
 
 
