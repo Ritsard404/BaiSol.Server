@@ -265,8 +265,11 @@ namespace AuthLibrary.Services.Repositories
             // Get user from the database
             var user = await _userManager.FindByIdAsync(id);
 
+            if (user?.Status == "Active" || user?.Status == "OnWork")
+                return true;
+
             // Check if the user is suspended
-            return user?.Status == "Active";
+            return false;
         }
     }
 }
