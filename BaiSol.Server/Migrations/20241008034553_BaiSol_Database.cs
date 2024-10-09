@@ -72,23 +72,6 @@ namespace BaiSol.Server.Migrations
                     PlannedStartDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
                     PlannedEndDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
                     ActualStartDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    ActualEndDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_GanttData", x => x.TaskId);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "GanttData2",
-                columns: table => new
-                {
-                    TaskId = table.Column<int>(type: "integer", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    TaskName = table.Column<string>(type: "text", nullable: true),
-                    PlannedStartDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    PlannedEndDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    ActualStartDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
                     ActualEndDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
                     Progress = table.Column<int>(type: "integer", nullable: true),
                     Duration = table.Column<int>(type: "integer", nullable: true),
@@ -97,7 +80,7 @@ namespace BaiSol.Server.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_GanttData2", x => x.TaskId);
+                    table.PrimaryKey("PK_GanttData", x => x.TaskId);
                 });
 
             migrationBuilder.CreateTable(
@@ -176,32 +159,6 @@ namespace BaiSol.Server.Migrations
                         column: x => x.ClientId,
                         principalTable: "Client",
                         principalColumn: "Id");
-                });
-
-            migrationBuilder.CreateTable(
-                name: "SubTask",
-                columns: table => new
-                {
-                    TaskId = table.Column<int>(type: "integer", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    TaskName = table.Column<string>(type: "text", nullable: true),
-                    PlannedStartDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    PlannedEndDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    ActualStartDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    ActualEndDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    Progress = table.Column<int>(type: "integer", nullable: true),
-                    Week = table.Column<int>(type: "integer", nullable: true),
-                    Predecessor = table.Column<string>(type: "text", nullable: true),
-                    GanttDataTaskId = table.Column<int>(type: "integer", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_SubTask", x => x.TaskId);
-                    table.ForeignKey(
-                        name: "FK_SubTask_GanttData_GanttDataTaskId",
-                        column: x => x.GanttDataTaskId,
-                        principalTable: "GanttData",
-                        principalColumn: "TaskId");
                 });
 
             migrationBuilder.CreateTable(
@@ -591,11 +548,6 @@ namespace BaiSol.Server.Migrations
                 column: "SubmittedById");
 
             migrationBuilder.CreateIndex(
-                name: "IX_SubTask_GanttDataTaskId",
-                table: "SubTask",
-                column: "GanttDataTaskId");
-
-            migrationBuilder.CreateIndex(
                 name: "IX_Supply_EquipmentEQPTId",
                 table: "Supply",
                 column: "EquipmentEQPTId");
@@ -635,7 +587,7 @@ namespace BaiSol.Server.Migrations
                 name: "AspNetUserTokens");
 
             migrationBuilder.DropTable(
-                name: "GanttData2");
+                name: "GanttData");
 
             migrationBuilder.DropTable(
                 name: "Labor");
@@ -645,9 +597,6 @@ namespace BaiSol.Server.Migrations
 
             migrationBuilder.DropTable(
                 name: "Requisition");
-
-            migrationBuilder.DropTable(
-                name: "SubTask");
 
             migrationBuilder.DropTable(
                 name: "UserLogs");
@@ -660,9 +609,6 @@ namespace BaiSol.Server.Migrations
 
             migrationBuilder.DropTable(
                 name: "Supply");
-
-            migrationBuilder.DropTable(
-                name: "GanttData");
 
             migrationBuilder.DropTable(
                 name: "Equipment");

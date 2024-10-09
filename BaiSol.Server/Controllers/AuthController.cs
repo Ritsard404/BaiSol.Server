@@ -42,6 +42,10 @@ namespace BaiSol.Server.Controllers
         public async Task<IActionResult> Login(LoginDto loginDto)
         {
             var response = await _userAccount.LoginAccount(loginDto);
+            if (!response.Flag)
+            {
+                return BadRequest(response.Message);
+            }
             return Ok(response);
         }
 
@@ -51,7 +55,7 @@ namespace BaiSol.Server.Controllers
             var login = await _userAccount.Login2FA(otp.Code, otp.Email);
             if (login.AccessToken == null)
             {
-                return StatusCode(500, login);
+                return BadRequest(login);
             }
 
             return Ok(login);
