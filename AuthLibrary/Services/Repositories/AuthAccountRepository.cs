@@ -153,52 +153,82 @@ namespace AuthLibrary.Services.Repositories
             // Return unsuccessful login response
             return new LoginResponse(null, null, $"Invalid OTP! {signInResult.ToString()}");
         }
-
         public async Task<GeneralResponse> LoginAccount(LoginDto loginDto)
         {
             // Get user from the database
             var user = await _userManager.FindByEmailAsync(loginDto.Email);
             if (user == null)
             {
-                return new GeneralResponse("User not found!", false);
+                return new GeneralResponse("User not found!", false, false, null, null);
             }
 
-            // Sign out any existing users
+            // Sign out any existing users and sign in with the provided credentials
             await _signInManager.SignOutAsync();
-            await _signInManager.PasswordSignInAsync(user, loginDto.Password, false, true);
-
-            // Check if the user's password is correct
-            var checkUserPass = await _userManager.CheckPasswordAsync(user, loginDto.Password);
-            if (!checkUserPass || await IsUserSuspend(user.Id) || !await IsUserActive(user.Id))
+            var isPasswordValid = await _userManager.CheckPasswordAsync(user, loginDto.Password);
+            if (!isPasswordValid || await IsUserSuspend(user.Id) || !await IsUserActive(user.Id))
             {
-                return new GeneralResponse("Invalid credentials!", false);
+                return new GeneralResponse("Invalid credentials!", false, false, null, null);
             }
 
             // Check if the user's email is confirmed
             if (!user.EmailConfirmed)
             {
-                return new GeneralResponse("Email not confirmed. Please check your email for confirmation link.", false);
+                return new GeneralResponse("Email not confirmed. Please check your email for the confirmation link.", false, false, null, null);
             }
 
-            // Generate OTP token for 2FA using email
-            var tokenOTP = await _userManager.GenerateTwoFactorTokenAsync(user, "Email");
+            // Check if the logged-in user is the default admin
+            if (IsDefaultAdmin(user.Email))
+            {
+                return await HandleDefaultAdminLogin(user);
+            }
 
-            // Send OTP via email
-            var message = new EmailMessage(new string[] { loginDto.Email }, "OTP Confirmation", tokenOTP);
-            _emailRepository.SendEmail(message);
+            // Handle regular user login with OTP
+            return await HandleRegularUserLogin(user, loginDto.Email);
+        }
 
+        // Helper method to check if the user is the default admin
+        private bool IsDefaultAdmin(string userEmail)
+        {
+            return _config["OwnerEmail"] == userEmail;
+        }
+
+        // Helper method to handle login for the default admin
+        private async Task<GeneralResponse> HandleDefaultAdminLogin(AppUsers user)
+        {
             // Get user roles
-            var getUserRole = await _userManager.GetRolesAsync(user);
-            var userRole = getUserRole.FirstOrDefault();
+            var userRoles = await _userManager.GetRolesAsync(user);
+            var userRole = userRoles.FirstOrDefault();
 
             // Create a user session object
             var userSession = new UserSession(user.Id, user.UserName, user.Email, userRole);
 
+            // Sign in the user using SignInManager
+            await _signInManager.SignInAsync(user, isPersistent: false);
+
+            // Generate and update refresh token
+            var refreshToken = GenerateRefreshToken();
+            user.RefreshToken = refreshToken;
+            await _userManager.UpdateAsync(user);
+
             // Generate access token
-            string token = GenerateAccessToken(userSession);
+            var accessToken = GenerateAccessToken(userSession);
+
+            // Return response directly for the default admin without sending OTP
+            return new GeneralResponse("Welcome admin.", true, true, accessToken, refreshToken);
+        }
+
+        // Helper method to handle regular user login with OTP
+        private async Task<GeneralResponse> HandleRegularUserLogin(AppUsers user, string email)
+        {
+            // Generate OTP token for 2FA using email
+            var tokenOTP = await _userManager.GenerateTwoFactorTokenAsync(user, "Email");
+
+            // Send OTP via email
+            var message = new EmailMessage(new string[] { email }, "OTP Confirmation", tokenOTP);
+            _emailRepository.SendEmail(message);
 
             // Return response indicating OTP sent
-            return new GeneralResponse("We've sent you an OTP", true);
+            return new GeneralResponse("We've sent you an OTP", true, false, null, null);
         }
 
         public async Task<LoginResponse> RefreshToken(Token token)
@@ -266,7 +296,7 @@ namespace AuthLibrary.Services.Repositories
             var user = await _userManager.FindByIdAsync(id);
 
 
-            return user?.Status == "Active"|| user?.Status == "OnWork";
+            return user?.Status == "Active" || user?.Status == "OnWork";
         }
     }
 }
