@@ -8,6 +8,7 @@ using ProjectLibrary.DTO.Material;
 using ProjectLibrary.Services.Interfaces;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -16,6 +17,14 @@ namespace ProjectLibrary.Services.Repositories
 {
     public class EquipmentRepository(DataContext _dataContext, UserManager<AppUsers> _userManager, IMapper _mapper) : IEquipment
     {
+        TextInfo textInfo = CultureInfo.CurrentCulture.TextInfo;
+
+        public string textFormat(string text)
+        {
+            var formmatedText = textInfo.ToTitleCase(text).Trim();
+            return formmatedText;
+        }
+
         public async Task<string> AddNewEquipment(EquipmentDTO equipment)
         {
             if (equipment == null)
@@ -23,16 +32,40 @@ namespace ProjectLibrary.Services.Repositories
                 throw new ArgumentNullException(nameof(equipment));
             }
 
-            // Check if the equpment already exists
-            var isEquipmentExist = await IsEQPTDescriptExist(equipment.EQPTDescript);
-            if (isEquipmentExist)
-            {
-                return "Equipment Already Exists";
-            }
             // Check User Existence
             var user = await _userManager.FindByEmailAsync(equipment.UserEmail);
             if (user == null) return "Invalid User!";
             var userRole = await _userManager.GetRolesAsync(user);
+
+            equipment.EQPTDescript = textFormat(equipment.EQPTDescript);
+            equipment.EQPTCategory = textFormat(equipment.EQPTCategory);
+
+            // Check if the equpment already exists
+            var equipmentData = await _dataContext.Equipment.FirstOrDefaultAsync(i => i.EQPTDescript == equipment.EQPTDescript);
+            if (equipmentData != null)
+            {
+                var oldQuantity = equipmentData.EQPTQOH;
+                equipmentData.EQPTQOH += equipment.EQPTQOH;
+                equipmentData.UpdatedAt = DateTimeOffset.UtcNow;
+
+
+
+                _dataContext.UserLogs.Add(new UserLogs
+                {
+                    Action = "Update",
+                    EntityName = "Equipment",
+                    EntityId = equipmentData.EQPTId.ToString(),
+                    UserIPAddress = equipment.UserIpAddress,
+                    Details = $"Updated material '{equipment.EQPTDescript}'. Old Quantity: {oldQuantity}, New Quantity: {equipment.EQPTQOH}.",
+                    UserId = user.Id,
+                    UserName = user.NormalizedUserName,
+                    UserRole = userRole.FirstOrDefault(),
+                    User = user,
+                });
+                await Save();
+
+                return null;
+            }
 
             // Map DTO to model
             var equipmentMap = _mapper.Map<Equipment>(equipment);
@@ -76,6 +109,8 @@ namespace ProjectLibrary.Services.Repositories
             var equipment = await _dataContext.Equipment.FindAsync(eqptId);
             if (equipment == null) return (false, "Equipment not found!");
 
+            if (equipment.EQPTQOH > 0)
+                return (false, "Equipment cannot be deleted!");
 
             // Check if the equipment is used in any finished project
             var isUsed = await _dataContext.Supply
@@ -400,6 +435,11 @@ namespace ProjectLibrary.Services.Repositories
 
             if (equipment == null) return (false, "Equipment not exist");
 
+            updateEquipment.EQPTDescript = textFormat(equipment.EQPTDescript);
+            var isEquipmentExist = await IsEQPTDescriptExist(updateEquipment.EQPTDescript);
+            if (isEquipmentExist)
+                return (false, "Equipment cannot update");
+
             // Store old values
             var oldDesc = equipment.EQPTDescript;
             var oldUnit = equipment.EQPTUnit;
@@ -432,6 +472,49 @@ namespace ProjectLibrary.Services.Repositories
             await Save();
 
             return (true, "The equipment was successfully updated!");
+        }
+
+        public async Task<(bool, string)> UpdateQOHPEquipment(UpdateQOHEquipmentDTO updateQOH)
+        {
+
+            var equipment = await _dataContext.Equipment
+                .FirstOrDefaultAsync(m => m.EQPTId == updateQOH.EQPTId);
+
+            if (equipment == null) return (false, "Equipment not exist");
+
+            if (updateQOH.EQPTQOH <= 0)
+                return (false, "Invalid Quantity!");
+
+
+            // Check User Existence
+            var user = await _userManager.FindByEmailAsync(updateQOH.UserEmail);
+            if (user == null) return (false, "Invalid User!");
+
+            var userRole = (await _userManager.GetRolesAsync(user)).FirstOrDefault();
+
+
+            // Store old values
+            var oldQuantity = equipment.EQPTQOH;
+
+            equipment.EQPTQOH += updateQOH.EQPTQOH;
+            equipment.UpdatedAt = DateTimeOffset.UtcNow;
+
+            _dataContext.UserLogs.Add(new UserLogs
+            {
+                Action = "Update",
+                EntityName = "Equipment",
+                EntityId = equipment.EQPTId.ToString(),
+                UserIPAddress = updateQOH.UserIpAddress,
+                Details = $"Updated material '{equipment.EQPTDescript}'. Old Quantity: {oldQuantity}, New Quantity: {equipment.EQPTQOH}.",
+                UserId = user.Id,
+                UserName = user.NormalizedUserName,
+                UserRole = userRole,
+                User = user,
+            });
+
+            await Save(); 
+            return (true, "The equipment quantity updated!");
+
         }
     }
 }

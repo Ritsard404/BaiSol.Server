@@ -72,6 +72,30 @@ namespace BaiSol.Server.Controllers.Projects
             return Ok(categories);
         }
 
+        [HttpPut("Update-QOH-Equipment")]
+        public async Task<IActionResult> UpdateQOHEquipment(UpdateQOHEquipmentDTO updateQOH)
+        {
+
+            // Retrieve the client IP address
+            var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
+
+            // Validate IP address
+            if (string.IsNullOrWhiteSpace(ipAddress)) return BadRequest("IP address is required and cannot be empty");
+
+            updateQOH.UserIpAddress = ipAddress;
+
+            var (success, message) = await _equipment.UpdateQOHPEquipment(updateQOH);
+
+            if (success)
+            {
+                return Ok(message);
+            }
+            else
+            {
+                return BadRequest(message);
+            }
+        }
+
         [HttpPut("Update-EquipmentPAndQ")]
         public async Task<IActionResult> UpdateQAndPEquipment(UpdateQAndPDTO updateEquipment)
         {

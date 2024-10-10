@@ -333,21 +333,22 @@ namespace ProjectLibrary.Services.Repositories
             return result;
         }
 
-        public async Task<ICollection<ProjectQuotationSupply>> ProjectQuotationSupply(string? projId, string? customerEmail)
+        public async Task<ICollection<ProjectQuotationSupply>> ProjectQuotationSupply(string? projId)
         {
-
             List<Supply> quotationData = new List<Supply>();
 
-            if (!string.IsNullOrEmpty(projId) || !string.IsNullOrEmpty(customerEmail))
+            if (!string.IsNullOrEmpty(projId))
             {
-
+                // Fetch only supplies where MTLQuantity and Material.MTLPrice are not null
                 quotationData = await _dataContext.Supply
-                   .Include(m => m.Material)
-                   .Include(m => m.Equipment)
-                   .Include(m => m.Project)
-                   .Where(p => projId != null ? p.Project.ProjId == projId : p.Project.Client.Email == customerEmail)
-                   .OrderBy(c => c.Material.MTLCategory)
-                   .ToListAsync();
+                    .Include(m => m.Material)
+                    .Include(m => m.Equipment)
+                    .Include(m => m.Project)
+                    .Where(p => p.Project.ProjId == projId
+                                && p.MTLQuantity != null // Ensure MTLQuantity is not null
+                                && p.Material.MTLPrice != null) // Ensure MTLPrice is not null
+                    .OrderBy(c => c.Material.MTLCategory)
+                    .ToListAsync();
             }
 
             // If no data is found, return an empty list
@@ -359,12 +360,11 @@ namespace ProjectLibrary.Services.Repositories
             var result = quotationData.Select(supply => new ProjectQuotationSupply
             {
                 description = supply.Material?.MTLDescript ?? "No Description",  // Provide a default description if null
-                lineTotal = (((decimal)(supply.MTLQuantity) * (supply.Material?.MTLPrice ?? 0)) * 1.3m).ToString("#,##0.00") // Ensure the multiplication is performed correctly
+                lineTotal = (((decimal)(supply.MTLQuantity ?? 0) * (supply.Material?.MTLPrice ?? 0)) * 1.3m).ToString("#,##0.00") // Calculate total safely
             }).ToList();
 
             return result;
         }
-
 
 
         //public async Task<ICollection<ProjectQuotationInfoDTO>> ProjectQuotationInfoByProjId(string projId)

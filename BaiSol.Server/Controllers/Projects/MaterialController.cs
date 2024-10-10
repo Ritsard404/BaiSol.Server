@@ -79,6 +79,30 @@ namespace BaiSol.Server.Controllers.Projects
             return Ok(new { QOH = qoh });
         }
 
+        [HttpPut("Update-QOH-Material")]
+        public async Task<IActionResult> UpdateQOHMaterial(UpdateQOHMaterialDTO updateMaterial)
+        {
+
+            // Retrieve the client IP address
+            var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
+
+            // Validate IP address
+            if (string.IsNullOrWhiteSpace(ipAddress)) return BadRequest("IP address is required and cannot be empty");
+
+            updateMaterial.UserIpAddress = ipAddress;
+
+            var (success, message) = await _material.UpdateQOHMaterial(updateMaterial);
+
+            if (success)
+            {
+                return Ok(message);
+            }
+            else
+            {
+                return BadRequest(message);
+            }
+        }
+
         [HttpPut("Update-MaterialPAndQ")]
         public async Task<IActionResult> UpdateQAndPMaterial(UpdateQAndPMaterialDTO updateMaterial)
         {

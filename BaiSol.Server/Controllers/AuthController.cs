@@ -78,7 +78,7 @@ namespace BaiSol.Server.Controllers
         public async Task<IActionResult> ForgotPassword([FromBody] string email)
         {
             var user = await _userManager.FindByEmailAsync(email);
-            if (user != null)
+            if (user != null && _config["OwnerEmail"] != user.Email)
             {
                 var token = await _userManager.GeneratePasswordResetTokenAsync(user);
                 var reactAppUrl = _config.GetSection("FrontEnd_Url").Get<string[]>()[0];

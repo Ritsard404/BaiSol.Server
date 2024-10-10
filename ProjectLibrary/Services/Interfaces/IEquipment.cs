@@ -16,6 +16,7 @@ namespace ProjectLibrary.Services.Interfaces
         Task<int> GetQOHEquipment(int eqptId);
 
 
+        Task<(bool, string)> UpdateQOHPEquipment(UpdateQOHEquipmentDTO updateQOH);
         Task<(bool, string)> UpdateQAndPEquipment(UpdateQAndPDTO updateEquipment);
         Task<(bool, string)> UpdateUAndDEquipment(UpdateUAndDDTO updateEquipment);
         Task<bool> IsEQPTCodeExist(string eqptCode);
