@@ -14,5 +14,11 @@ namespace BaiSol.Server.Controllers
             var logs = await _userLogs.GetInventoryLogs(supplyCategory, id);
             return Ok(logs);
         }
+        [HttpGet]
+        public async Task<IActionResult> GetActivityLogs()
+        {
+            var logs = await _userLogs.GetActivityLogs();
+            return Ok(logs);
+        }
     }
 }

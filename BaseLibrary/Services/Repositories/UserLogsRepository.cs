@@ -14,7 +14,6 @@ namespace BaseLibrary.Services.Repositories
     {
         public async Task<ICollection<InventoryLogs>> GetInventoryLogs(string supplyCategory, string id)
         {
-            // Step 1: Retrieve the data without formatting
             var logs = await _dataContext.UserLogs
                 .Include(u => u.User)
                 .Where(s => s.EntityName.Equals(supplyCategory) && s.EntityId.Equals(id))
@@ -37,5 +36,26 @@ namespace BaseLibrary.Services.Repositories
             return inventoryLogs;
         }
 
+        public async Task<ICollection<AllLogsDTO>> GetActivityLogs()
+        {
+            var logs = await _dataContext.UserLogs
+                .Include(u => u.User)
+                .OrderByDescending(t => t.Timestamp)
+                .ToListAsync();
+
+
+            return logs.Select(l => new AllLogsDTO
+            {
+                LogId = l.LogId,
+                Action = l.Action,
+                Details = l.Details,
+                EntityName = l.EntityName,
+                UserRole = l.UserRole,
+                UserName = l.User.UserName.Replace('_', ' '),
+                UserEmail = l.UserName,
+                UserIPAddress = l.UserIPAddress,
+                Timestamp = l.Timestamp.ToString("MMM dd, yyyy HH:mm:ss"),
+            }).ToList();
+        }
     }
 }
