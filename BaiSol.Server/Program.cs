@@ -67,6 +67,9 @@ namespace BaiSol.Server
             // Gantt
             builder.Services.AddScoped<IGanttRepository, GanttRepository>();
 
+            // Logs
+            builder.Services.AddScoped<IUserLogs, UserLogsRepository>();
+
 
             // Add Email Config
             var emailConfig = builder.Configuration

@@ -7,11 +7,19 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using ProjectLibrary.DTO.Material;
 using ProjectLibrary.Services.Interfaces;
+using System.Globalization;
 
 namespace ProjectLibrary.Services.Repositories
 {
     public class MaterialRepository(DataContext _dataContext, UserManager<AppUsers> _userManager, IMapper _mapper) : IMaterial
     {
+        TextInfo textInfo = CultureInfo.CurrentCulture.TextInfo;
+
+        public string textFormat(string text)
+        {
+            var formmatedText = textInfo.ToTitleCase(text).Trim();
+            return formmatedText;
+        }
 
         public async Task<string> AddNewMaterial(MaterialDTO materialDto)
         {
@@ -21,17 +29,39 @@ namespace ProjectLibrary.Services.Repositories
                 throw new ArgumentNullException(nameof(materialDto));
             }
 
-            // Check if the material already exists
-            var isMaterialExist = await IsMaterialExist(materialDto.MTLDescript);
-            if (isMaterialExist)
-            {
-                return "Material Already Exists";
-            }
-
             // Check User Existence
             var user = await _userManager.FindByEmailAsync(materialDto.UserEmail);
             if (user == null) return "Invalid User!";
             var userRole = await _userManager.GetRolesAsync(user);
+
+            materialDto.MTLDescript = textFormat(materialDto.MTLDescript);
+            materialDto.MTLCategory = textFormat(materialDto.MTLCategory);
+
+            var material = await _dataContext.Material.FirstOrDefaultAsync(i => i.MTLDescript == materialDto.MTLDescript);
+            if (material != null)
+            {
+                var oldQuantity = material.MTLQOH;
+                material.MTLQOH += materialDto.MTLQOH;
+                material.UpdatedAt = DateTimeOffset.UtcNow;
+
+
+                UserLogs log = new UserLogs
+                {
+                    Action = "Update",
+                    EntityName = "Material",
+                    EntityId = material.MTLId.ToString(),
+                    UserIPAddress = materialDto.UserIpAddress,
+                    Details = $"Updated material '{material.MTLDescript}'. Old Quantity: {oldQuantity}, New Quantity: {material.MTLQOH}.",
+                    UserId = user.Id,
+                    UserName = user.NormalizedUserName,
+                    UserRole = userRole.FirstOrDefault(),
+                    User = user,
+                };
+                _dataContext.UserLogs.Add(log);
+                await Save();
+
+                return null;
+            }
 
             // Map DTO to model
             var materialMap = _mapper.Map<Material>(materialDto);
@@ -73,6 +103,8 @@ namespace ProjectLibrary.Services.Repositories
             var material = await _dataContext.Material.FindAsync(mtlId);
             if (material == null) return (false, "Material not found!");
 
+            if (material.MTLQOH > 0)
+                return (false, "Material cannot be deleted!");
 
             // Check if the material is used in any finished project
             var isUsed = await _dataContext.Supply
@@ -248,6 +280,11 @@ namespace ProjectLibrary.Services.Repositories
 
             if (material == null) return (false, "Material not exist");
 
+            updateMaterial.MTLDescript = textFormat(updateMaterial.MTLDescript);
+
+            var isMaterialExist = await IsMaterialExist(updateMaterial.MTLDescript);
+            if (isMaterialExist)
+                return (false, "Material cannot update");
 
             //// Check if the material is used in any finished project
             //var isUsed = await _dataContext.Supply
@@ -288,6 +325,46 @@ namespace ProjectLibrary.Services.Repositories
             await Save();
 
             return (true, "The material was successfully updated!");
+        }
+
+        public async Task<(bool, string)> UpdateQOHMaterial(UpdateQOHMaterialDTO updateQOH)
+        {
+            var material = await _dataContext.Material
+                .FirstOrDefaultAsync(m => m.MTLId == updateQOH.MTLId);
+
+            if (material == null) return (false, "Material not exist!");
+            if (updateQOH.MTLQOH <= 0)
+                return (false, "Invalid Quantity!");
+
+            // Check User Existence
+            var user = await _userManager.FindByEmailAsync(updateQOH.UserEmail);
+            if (user == null) return (false, "Invalid User!");
+
+            var userRole = (await _userManager.GetRolesAsync(user)).FirstOrDefault();
+
+
+            // Store old values
+            var oldQuantity = material.MTLQOH;
+
+            material.MTLQOH += updateQOH.MTLQOH;
+            material.UpdatedAt = DateTimeOffset.UtcNow;
+            _dataContext.UserLogs.Add(new UserLogs
+            {
+                Action = "Update",
+                EntityName = "Material",
+                EntityId = material.MTLId.ToString(),
+                UserIPAddress = updateQOH.UserIpAddress,
+                Details = $"Updated material '{material.MTLDescript}'. Old Quantity: {oldQuantity}, New Quantity: {material.MTLQOH}.",
+                UserId = user.Id,
+                UserName = user.NormalizedUserName,
+                UserRole = userRole,
+                User = user,
+            });
+
+            await Save();
+
+            return (true, "The material quantity updated!");
+
         }
     }
 }

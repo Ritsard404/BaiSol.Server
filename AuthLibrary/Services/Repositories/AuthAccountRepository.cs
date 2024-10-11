@@ -151,7 +151,7 @@ namespace AuthLibrary.Services.Repositories
             }
 
             // Return unsuccessful login response
-            return new LoginResponse(null, null, $"Invalid OTP! {signInResult.ToString()}");
+            return new LoginResponse(null, null, $"Invalid OTP!");
         }
         public async Task<GeneralResponse> LoginAccount(LoginDto loginDto)
         {

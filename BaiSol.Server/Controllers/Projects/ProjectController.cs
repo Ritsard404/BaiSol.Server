@@ -108,9 +108,9 @@ namespace BaiSol.Server.Controllers.Projects
         }
 
         [HttpGet("[action]")]
-        public async Task<IActionResult> ProjectQuotationSupply(string? projId, string? customerEmail)
+        public async Task<IActionResult> ProjectQuotationSupply(string? projId)
         {
-            var supply = await _project.ProjectQuotationSupply(projId, customerEmail);
+            var supply = await _project.ProjectQuotationSupply(projId);
             return Ok(supply); // Wrap the result in an Ok result
         }
 

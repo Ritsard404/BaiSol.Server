@@ -17,7 +17,7 @@ namespace ProjectLibrary.Services.Interfaces
 
         // Project Quotation
         Task<ProjectQuotationInfoDTO> ProjectQuotationInfo(string? projId, string? customerEmail);
-        Task<ICollection<ProjectQuotationSupply>> ProjectQuotationSupply(string? projId, string? customerEmail);
+        Task<ICollection<ProjectQuotationSupply>> ProjectQuotationSupply(string? projId);
         Task<ProjectQuotationTotalExpense> ProjectQuotationExpense(string? projId, string? customerEmail);
 
     }
