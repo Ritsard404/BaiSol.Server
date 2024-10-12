@@ -380,6 +380,8 @@ namespace AuthLibrary.Services.Repositories
                     }
                 }
 
+
+
                 await _dataContext.SaveChangesAsync();
                 return new RegisterResponse("New client added successfully.", true, newClientUser);
             }

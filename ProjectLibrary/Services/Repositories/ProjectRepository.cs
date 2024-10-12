@@ -5,6 +5,7 @@ using DataLibrary.Models;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using ProjectLibrary.DTO.Material;
 using ProjectLibrary.DTO.Project;
 using ProjectLibrary.DTO.Quote;
 using ProjectLibrary.Services.Interfaces;
@@ -265,7 +266,7 @@ namespace ProjectLibrary.Services.Repositories
                 decimal total = overallMaterialTotal + overallLaborProjectTotal;
 
                 // Calculate subtotal after discount
-                decimal subtotalAfterDiscount = total - (discountRate * total);
+                decimal subtotalAfterDiscount = total - discountRate;
 
                 // Calculate VAT
                 decimal vatAmount = subtotalAfterDiscount * vatRate;
@@ -292,13 +293,14 @@ namespace ProjectLibrary.Services.Repositories
                 {
                     QuoteId = i.ProjId,
                     SubTotal = total.ToString("#,##0.00"),
-                    Discount = (discountRate + total).ToString("#,##0.00"),
+                    Discount = discountRate.ToString("#,##0.00"),
                     SubTotalAfterDiscount = subtotalAfterDiscount.ToString("#,##0.00"),
                     VAT = vatAmount.ToString("#,##0.00"),
                     VatRate = (vatRate * 100).ToString("0.##") + "%",
                     Total = finalTotal.ToString("#,##0.00"),
                     TotalLaborCost = totalLaborCost,
-                    TotalMaterialCost = totalMaterialCost
+                    TotalMaterialCost = totalMaterialCost,
+                    EstimationDate = i.kWCapacity <= 5 ? 7 : i.kWCapacity >= 6 && i.kWCapacity <= 10 ? 15 : i.kWCapacity >= 11 && i.kWCapacity <= 15 ? 25 : 35
                 };
             }).FirstOrDefault();
 
@@ -345,33 +347,46 @@ namespace ProjectLibrary.Services.Repositories
         {
             List<Supply> quotationData = new List<Supply>();
 
-            if (!string.IsNullOrEmpty(projId))
-            {
-                // Fetch only supplies where MTLQuantity and Material.MTLPrice are not null
-                quotationData = await _dataContext.Supply
-                    .Include(m => m.Material)
-                    .Include(m => m.Equipment)
-                    .Include(m => m.Project)
-                    .Where(p => p.Project.ProjId == projId
-                                && p.MTLQuantity != null // Ensure MTLQuantity is not null
-                                && p.Material.MTLPrice != null) // Ensure MTLPrice is not null
-                    .OrderBy(c => c.Material.MTLCategory)
-                    .ToListAsync();
-            }
 
-            // If no data is found, return an empty list
-            if (quotationData == null || !quotationData.Any())
-            {
-                return new List<ProjectQuotationSupply>();  // Return an empty collection
-            }
+            return await _dataContext.Supply
+                .Where(p => p.Project.ProjId == projId)
+                .Include(i => i.Material)
+                .GroupBy(c => c.Material.MTLCategory)
+                .Select(g => new ProjectQuotationSupply
+                {
+                    description = g.Key,
+                    lineTotal = (g.Sum(s => (decimal)(s.MTLQuantity ?? 0) * s.Material.MTLPrice * 1.3m)).ToString("#,##0.00") // Calculate the total expense
 
-            var result = quotationData.Select(supply => new ProjectQuotationSupply
-            {
-                description = supply.Material?.MTLDescript ?? "No Description",  // Provide a default description if null
-                lineTotal = (((decimal)(supply.MTLQuantity ?? 0) * (supply.Material?.MTLPrice ?? 0)) * supply.Project.ProfitRate).ToString("#,##0.00") // Calculate total safely
-            }).ToList();
+                })
+                .ToListAsync();
 
-            return result;
+            //if (!string.IsNullOrEmpty(projId))
+            //{
+            //    // Fetch only supplies where MTLQuantity and Material.MTLPrice are not null
+            //    quotationData = await _dataContext.Supply
+            //        .Include(m => m.Material)
+            //        .Include(m => m.Equipment)
+            //        .Include(m => m.Project)
+            //        .Where(p => p.Project.ProjId == projId
+            //                    && p.MTLQuantity != null // Ensure MTLQuantity is not null
+            //                    && p.Material.MTLPrice != null) // Ensure MTLPrice is not null
+            //        .OrderBy(c => c.Material.MTLCategory)
+            //        .ToListAsync();
+            //}
+
+            //// If no data is found, return an empty list
+            //if (quotationData == null || !quotationData.Any())
+            //{
+            //    return new List<ProjectQuotationSupply>();  // Return an empty collection
+            //}
+
+            //var result = quotationData.Select(supply => new ProjectQuotationSupply
+            //{
+            //    description = supply.Material?.MTLDescript ?? "No Description",  // Provide a default description if null
+            //    lineTotal = (((decimal)(supply.MTLQuantity ?? 0) * (supply.Material?.MTLPrice ?? 0)) * supply.Project.ProfitRate).ToString("#,##0.00") // Calculate total safely
+            //}).ToList();
+
+            //return result;
         }
 
 
@@ -506,6 +521,29 @@ namespace ProjectLibrary.Services.Repositories
 
             // Save changes to the database
             return await Save();
+        }
+
+        public async Task<(bool, string)> UpdateProfit(UpdateProfitRate updateProfit)
+        {
+            var user = await _userManager.FindByEmailAsync(updateProfit.userEmail);
+            if (user == null) 
+                return (false, "Invalid User!");
+
+            // Retrieve the project entity
+            var project = await _dataContext.Project
+                .FindAsync(updateProfit.projId);
+
+            if (project == null)
+                return (false, "Project not found!");
+
+            if (updateProfit.profitRate < 1 || updateProfit.profitRate > 30)
+                return (false, "Invalid profit rate!");
+
+            project.ProfitRate = updateProfit.profitRate / 100;
+            project.UpdatedAt = DateTimeOffset.UtcNow;
+            await _dataContext.SaveChangesAsync();
+
+            return (true, "Profit successfully change.");
         }
     }
 }

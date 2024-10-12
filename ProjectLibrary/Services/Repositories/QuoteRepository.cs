@@ -20,30 +20,17 @@ namespace ProjectLibrary.Services.Repositories
             var clientProject = await _dataContext.Project
                 .FirstOrDefaultAsync(proj => proj.ProjId == laborQuoteDto.ProjId);
 
-
             if (clientProject == null)
             {
                 return "Project not found.";
             }
 
-            //var predefinedCosts = new[]
-            //{
-            //    new Labor { LaborDescript = "Manpower", LaborUnit = "Days", Project = clientProject },
-            //    new Labor { LaborDescript = "Project Manager - Electrical Engr.", LaborUnit = "Days", Project = clientProject },
-            //    new Labor { LaborDescript = "Mobilization/Demob", LaborUnit = "Lot", Project = clientProject },
-            //    new Labor { LaborDescript = "Tools & Equipment", LaborUnit = "Lot", Project = clientProject },
-            //    new Labor { LaborDescript = "Other Incidental Costs", LaborUnit = "Lot", Project = clientProject }
-            //};
+            var isExistDescript = await _dataContext.Labor
+                .Include(p => p.Project)
+                .AnyAsync(d => d.LaborDescript == laborQuoteDto.Description && d.Project.ProjId == laborQuoteDto.ProjId);
 
-            //foreach (var labor in predefinedCosts)
-            //{
-            //    if (!await _dataContext.Labor
-            //        .Include(p => p.Project)
-            //        .AnyAsync(proj => proj.Project.ProjDescript == clientProject.ProjDescript && proj.LaborDescript == labor.LaborDescript))
-            //    {
-            //        _dataContext.Labor.Add(labor);
-            //    }
-            //}
+            if (isExistDescript)
+                return "Labor already exists.";
 
             var newLabor = new Labor
             {
@@ -436,6 +423,7 @@ namespace ProjectLibrary.Services.Repositories
             var materialSupply = await _dataContext.Supply
                 .Where(p => p.Project.ProjId == projectID)
                 .Include(i => i.Material)
+                .Include(i => i.Project)
                 .ToListAsync();
 
             //// Retrieve material supply data
@@ -455,14 +443,14 @@ namespace ProjectLibrary.Services.Repositories
                         var quantity = group.Sum(m => m.MTLQuantity ?? 0);
                         var price = group.First().Material.MTLPrice;
                         var unitCost = quantity * price;
-                        var buildUpCost = unitCost * 1.2m;
+                        var buildUpCost = unitCost * 1.3m;
 
                         return (acc.totalUnitCost + unitCost, acc.buildUpCost + buildUpCost);
                     }
                 );
 
             // Calculate profit and overall totals
-            var profitPercentage = 0.3m;
+            var profitPercentage = materialSupply.Select(r => r.Project.ProfitRate).FirstOrDefault();
             var profit = totalUnitCostSum * profitPercentage;
             var overallMaterialTotal = totalUnitCostSum + profit;
 
@@ -482,6 +470,7 @@ namespace ProjectLibrary.Services.Repositories
             {
                 TotalCost = totalUnitCostSum,
                 Profit = profit,
+                ProfitPercentage = profitPercentage * 100,
                 OverallMaterialTotal = overallMaterialTotal,
                 OverallProjMgtCost = overallLaborProjectTotal,
                 NetMeteringCost = null,
@@ -504,7 +493,11 @@ namespace ProjectLibrary.Services.Repositories
 
 
             // Calculate profit and overall total
-            var profitPercentage = 0.3m; // Example profit percentage
+            var profitPercentage = _dataContext.Labor
+                .Where(p => p.Project.ProjId == projectID)
+                .Select(p=>p.Project.ProfitRate)
+                .FirstOrDefault(); 
+
             var profit = totalLaborCost * profitPercentage;
             var overallLaborProjectTotal = totalLaborCost + profit;
 
@@ -513,6 +506,7 @@ namespace ProjectLibrary.Services.Repositories
             {
                 TotalCost = totalLaborCost,
                 Profit = profit,
+                ProfitPercentage= profitPercentage * 100,
                 OverallLaborProjectTotal = overallLaborProjectTotal
 
             };

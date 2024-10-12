@@ -15,6 +15,7 @@ namespace ProjectLibrary.DTO.Project
         public required string VAT { get; set; }
         public required string VatRate { get; set; }
         public required string Total { get; set; }
+        public required int EstimationDate { get; set; }
 
         public required ProjectQuotationSupply TotalMaterialCost { get; set; }
         public required ProjectQuotationSupply TotalLaborCost { get; set; }

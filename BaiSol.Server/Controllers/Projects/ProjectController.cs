@@ -68,6 +68,17 @@ namespace BaiSol.Server.Controllers.Projects
 
             return Ok(message);
         }
+        [HttpPut("Update-Profit-Rate")]
+        public async Task<IActionResult> UpdateProfit(UpdateProfitRate updateProfit)
+        {
+            if (updateProfit == null) return BadRequest(ModelState);
+
+            var (success, message) = await _project.UpdateProfit(updateProfit);
+
+            if (!success) return BadRequest(message);
+
+            return Ok(message);
+        }
 
         [HttpDelete("Delete-Client-Project")]
         public async Task<IActionResult> DeleteClientProject(string projectId)
