@@ -19,7 +19,8 @@ namespace AuthLibrary.Services.Repositories
     public class AuthAccountRepository(UserManager<AppUsers> _userManager,
         SignInManager<AppUsers> _signInManager,
         IEmailRepository _emailRepository,
-        IConfiguration _config
+        IConfiguration _config,
+        DataContext _dataContext
         ) : IAuthAccount
     {
 
@@ -105,7 +106,7 @@ namespace AuthLibrary.Services.Repositories
             return user != null;
         }
 
-        public async Task<LoginResponse> Login2FA(string code, string email)
+        public async Task<LoginResponse> Login2FA(string code, string email, string ipAddress)
         {
             // Check if code or email is empty or null
             if (string.IsNullOrEmpty(code) || string.IsNullOrEmpty(email))
@@ -145,6 +146,21 @@ namespace AuthLibrary.Services.Repositories
                     // Generate access token
                     var accessToken = GenerateAccessToken(userSession);
 
+
+                    _dataContext.UserLogs.Add(new UserLogs
+                    {
+                        Action = "Logged In",
+                        EntityName = "App",
+                        EntityId = user.Id,
+                        UserIPAddress = ipAddress,
+                        Details = $"{userRole} user with email {user.Email} logged in.",
+                        UserId = user.Id,
+                        UserName = user.NormalizedUserName,
+                        UserRole = userRole,
+                        User = user,
+                    });
+                    _dataContext.SaveChangesAsync();
+
                     // Return successful login response with token and refresh token
                     return new LoginResponse(accessToken, refreshToken, "Login Successfully");
                 }
@@ -179,8 +195,9 @@ namespace AuthLibrary.Services.Repositories
             // Check if the logged-in user is the default admin
             if (IsDefaultAdmin(user.Email))
             {
-                return await HandleDefaultAdminLogin(user);
+                return await HandleDefaultAdminLogin(user, loginDto.UserIpAddress);
             }
+
 
             // Handle regular user login with OTP
             return await HandleRegularUserLogin(user, loginDto.Email);
@@ -193,7 +210,7 @@ namespace AuthLibrary.Services.Repositories
         }
 
         // Helper method to handle login for the default admin
-        private async Task<GeneralResponse> HandleDefaultAdminLogin(AppUsers user)
+        private async Task<GeneralResponse> HandleDefaultAdminLogin(AppUsers user, string ipAddress)
         {
             // Get user roles
             var userRoles = await _userManager.GetRolesAsync(user);
@@ -213,6 +230,21 @@ namespace AuthLibrary.Services.Repositories
             // Generate access token
             var accessToken = GenerateAccessToken(userSession);
 
+
+            _dataContext.UserLogs.Add(new UserLogs
+            {
+                Action = "Logged In",
+                EntityName = "App",
+                EntityId = user.Id,
+                UserIPAddress = ipAddress,
+                Details = $"{userRole} user with email {user.Email} logged in.",
+                UserId = user.Id,
+                UserName = user.NormalizedUserName,
+                UserRole = userRole,
+                User = user,
+            });
+            await _dataContext.SaveChangesAsync();
+
             // Return response directly for the default admin without sending OTP
             return new GeneralResponse("Welcome admin.", true, true, accessToken, refreshToken);
         }
@@ -226,6 +258,7 @@ namespace AuthLibrary.Services.Repositories
             // Send OTP via email
             var message = new EmailMessage(new string[] { email }, "OTP Confirmation", tokenOTP);
             _emailRepository.SendEmail(message);
+
 
             // Return response indicating OTP sent
             return new GeneralResponse("We've sent you an OTP", true, false, null, null);
@@ -297,6 +330,37 @@ namespace AuthLibrary.Services.Repositories
 
 
             return user?.Status == "Active" || user?.Status == "OnWork";
+        }
+
+        public async Task<(bool, string)> LogOut(string email, string ipAddress)
+        {
+            // Get user from the database
+            var user = await _userManager.FindByEmailAsync(email);
+            if (user == null)
+            {
+                return (false, "Invalid User!");
+            }
+
+            // Sign out any existing users and sign in with the provided credentials
+            await _signInManager.SignOutAsync();
+            var userRoles = await _userManager.GetRolesAsync(user);
+            var userRole = userRoles.FirstOrDefault();
+
+            _dataContext.UserLogs.Add(new UserLogs
+            {
+                Action = "Logged Out",
+                EntityName = "App",
+                EntityId = user.Id,
+                UserIPAddress = ipAddress,
+                Details = $"{userRole} user with email {user.Email} logged out.",
+                UserId = user.Id,
+                UserName = user.NormalizedUserName,
+                UserRole = userRole,
+                User = user,
+            });
+            await _dataContext.SaveChangesAsync();
+
+            return (true, "You've successfully logged out!");
         }
     }
 }

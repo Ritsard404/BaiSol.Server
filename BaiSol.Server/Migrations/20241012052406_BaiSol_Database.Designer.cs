@@ -12,7 +12,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace BaiSol.Server.Migrations
 {
     [DbContext(typeof(DataContext))]
-    [Migration("20241008034553_BaiSol_Database")]
+    [Migration("20241012052406_BaiSol_Database")]
     partial class BaiSol_Database
     {
         /// <inheritdoc />
@@ -52,6 +52,12 @@ namespace BaiSol.Server.Migrations
 
                     b.Property<bool>("EmailConfirmed")
                         .HasColumnType("boolean");
+
+                    b.Property<string>("FirstName")
+                        .HasColumnType("text");
+
+                    b.Property<string>("LastName")
+                        .HasColumnType("text");
 
                     b.Property<bool>("LockoutEnabled")
                         .HasColumnType("boolean");
@@ -126,8 +132,8 @@ namespace BaiSol.Server.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<decimal>("ClientMonthlyElectricBill")
-                        .HasColumnType("numeric");
+                    b.Property<bool>("IsMale")
+                        .HasColumnType("boolean");
 
                     b.HasKey("Id");
 
@@ -368,7 +374,10 @@ namespace BaiSol.Server.Migrations
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<decimal?>("DiscountRate")
+                    b.Property<decimal?>("Discount")
+                        .HasColumnType("numeric");
+
+                    b.Property<decimal>("ProfitRate")
                         .HasColumnType("numeric");
 
                     b.Property<string>("ProjDescript")
@@ -383,10 +392,17 @@ namespace BaiSol.Server.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<string>("SystemType")
+                        .IsRequired()
+                        .HasColumnType("text");
+
                     b.Property<DateTimeOffset>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<decimal?>("VatRate")
+                        .HasColumnType("numeric");
+
+                    b.Property<decimal>("kWCapacity")
                         .HasColumnType("numeric");
 
                     b.HasKey("ProjId");

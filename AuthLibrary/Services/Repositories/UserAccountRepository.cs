@@ -3,10 +3,12 @@ using AuthLibrary.Models;
 using AuthLibrary.Services.Interfaces;
 using DataLibrary.Data;
 using DataLibrary.Models;
+using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using System.Globalization;
 using static AuthLibrary.Services.Responses.AuthResponse;
 
 namespace AuthLibrary.Services.Repositories
@@ -57,6 +59,7 @@ namespace AuthLibrary.Services.Repositories
                     Id = user.Id,
                     Email = user.Email,
                     UserName = user.NormalizedUserName,
+                    Name = $"{user.FirstName} {user.LastName}",
                     Role = roles.FirstOrDefault(),
                     Status = user.Status
                 });
@@ -86,7 +89,8 @@ namespace AuthLibrary.Services.Repositories
                     {
                         Id = user.Id,
                         Email = user.Email,
-                        UserName = user.NormalizedUserName,
+                        UserName = $"{user.FirstName} {user.LastName}",
+                        Name = $"{user.FirstName} {user.LastName}",
                         Role = roles.FirstOrDefault(),
                         AdminEmail = user.AdminEmail,
                         Status = user.Status,
@@ -98,7 +102,7 @@ namespace AuthLibrary.Services.Repositories
                     {
                         userDto.ClientContactNum = user.Client?.ClientContactNum;
                         userDto.ClientAddress = user.Client?.ClientAddress;
-                        userDto.ClientMonthlyElectricBill = user.Client?.ClientMonthlyElectricBill;
+                        userDto.Sex = user.Client.IsMale ? "Male" : "Female";
                     }
 
                     userList.Add(userDto);
@@ -191,8 +195,10 @@ namespace AuthLibrary.Services.Repositories
             // Create a new AppUsers object using the data from the provided adminDto.
             AppUsers newAdminUser = new AppUsers()
             {
-                UserName = adminDto.FirstName + "_" + adminDto.LastName, // Create a username by concatenating first and last names.
+                UserName = adminDto.FirstName + "_" + adminDto.Email, // Create a username by concatenating first and last names.
                 Email = adminDto.Email, // Set the email from adminDto.
+                LastName = adminDto.LastName,
+                FirstName = adminDto.FirstName,
                 PasswordHash = adminDto.Password, // Set the password hash (assuming it's already hashed).
                 AdminEmail = adminDto.AdminEmail,
                 TwoFactorEnabled = true,
@@ -253,7 +259,9 @@ namespace AuthLibrary.Services.Repositories
             // Create a new AppUsers object using the data from the provided adminDto.
             AppUsers newFacilitatorUser = new AppUsers()
             {
-                UserName = facilitatorDto.FirstName + "_" + facilitatorDto.LastName, // Create a username by concatenating first and last names.
+                UserName = facilitatorDto.FirstName + "_" + facilitatorDto.Email, // Create a username by concatenating first and last names.
+                FirstName = facilitatorDto.LastName,
+                LastName = facilitatorDto.LastName,
                 Email = facilitatorDto.Email,
                 PasswordHash = facilitatorDto.Password,
                 TwoFactorEnabled = true,
@@ -298,8 +306,8 @@ namespace AuthLibrary.Services.Repositories
             {
                 if (clientDto == null) return new RegisterResponse("Model is empty", false, null);
 
-                var adminCreator = await _userManager.FindByEmailAsync(clientDto.AdminEmail);
-                if (adminCreator == null) return new RegisterResponse("Admin not exist!", false, null);
+                //var adminCreator = await _userManager.FindByEmailAsync(clientDto.AdminEmail);
+                //if (adminCreator == null) return new RegisterResponse("Admin not exist!", false, null);
 
                 var clientUser = await _userManager.FindByEmailAsync(clientDto.Email);
                 if (clientUser != null) return new RegisterResponse("Email already exists!", false, null);
@@ -307,20 +315,25 @@ namespace AuthLibrary.Services.Repositories
                 var clientName = await _userManager.FindByNameAsync(clientDto.FirstName + "_" + clientDto.LastName);
                 if (clientName != null) return new RegisterResponse("Username already exists!", false, null);
 
+                if (clientDto.kWCapacity < 1 || clientDto.kWCapacity > 20)
+                    return new RegisterResponse("Invalid kW Capacity!", false, null);
+
                 var newClient = new Client
                 {
                     ClientContactNum = clientDto.ClientContactNum,
+                    IsMale = clientDto.IsMale,
                     ClientAddress = clientDto.ClientAddress,
-                    ClientMonthlyElectricBill = clientDto.ClientMonthlyElectricBill
                 };
 
                 _dataContext.Client.Add(newClient);
 
                 var newClientUser = new AppUsers
                 {
-                    UserName = clientDto.FirstName + "_" + clientDto.LastName,
+                    UserName = clientDto.FirstName + "_" + clientDto.Email,
+                    FirstName = CultureInfo.CurrentCulture.TextInfo.ToTitleCase(clientDto.FirstName.ToLower()),
+                    LastName = CultureInfo.CurrentCulture.TextInfo.ToTitleCase(clientDto.LastName.ToLower()),
                     Email = clientDto.Email,
-                    AdminEmail = clientDto.AdminEmail,
+                    //AdminEmail = clientDto.AdminEmail,
                     Client = newClient,
                     Status = "Pending"
                 };
@@ -333,6 +346,39 @@ namespace AuthLibrary.Services.Repositories
                 }
 
                 await _userManager.AddToRoleAsync(newClientUser, UserRoles.Client);
+
+
+                Project newProject = new Project
+                {
+                    ProjDescript = $"To provide a {clientDto.kWCapacity} kW {clientDto.SystemType} system for a residential home.",
+                    ProjName = $"{(clientDto.IsMale == true ? "Mr." : "Ms./Mrs.")} {newClientUser.FirstName} {newClientUser.LastName}",
+                    Client = newClientUser,
+                    kWCapacity = clientDto.kWCapacity,
+                    SystemType = clientDto.SystemType,
+                };
+
+                _dataContext.Project.Add(newProject);
+
+
+
+                var predefinedCosts = new[]
+                {
+                new Labor { LaborDescript = "Manpower", LaborUnit = "Days", Project = newProject },
+                new Labor { LaborDescript = "Project Manager - Electrical Engr.", LaborQuantity = 1, LaborUnit = "Days", Project = newProject },
+                new Labor { LaborDescript = "Mobilization/Demob", LaborUnit = "Lot", Project = newProject },
+                new Labor { LaborDescript = "Tools & Equipment", LaborUnit = "Lot", Project = newProject },
+                new Labor { LaborDescript = "Other Incidental Costs", LaborUnit = "Lot", Project = newProject }
+                 };
+
+                foreach (var labor in predefinedCosts)
+                {
+                    if (!await _dataContext.Labor
+                        .Include(p => p.Project)
+                        .AnyAsync(proj => proj.Project.ProjDescript == newProject.ProjDescript && proj.LaborDescript == labor.LaborDescript))
+                    {
+                        _dataContext.Labor.Add(labor);
+                    }
+                }
 
                 await _dataContext.SaveChangesAsync();
                 return new RegisterResponse("New client added successfully.", true, newClientUser);
@@ -388,35 +434,35 @@ namespace AuthLibrary.Services.Repositories
             if (newClient == null) return new ApprovalResponse(false, null);
 
 
-            Project newProject = new Project
-            {
-                ProjDescript = $"{newClient.Client.ClientAddress} Solar Project",
-                ProjName = $"{newClient.NormalizedUserName} Project",
-                Client = newClient
-            };
+            //Project newProject = new Project
+            //{
+            //    ProjDescript = $"{newClient.Client.ClientAddress} Solar Project",
+            //    ProjName = $"{newClient.NormalizedUserName} Project",
+            //    Client = newClient
+            //};
 
-            _dataContext.Project.Add(newProject);
+            //_dataContext.Project.Add(newProject);
 
 
 
-            var predefinedCosts = new[]
-            {
-                new Labor { LaborDescript = "Manpower", LaborUnit = "Days", Project = newProject },
-                new Labor { LaborDescript = "Project Manager - Electrical Engr.", LaborQuantity = 1, LaborUnit = "Days", Project = newProject },
-                new Labor { LaborDescript = "Mobilization/Demob", LaborUnit = "Lot", Project = newProject },
-                new Labor { LaborDescript = "Tools & Equipment", LaborUnit = "Lot", Project = newProject },
-                new Labor { LaborDescript = "Other Incidental Costs", LaborUnit = "Lot", Project = newProject }
-            };
+            //var predefinedCosts = new[]
+            //{
+            //    new Labor { LaborDescript = "Manpower", LaborUnit = "Days", Project = newProject },
+            //    new Labor { LaborDescript = "Project Manager - Electrical Engr.", LaborQuantity = 1, LaborUnit = "Days", Project = newProject },
+            //    new Labor { LaborDescript = "Mobilization/Demob", LaborUnit = "Lot", Project = newProject },
+            //    new Labor { LaborDescript = "Tools & Equipment", LaborUnit = "Lot", Project = newProject },
+            //    new Labor { LaborDescript = "Other Incidental Costs", LaborUnit = "Lot", Project = newProject }
+            //};
 
-            foreach (var labor in predefinedCosts)
-            {
-                if (!await _dataContext.Labor
-                    .Include(p => p.Project)
-                    .AnyAsync(proj => proj.Project.ProjDescript == newProject.ProjDescript && proj.LaborDescript == labor.LaborDescript))
-                {
-                    _dataContext.Labor.Add(labor);
-                }
-            }
+            //foreach (var labor in predefinedCosts)
+            //{
+            //    if (!await _dataContext.Labor
+            //        .Include(p => p.Project)
+            //        .AnyAsync(proj => proj.Project.ProjDescript == newProject.ProjDescript && proj.LaborDescript == labor.LaborDescript))
+            //    {
+            //        _dataContext.Labor.Add(labor);
+            //    }
+            //}
 
             newClient.Status = "Active";
             return new ApprovalResponse(await Save(), newClient);

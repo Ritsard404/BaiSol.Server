@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
 
 namespace AuthLibrary.DTO
 {
@@ -12,5 +13,7 @@ namespace AuthLibrary.DTO
         [Required]
         [DataType(DataType.Password)]
         public string Password { get; set; } = string.Empty;
+        [JsonIgnore]
+        public string? UserIpAddress { get; set; }
     }
 }

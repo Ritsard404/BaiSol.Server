@@ -12,8 +12,11 @@ namespace DataLibrary.Models
         public string Status { get; set; } = "OnGoing";
         public DateTimeOffset UpdatedAt { get; set; } = DateTimeOffset.UtcNow;
         public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
-        public decimal? DiscountRate { get; set; }
+        public decimal? Discount { get; set; }
         public decimal? VatRate { get; set; }
+        public decimal ProfitRate { get; set; } = 0.3m;
+        public required string SystemType { get; set; }
+        public required decimal kWCapacity { get; set; }
         public AppUsers? Client { get; set; }
 
         public Project()

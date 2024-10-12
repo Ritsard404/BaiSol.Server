@@ -11,6 +11,7 @@ namespace AuthLibrary.DTO
     {
         public required string Id { get; set; }
         public required string Email { get; set; }
+        public required string Name { get; set; }
         public required string UserName { get; set; }
         public required string Role { get; set; }
         public string? AdminEmail { get; set; }
@@ -19,7 +20,8 @@ namespace AuthLibrary.DTO
         public string? CreatedAt { get; set; }
         public string? ClientContactNum { get; set; }
         public string? ClientAddress { get; set; }
-        public decimal? ClientMonthlyElectricBill { get; set; }
+        public string? Sex { get; set; }
+        public decimal? kWCapacity { get; set; }
 
 
     }

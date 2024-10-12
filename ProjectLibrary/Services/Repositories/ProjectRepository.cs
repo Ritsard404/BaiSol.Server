@@ -44,7 +44,9 @@ namespace ProjectLibrary.Services.Repositories
                 ProjDescript = projectDto.ProjDescript,
                 ProjName = projectDto.ProjName,
                 ProjId = uniqueProjId,
-                Client = isClientExist
+                Client = isClientExist,
+                kWCapacity = projectDto.kWCapacity,
+                SystemType = projectDto.SystemType,
             };
 
             // Add the new Supply entity to the context
@@ -100,7 +102,7 @@ namespace ProjectLibrary.Services.Repositories
             return await _dataContext.Project
                 .Include(p => p.Client)
                 .Include(p => p.Client.Client)
-                .Where(p => p.Client.Id == clientId)
+                .Where(p => p.Client.Id == clientId && p.Client.EmailConfirmed == true)
                 .Select(p => new GetProjects
                 {
                     ProjId = p.ProjId,
@@ -110,7 +112,7 @@ namespace ProjectLibrary.Services.Repositories
                     CreatedAt = p.CreatedAt.ToString("MMM dd, yyyy"),
                     UpdatedAt = p.UpdatedAt.ToString("MMM dd, yyyy"),
                     ClientId = p.Client.Id,
-                    ClientName = p.Client.NormalizedUserName,
+                    ClientName = $"{(p.Client.Client.IsMale ? "Mr." : "Mrs./Ms.")} {p.Client.FirstName} {p.Client.LastName}",
                     ClientAddress = p.Client.Client.ClientAddress
                 })
                 .ToListAsync();
@@ -121,37 +123,43 @@ namespace ProjectLibrary.Services.Repositories
             var projectData = await _dataContext.Project
                 .Include(p => p.Client)
                 .Include(p => p.Client.Client)
-                .Where(i => i.ProjId == projId)
+                .Where(i => i.ProjId == projId && i.Client.EmailConfirmed == true)
                 .Select(d => new
                 {
                     d.ProjId,
                     d.ProjName,
+                    d.SystemType,
                     d.ProjDescript,
-                    DiscountRate = (d.DiscountRate ?? 0) * 100,
+                    boolSex = d.Client.Client.IsMale,
+                    fName = d.Client.FirstName,
+                    lName = d.Client.LastName,
+                    sex = d.Client.Client.IsMale ? "Male" : "Female",
+                    Discount = d.Discount ?? 0,
                     VatRate = (d.VatRate ?? 0) * 100,
                     clientId = d.Client.Id,
-                    UserName = d.Client.UserName,
                     clientContactNum = d.Client.Client.ClientContactNum,
                     clientAddress = d.Client.Client.ClientAddress,
-                    clientMonthlyElectricBill = d.Client.Client.ClientMonthlyElectricBill
+                    kWCapacity = d.kWCapacity
                 })
                 .FirstOrDefaultAsync();
-
-            var usernameParts = projectData?.UserName?.Split('_') ?? new string[0];
 
             return new ClientProjectInfoDTO
             {
                 ProjId = projectData?.ProjId ?? "",
                 ProjName = projectData?.ProjName,
                 ProjDescript = projectData?.ProjDescript,
-                DiscountRate = projectData?.DiscountRate ?? 0,
+                Discount = projectData?.Discount ?? 0,
                 VatRate = projectData?.VatRate ?? 0,
                 clientId = projectData?.clientId ?? "",
-                clientFName = usernameParts.Length > 0 ? usernameParts[0] : string.Empty,
-                clientLName = usernameParts.Length > 1 ? usernameParts[1] : string.Empty,
+                clientFName = projectData?.fName,
+                clientLName = projectData?.lName,
                 clientContactNum = projectData?.clientContactNum,
                 clientAddress = projectData?.clientAddress,
-                clientMonthlyElectricBill = projectData.clientMonthlyElectricBill
+                kWCapacity = projectData.kWCapacity,
+                Sex = projectData.sex,
+                SystemType = projectData.SystemType,
+                isMale = projectData.boolSex
+
             };
         }
 
@@ -160,6 +168,7 @@ namespace ProjectLibrary.Services.Repositories
             var projects = await _dataContext.Project
                 .Include(p => p.Client) // Include related Client data
                 .Include(p => p.Client.Client)
+                .Where(c => c.Client.EmailConfirmed == true)
                 .OrderBy(p => p.CreatedAt) // Order by CreatedAt first
                 .ToListAsync(); // Fetch the data
 
@@ -230,13 +239,13 @@ namespace ProjectLibrary.Services.Repositories
                     );
 
                 // Calculate profit and overall totals
-                var profitPercentage = 0.3m;
+                var profitPercentage = materialSupply.Select(p => p.Project.ProfitRate).FirstOrDefault();
                 var profit = totalUnitCostSum * profitPercentage;
                 overallMaterialTotal = totalUnitCostSum + profit;
 
                 overallLaborProjectTotal = await _dataContext.Labor
                     .Where(p => projId != null ? p.Project.ProjId == projId : p.Project.Client.Email == customerEmail)
-                    .SumAsync(o => o.LaborCost) * 1.3m;
+                    .SumAsync(o => o.LaborCost) * (profitPercentage + 1);
 
                 projectInfo = await _dataContext.Project
                     .Include(c => c.Client)
@@ -249,7 +258,7 @@ namespace ProjectLibrary.Services.Repositories
 
             var result = projectInfo.Select(i =>
             {
-                decimal discountRate = i.DiscountRate ?? 0;
+                decimal discountRate = i.Discount ?? 0;
                 decimal vatRate = i.VatRate ?? 0;
 
                 // Calculate total
@@ -283,8 +292,7 @@ namespace ProjectLibrary.Services.Repositories
                 {
                     QuoteId = i.ProjId,
                     SubTotal = total.ToString("#,##0.00"),
-                    Discount = (discountRate * total).ToString("#,##0.00"),
-                    DiscountRate = (discountRate * 100).ToString("0.##") + "%",
+                    Discount = (discountRate + total).ToString("#,##0.00"),
                     SubTotalAfterDiscount = subtotalAfterDiscount.ToString("#,##0.00"),
                     VAT = vatAmount.ToString("#,##0.00"),
                     VatRate = (vatRate * 100).ToString("0.##") + "%",
@@ -321,7 +329,7 @@ namespace ProjectLibrary.Services.Repositories
             {
                 customerId = i.Client.Id,
                 customerEmail = i.Client.Email,
-                customerName = i.Client.UserName.Replace("_", " "),
+                customerName = $"{(i.Client.Client.IsMale ? "Mr." : "Mrs./Ms.")} {i.Client.FirstName} {i.Client.LastName}",
                 customerAddress = i.Client.Client.ClientAddress,
                 projectId = i.ProjId,
                 projectDescription = i.ProjDescript,
@@ -360,7 +368,7 @@ namespace ProjectLibrary.Services.Repositories
             var result = quotationData.Select(supply => new ProjectQuotationSupply
             {
                 description = supply.Material?.MTLDescript ?? "No Description",  // Provide a default description if null
-                lineTotal = (((decimal)(supply.MTLQuantity ?? 0) * (supply.Material?.MTLPrice ?? 0)) * 1.3m).ToString("#,##0.00") // Calculate total safely
+                lineTotal = (((decimal)(supply.MTLQuantity ?? 0) * (supply.Material?.MTLPrice ?? 0)) * supply.Project.ProfitRate).ToString("#,##0.00") // Calculate total safely
             }).ToList();
 
             return result;
@@ -430,14 +438,16 @@ namespace ProjectLibrary.Services.Repositories
             project.ProjName = updateProject.ProjName;
             project.ProjDescript = updateProject.ProjDescript;
             project.UpdatedAt = DateTimeOffset.UtcNow;
-            project.DiscountRate = updateProject.DiscountRate / 100;
+            project.Discount = updateProject.Discount;
             project.VatRate = updateProject.VatRate / 100;
+            project.kWCapacity = updateProject.kWCapacity;
+            project.SystemType = updateProject.SystemType;
 
             // Update client properties
             client.UserName = updateProject.clientFName + "_" + updateProject.clientLName;
             client.Client.ClientContactNum = updateProject.clientContactNum;
             client.Client.ClientAddress = updateProject.clientAddress;
-            client.Client.ClientMonthlyElectricBill = updateProject.clientMonthlyElectricBill;
+            client.Client.IsMale = updateProject.isMale;
             client.UpdatedAt = DateTimeOffset.UtcNow;
 
             // Update the project entity in the context

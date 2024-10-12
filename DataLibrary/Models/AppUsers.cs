@@ -7,6 +7,8 @@ namespace DataLibrary.Models
     {
         public string? RefreshToken { get; set; }
         public string Status { get; set; } = "Active";
+        public string? FirstName { get; set; } 
+        public string? LastName { get; set; }
         public DateTimeOffset UpdatedAt { get; set; } = DateTimeOffset.UtcNow;
         public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
         public string? AdminEmail { get; set; }
