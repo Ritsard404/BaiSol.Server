@@ -328,12 +328,13 @@ namespace ProjectLibrary.Services.Repositories
             return await _dataContext.Supply
                 .Where(p => p.Project.ProjId == projectID)
                 .Include(i => i.Material)
+                .Include(i => i.Project)
                 .GroupBy(c => c.Material.MTLCategory)
                 .Select(g => new AllMaterialCategoriesExpense
                 {
                     Category = g.Key,
                     TotalCategory = g.Count(),
-                    TotalExpense = g.Sum(s => (decimal)(s.MTLQuantity ?? 0) * s.Material.MTLPrice * 1.3m) // Calculate the total expense
+                    TotalExpense = g.Sum(s => (decimal)(s.MTLQuantity ?? 0) * s.Material.MTLPrice * (1 + s.Project.ProfitRate)) // Calculate the total expense
 
                 })
                 .ToListAsync();
@@ -345,6 +346,7 @@ namespace ProjectLibrary.Services.Repositories
             var materialSupply = await _dataContext.Supply
                 .Where(p => p.Project.ProjId == projectID)
                 .Include(i => i.Material)
+                .Include(i => i.Project)
                 .ToListAsync();
 
             //var materialSupply = await _dataContext.Supply
@@ -363,7 +365,7 @@ namespace ProjectLibrary.Services.Repositories
                 Category = material.Material.MTLCategory, // Include if needed in DTO
                 UnitCost = material.Material.MTLPrice,
                 TotalUnitCost = (decimal)((material.MTLQuantity ?? 0) * material.Material.MTLPrice),
-                BuildUpCost = (decimal)((material.MTLQuantity ?? 0) * material.Material.MTLPrice * 1.3m),
+                BuildUpCost = (decimal)((material.MTLQuantity ?? 0) * material.Material.MTLPrice * (1 + material.Project.ProfitRate)),
                 CreatedAt = DateTime.UtcNow.ToString("MMM dd, yyyy"),
                 UpdatedAt = DateTime.UtcNow.ToString("MMM dd, yyyy"),
             })
@@ -379,6 +381,7 @@ namespace ProjectLibrary.Services.Repositories
             var materialSupply = await _dataContext.Supply
                 .Where(p => p.Project.ProjId == projectID)
                 .Include(i => i.Material)
+                .Include(i => i.Project)
                 .ToListAsync();
 
             // Group by category and calculate the required totals
@@ -391,7 +394,7 @@ namespace ProjectLibrary.Services.Repositories
                     TotalCategory = g.Count(),
                     TotalExpense = g.Sum(s =>
                         (decimal)(s.MTLQuantity ?? 0) *
-                        (s.Material?.MTLPrice ?? 0) * 1.3m), // Handle null prices
+                        (s.Material?.MTLPrice ?? 0) * (1 + s.Project.ProfitRate)), // Handle null prices
                     MaterialCostDtos = g
                         .Where(material => material.Material != null) // Ensure Material is not null
                         .Select(material => new MaterialCostDto
@@ -404,7 +407,7 @@ namespace ProjectLibrary.Services.Repositories
                             Category = material.Material?.MTLCategory ?? "Unknown", // Handle null categories
                             UnitCost = material.Material?.MTLPrice ?? 0, // Handle null prices
                             TotalUnitCost = (decimal)((material.MTLQuantity ?? 0) * (material.Material?.MTLPrice ?? 0)),
-                            BuildUpCost = (decimal)((material.MTLQuantity ?? 0) * (material.Material?.MTLPrice ?? 0) * 1.3m),
+                            BuildUpCost = (decimal)((material.MTLQuantity ?? 0) * (material.Material?.MTLPrice ?? 0) * (1+material.Project.ProfitRate)),
                             CreatedAt = DateTime.UtcNow.ToString("MMM dd, yyyy"),
                             UpdatedAt = DateTime.UtcNow.ToString("MMM dd, yyyy"),
                         })
@@ -432,6 +435,8 @@ namespace ProjectLibrary.Services.Repositories
             //    .Include(i => i.Material)
             //    .ToListAsync();
 
+            var profitPercentage = materialSupply.Select(r => r.Project.ProfitRate).FirstOrDefault();
+
             // Calculate total unit cost and build-up cost in one pass
             var (totalUnitCostSum, buildUpCostSum) = materialSupply
                 .Where(m => m.Material != null)
@@ -443,14 +448,13 @@ namespace ProjectLibrary.Services.Repositories
                         var quantity = group.Sum(m => m.MTLQuantity ?? 0);
                         var price = group.First().Material.MTLPrice;
                         var unitCost = quantity * price;
-                        var buildUpCost = unitCost * 1.3m;
+                        var buildUpCost = unitCost * (1 + profitPercentage);
 
                         return (acc.totalUnitCost + unitCost, acc.buildUpCost + buildUpCost);
                     }
                 );
 
             // Calculate profit and overall totals
-            var profitPercentage = materialSupply.Select(r => r.Project.ProfitRate).FirstOrDefault();
             var profit = totalUnitCostSum * profitPercentage;
             var overallMaterialTotal = totalUnitCostSum + profit;
 
@@ -495,8 +499,8 @@ namespace ProjectLibrary.Services.Repositories
             // Calculate profit and overall total
             var profitPercentage = _dataContext.Labor
                 .Where(p => p.Project.ProjId == projectID)
-                .Select(p=>p.Project.ProfitRate)
-                .FirstOrDefault(); 
+                .Select(p => p.Project.ProfitRate)
+                .FirstOrDefault();
 
             var profit = totalLaborCost * profitPercentage;
             var overallLaborProjectTotal = totalLaborCost + profit;
@@ -506,7 +510,7 @@ namespace ProjectLibrary.Services.Repositories
             {
                 TotalCost = totalLaborCost,
                 Profit = profit,
-                ProfitPercentage= profitPercentage * 100,
+                ProfitPercentage = profitPercentage * 100,
                 OverallLaborProjectTotal = overallLaborProjectTotal
 
             };

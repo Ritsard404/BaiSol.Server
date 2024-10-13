@@ -359,11 +359,29 @@ namespace AuthLibrary.Services.Repositories
 
                 _dataContext.Project.Add(newProject);
 
+                var manPowerQTY = 0;
+
+                if (clientDto.kWCapacity <= 5)
+                {
+                    manPowerQTY = 5;
+                }
+                else if (clientDto.kWCapacity > 5 && clientDto.kWCapacity <= 10)
+                {
+                    manPowerQTY = 7;
+                }
+                else if (clientDto.kWCapacity > 10 && clientDto.kWCapacity <= 15)
+                {
+                    manPowerQTY = 10;
+                }
+                else
+                {
+                    manPowerQTY = 12;
+                }
 
 
                 var predefinedCosts = new[]
                 {
-                new Labor { LaborDescript = "Manpower", LaborUnit = "Days", Project = newProject },
+                new Labor { LaborDescript = "Manpower", LaborQuantity = manPowerQTY, LaborUnit = "Days", Project = newProject },
                 new Labor { LaborDescript = "Project Manager - Electrical Engr.", LaborQuantity = 1, LaborUnit = "Days", Project = newProject },
                 new Labor { LaborDescript = "Mobilization/Demob", LaborUnit = "Lot", Project = newProject },
                 new Labor { LaborDescript = "Tools & Equipment", LaborUnit = "Lot", Project = newProject },

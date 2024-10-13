@@ -355,7 +355,7 @@ namespace ProjectLibrary.Services.Repositories
                 .Select(g => new ProjectQuotationSupply
                 {
                     description = g.Key,
-                    lineTotal = (g.Sum(s => (decimal)(s.MTLQuantity ?? 0) * s.Material.MTLPrice * 1.3m)).ToString("#,##0.00") // Calculate the total expense
+                    lineTotal = (g.Sum(s => (decimal)(s.MTLQuantity ?? 0) * s.Material.MTLPrice * (s.Project.ProfitRate + 1))).ToString("#,##0.00") // Calculate the total expense
 
                 })
                 .ToListAsync();
@@ -449,6 +449,34 @@ namespace ProjectLibrary.Services.Repositories
 
             if (client == null) return (false, "Client not found");
 
+            var labor = await _dataContext.Labor
+                .Include(p => p.Project)
+                .FirstOrDefaultAsync(i => i.Project.ProjId == project.ProjId && i.LaborDescript == "Manpower");
+
+
+            // Update labor quantity based on kW capacity, if there's a change
+            if (project.kWCapacity != updateProject.kWCapacity && labor != null)
+            {
+                if (updateProject.kWCapacity <= 5)
+                {
+                    labor.LaborQuantity = 5;
+                }
+                else if (updateProject.kWCapacity > 5 && updateProject.kWCapacity <= 10)
+                {
+                    labor.LaborQuantity = 7;
+                }
+                else if (updateProject.kWCapacity > 10 && updateProject.kWCapacity <= 15)
+                {
+                    labor.LaborQuantity = 10;
+                }
+                else
+                {
+                    labor.LaborQuantity = 12;
+                }
+
+                labor.UpdatedAt = DateTimeOffset.UtcNow;   
+            }
+
             // Update project properties
             project.ProjName = updateProject.ProjName;
             project.ProjDescript = updateProject.ProjDescript;
@@ -465,8 +493,11 @@ namespace ProjectLibrary.Services.Repositories
             client.Client.IsMale = updateProject.isMale;
             client.UpdatedAt = DateTimeOffset.UtcNow;
 
+
             // Update the project entity in the context
             _dataContext.Project.Update(project);
+            _dataContext.Labor.Update(labor);
+            
 
             // Update the client entity
             var updateResult = await _userManager.UpdateAsync(client);
@@ -526,7 +557,7 @@ namespace ProjectLibrary.Services.Repositories
         public async Task<(bool, string)> UpdateProfit(UpdateProfitRate updateProfit)
         {
             var user = await _userManager.FindByEmailAsync(updateProfit.userEmail);
-            if (user == null) 
+            if (user == null)
                 return (false, "Invalid User!");
 
             // Retrieve the project entity
