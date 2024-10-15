@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using RestSharp;
+using System.Globalization;
 using System.Text.Json;
 
 namespace BaseLibrary.Services.Repositories
@@ -258,9 +259,13 @@ namespace BaseLibrary.Services.Repositories
 
             }
 
+            // Order the client payments by the amount in descending order
+            var orderedClientPayments = clientPayments
+                .OrderByDescending(cp => decimal.Parse(cp.amount, NumberStyles.Currency, CultureInfo.InvariantCulture))
+                .ToList();
 
-            // Return the list of client payments
-            return clientPayments;
+            return orderedClientPayments;
+
         }
 
         public async Task<ICollection<GetClientPaymentDTO>> GetClientPayments(string projId)
@@ -361,9 +366,13 @@ namespace BaseLibrary.Services.Repositories
 
             }
 
+            // Order the client payments by the amount in descending order
+            var orderedClientPayments = clientPayments
+                .OrderByDescending(cp => decimal.Parse(cp.amount, NumberStyles.Currency, CultureInfo.InvariantCulture))
+                .ToList();
 
-            // Return the list of client payments
-            return clientPayments;
+            return orderedClientPayments;
+
         }
         private async Task<bool> LogUserActionAsync(string userEmail, string action, string entityName, string entityId, string details, string userIpAddress)
         {
