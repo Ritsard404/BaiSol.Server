@@ -18,6 +18,7 @@ namespace DataLibrary.Data
         public DbSet<UserLogs> UserLogs { get; set; }
         public DbSet<Requisition> Requisition { get; set; }
         public DbSet<GanttData> GanttData { get; set; }
+        public DbSet<Payment> Payment { get; set; }
 
 
 

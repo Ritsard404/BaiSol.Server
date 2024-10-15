@@ -70,6 +70,9 @@ namespace BaiSol.Server
             // Logs
             builder.Services.AddScoped<IUserLogs, UserLogsRepository>();
 
+            // Payment
+            builder.Services.AddScoped<IPayment, PaymentRepository>();
+
 
             // Add Email Config
             var emailConfig = builder.Configuration
