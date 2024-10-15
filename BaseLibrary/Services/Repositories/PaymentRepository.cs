@@ -6,12 +6,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using RestSharp;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Text.Json;
-using System.Threading.Tasks;
 
 namespace BaseLibrary.Services.Repositories
 {
@@ -246,7 +241,7 @@ namespace BaseLibrary.Services.Repositories
                     checkoutUrl = reference.checkoutUrl, // Ensure this is defined in the Payment model
                     IsAcknowledged = reference.IsAcknowledged,
                     AcknowledgedBy = reference.AcknowledgedBy?.Email ?? string.Empty,
-                    amount = amount.ToString("#,##0.00"),
+                    amount = (amount / 100).ToString("#,##0.00"),
                     description = description,
                     status = status,
                     sourceType = sourceType,
@@ -255,7 +250,7 @@ namespace BaseLibrary.Services.Repositories
                     paidAt = paidAt > 0
                         ? DateTimeOffset.FromUnixTimeSeconds(paidAt).UtcDateTime.ToString("yyyy-MM-dd HH:mm:ss")
                         : string.Empty,
-                    paymentFee = paymentFee.ToString("#,##0.00"),
+                    paymentFee = (paymentFee / 100).ToString("#,##0.00"),
                     acknowledgedAt = reference.AcknowledgedAt.HasValue
                             ? reference.AcknowledgedAt.Value.ToString("yyyy-MM-dd HH:mm:ss")
                             : null,
@@ -348,7 +343,7 @@ namespace BaseLibrary.Services.Repositories
                     checkoutUrl = reference.checkoutUrl, // Ensure this is defined in the Payment model
                     IsAcknowledged = reference.IsAcknowledged,
                     AcknowledgedBy = reference.AcknowledgedBy?.Email ?? string.Empty,
-                    amount = amount.ToString("#,##0.00"),
+                    amount = (amount / 100).ToString("#,##0.00"),
                     description = description,
                     status = status,
                     sourceType = sourceType,
@@ -357,10 +352,11 @@ namespace BaseLibrary.Services.Repositories
                     paidAt = paidAt > 0
                         ? DateTimeOffset.FromUnixTimeSeconds(paidAt).UtcDateTime.ToString("yyyy-MM-dd HH:mm:ss")
                         : string.Empty,
-                    paymentFee = paymentFee.ToString("#,##0.00"),
+                    paymentFee = (paymentFee / 100).ToString("#,##0.00"),
                     acknowledgedAt = reference.AcknowledgedAt.HasValue
                             ? reference.AcknowledgedAt.Value.ToString("yyyy-MM-dd HH:mm:ss")
                             : null,
+                    
                 });
 
             }
