@@ -353,6 +353,33 @@ namespace BaiSol.Server.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "Payment",
+                columns: table => new
+                {
+                    Id = table.Column<string>(type: "text", nullable: false),
+                    checkoutUrl = table.Column<string>(type: "text", nullable: false),
+                    IsAcknowledged = table.Column<bool>(type: "boolean", nullable: false),
+                    AcknowledgedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
+                    AcknowledgedById = table.Column<string>(type: "text", nullable: true),
+                    ProjectProjId = table.Column<string>(type: "text", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Payment", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_Payment_AspNetUsers_AcknowledgedById",
+                        column: x => x.AcknowledgedById,
+                        principalTable: "AspNetUsers",
+                        principalColumn: "Id");
+                    table.ForeignKey(
+                        name: "FK_Payment_Project_ProjectProjId",
+                        column: x => x.ProjectProjId,
+                        principalTable: "Project",
+                        principalColumn: "ProjId",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "ProjectWorkLog",
                 columns: table => new
                 {
@@ -513,6 +540,16 @@ namespace BaiSol.Server.Migrations
                 column: "ProjectProjId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_Payment_AcknowledgedById",
+                table: "Payment",
+                column: "AcknowledgedById");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Payment_ProjectProjId",
+                table: "Payment",
+                column: "ProjectProjId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Project_ClientId",
                 table: "Project",
                 column: "ClientId");
@@ -596,6 +633,9 @@ namespace BaiSol.Server.Migrations
 
             migrationBuilder.DropTable(
                 name: "Labor");
+
+            migrationBuilder.DropTable(
+                name: "Payment");
 
             migrationBuilder.DropTable(
                 name: "ProjectWorkLog");

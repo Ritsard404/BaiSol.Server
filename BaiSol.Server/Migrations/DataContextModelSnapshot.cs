@@ -360,6 +360,37 @@ namespace BaiSol.Server.Migrations
                     b.ToTable("Material");
                 });
 
+            modelBuilder.Entity("DataLibrary.Models.Payment", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("text");
+
+                    b.Property<DateTimeOffset?>("AcknowledgedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("AcknowledgedById")
+                        .HasColumnType("text");
+
+                    b.Property<bool>("IsAcknowledged")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("ProjectProjId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("checkoutUrl")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AcknowledgedById");
+
+                    b.HasIndex("ProjectProjId");
+
+                    b.ToTable("Payment");
+                });
+
             modelBuilder.Entity("DataLibrary.Models.Project", b =>
                 {
                     b.Property<string>("ProjId")
@@ -737,6 +768,23 @@ namespace BaiSol.Server.Migrations
                     b.HasOne("DataLibrary.Models.Project", "Project")
                         .WithMany()
                         .HasForeignKey("ProjectProjId");
+
+                    b.Navigation("Project");
+                });
+
+            modelBuilder.Entity("DataLibrary.Models.Payment", b =>
+                {
+                    b.HasOne("DataLibrary.Models.AppUsers", "AcknowledgedBy")
+                        .WithMany()
+                        .HasForeignKey("AcknowledgedById");
+
+                    b.HasOne("DataLibrary.Models.Project", "Project")
+                        .WithMany()
+                        .HasForeignKey("ProjectProjId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("AcknowledgedBy");
 
                     b.Navigation("Project");
                 });
