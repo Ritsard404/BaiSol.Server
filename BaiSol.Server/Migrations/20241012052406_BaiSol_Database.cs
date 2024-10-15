@@ -32,9 +32,9 @@ namespace BaiSol.Server.Migrations
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    IsMale = table.Column<bool>(type: "boolean", nullable: false),
                     ClientContactNum = table.Column<string>(type: "text", nullable: false),
-                    ClientAddress = table.Column<string>(type: "text", nullable: false),
-                    ClientMonthlyElectricBill = table.Column<decimal>(type: "numeric", nullable: false)
+                    ClientAddress = table.Column<string>(type: "text", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -132,6 +132,8 @@ namespace BaiSol.Server.Migrations
                     Id = table.Column<string>(type: "text", nullable: false),
                     RefreshToken = table.Column<string>(type: "text", nullable: true),
                     Status = table.Column<string>(type: "text", nullable: false),
+                    FirstName = table.Column<string>(type: "text", nullable: true),
+                    LastName = table.Column<string>(type: "text", nullable: true),
                     UpdatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
                     CreatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
                     AdminEmail = table.Column<string>(type: "text", nullable: true),
@@ -280,8 +282,11 @@ namespace BaiSol.Server.Migrations
                     Status = table.Column<string>(type: "text", nullable: false),
                     UpdatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
                     CreatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
-                    DiscountRate = table.Column<decimal>(type: "numeric", nullable: true),
+                    Discount = table.Column<decimal>(type: "numeric", nullable: true),
                     VatRate = table.Column<decimal>(type: "numeric", nullable: true),
+                    ProfitRate = table.Column<decimal>(type: "numeric", nullable: false),
+                    SystemType = table.Column<string>(type: "text", nullable: false),
+                    kWCapacity = table.Column<decimal>(type: "numeric", nullable: false),
                     ClientId = table.Column<string>(type: "text", nullable: true)
                 },
                 constraints: table =>

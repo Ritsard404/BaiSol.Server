@@ -5,6 +5,7 @@ using DataLibrary.Models;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using ProjectLibrary.DTO.Material;
 using ProjectLibrary.DTO.Project;
 using ProjectLibrary.DTO.Quote;
 using ProjectLibrary.Services.Interfaces;
@@ -44,7 +45,9 @@ namespace ProjectLibrary.Services.Repositories
                 ProjDescript = projectDto.ProjDescript,
                 ProjName = projectDto.ProjName,
                 ProjId = uniqueProjId,
-                Client = isClientExist
+                Client = isClientExist,
+                kWCapacity = projectDto.kWCapacity,
+                SystemType = projectDto.SystemType,
             };
 
             // Add the new Supply entity to the context
@@ -100,7 +103,7 @@ namespace ProjectLibrary.Services.Repositories
             return await _dataContext.Project
                 .Include(p => p.Client)
                 .Include(p => p.Client.Client)
-                .Where(p => p.Client.Id == clientId)
+                .Where(p => p.Client.Id == clientId && p.Client.EmailConfirmed == true)
                 .Select(p => new GetProjects
                 {
                     ProjId = p.ProjId,
@@ -110,7 +113,7 @@ namespace ProjectLibrary.Services.Repositories
                     CreatedAt = p.CreatedAt.ToString("MMM dd, yyyy"),
                     UpdatedAt = p.UpdatedAt.ToString("MMM dd, yyyy"),
                     ClientId = p.Client.Id,
-                    ClientName = p.Client.NormalizedUserName,
+                    ClientName = $"{(p.Client.Client.IsMale ? "Mr." : "Mrs./Ms.")} {p.Client.FirstName} {p.Client.LastName}",
                     ClientAddress = p.Client.Client.ClientAddress
                 })
                 .ToListAsync();
@@ -121,37 +124,43 @@ namespace ProjectLibrary.Services.Repositories
             var projectData = await _dataContext.Project
                 .Include(p => p.Client)
                 .Include(p => p.Client.Client)
-                .Where(i => i.ProjId == projId)
+                .Where(i => i.ProjId == projId && i.Client.EmailConfirmed == true)
                 .Select(d => new
                 {
                     d.ProjId,
                     d.ProjName,
+                    d.SystemType,
                     d.ProjDescript,
-                    DiscountRate = (d.DiscountRate ?? 0) * 100,
+                    boolSex = d.Client.Client.IsMale,
+                    fName = d.Client.FirstName,
+                    lName = d.Client.LastName,
+                    sex = d.Client.Client.IsMale ? "Male" : "Female",
+                    Discount = d.Discount ?? 0,
                     VatRate = (d.VatRate ?? 0) * 100,
                     clientId = d.Client.Id,
-                    UserName = d.Client.UserName,
                     clientContactNum = d.Client.Client.ClientContactNum,
                     clientAddress = d.Client.Client.ClientAddress,
-                    clientMonthlyElectricBill = d.Client.Client.ClientMonthlyElectricBill
+                    kWCapacity = d.kWCapacity
                 })
                 .FirstOrDefaultAsync();
-
-            var usernameParts = projectData?.UserName?.Split('_') ?? new string[0];
 
             return new ClientProjectInfoDTO
             {
                 ProjId = projectData?.ProjId ?? "",
                 ProjName = projectData?.ProjName,
                 ProjDescript = projectData?.ProjDescript,
-                DiscountRate = projectData?.DiscountRate ?? 0,
+                Discount = projectData?.Discount ?? 0,
                 VatRate = projectData?.VatRate ?? 0,
                 clientId = projectData?.clientId ?? "",
-                clientFName = usernameParts.Length > 0 ? usernameParts[0] : string.Empty,
-                clientLName = usernameParts.Length > 1 ? usernameParts[1] : string.Empty,
+                clientFName = projectData?.fName,
+                clientLName = projectData?.lName,
                 clientContactNum = projectData?.clientContactNum,
                 clientAddress = projectData?.clientAddress,
-                clientMonthlyElectricBill = projectData.clientMonthlyElectricBill
+                kWCapacity = projectData.kWCapacity,
+                Sex = projectData.sex,
+                SystemType = projectData.SystemType,
+                isMale = projectData.boolSex
+
             };
         }
 
@@ -160,6 +169,7 @@ namespace ProjectLibrary.Services.Repositories
             var projects = await _dataContext.Project
                 .Include(p => p.Client) // Include related Client data
                 .Include(p => p.Client.Client)
+                .Where(c => c.Client.EmailConfirmed == true)
                 .OrderBy(p => p.CreatedAt) // Order by CreatedAt first
                 .ToListAsync(); // Fetch the data
 
@@ -230,13 +240,13 @@ namespace ProjectLibrary.Services.Repositories
                     );
 
                 // Calculate profit and overall totals
-                var profitPercentage = 0.3m;
+                var profitPercentage = materialSupply.Select(p => p.Project.ProfitRate).FirstOrDefault();
                 var profit = totalUnitCostSum * profitPercentage;
                 overallMaterialTotal = totalUnitCostSum + profit;
 
                 overallLaborProjectTotal = await _dataContext.Labor
                     .Where(p => projId != null ? p.Project.ProjId == projId : p.Project.Client.Email == customerEmail)
-                    .SumAsync(o => o.LaborCost) * 1.3m;
+                    .SumAsync(o => o.LaborCost) * (profitPercentage + 1);
 
                 projectInfo = await _dataContext.Project
                     .Include(c => c.Client)
@@ -249,14 +259,14 @@ namespace ProjectLibrary.Services.Repositories
 
             var result = projectInfo.Select(i =>
             {
-                decimal discountRate = i.DiscountRate ?? 0;
+                decimal discountRate = i.Discount ?? 0;
                 decimal vatRate = i.VatRate ?? 0;
 
                 // Calculate total
                 decimal total = overallMaterialTotal + overallLaborProjectTotal;
 
                 // Calculate subtotal after discount
-                decimal subtotalAfterDiscount = total - (discountRate * total);
+                decimal subtotalAfterDiscount = total - discountRate;
 
                 // Calculate VAT
                 decimal vatAmount = subtotalAfterDiscount * vatRate;
@@ -283,14 +293,14 @@ namespace ProjectLibrary.Services.Repositories
                 {
                     QuoteId = i.ProjId,
                     SubTotal = total.ToString("#,##0.00"),
-                    Discount = (discountRate * total).ToString("#,##0.00"),
-                    DiscountRate = (discountRate * 100).ToString("0.##") + "%",
+                    Discount = discountRate.ToString("#,##0.00"),
                     SubTotalAfterDiscount = subtotalAfterDiscount.ToString("#,##0.00"),
                     VAT = vatAmount.ToString("#,##0.00"),
                     VatRate = (vatRate * 100).ToString("0.##") + "%",
                     Total = finalTotal.ToString("#,##0.00"),
                     TotalLaborCost = totalLaborCost,
-                    TotalMaterialCost = totalMaterialCost
+                    TotalMaterialCost = totalMaterialCost,
+                    EstimationDate = i.kWCapacity <= 5 ? 7 : i.kWCapacity >= 6 && i.kWCapacity <= 10 ? 15 : i.kWCapacity >= 11 && i.kWCapacity <= 15 ? 25 : 35
                 };
             }).FirstOrDefault();
 
@@ -321,7 +331,7 @@ namespace ProjectLibrary.Services.Repositories
             {
                 customerId = i.Client.Id,
                 customerEmail = i.Client.Email,
-                customerName = i.Client.UserName.Replace("_", " "),
+                customerName = $"{(i.Client.Client.IsMale ? "Mr." : "Mrs./Ms.")} {i.Client.FirstName} {i.Client.LastName}",
                 customerAddress = i.Client.Client.ClientAddress,
                 projectId = i.ProjId,
                 projectDescription = i.ProjDescript,
@@ -337,33 +347,46 @@ namespace ProjectLibrary.Services.Repositories
         {
             List<Supply> quotationData = new List<Supply>();
 
-            if (!string.IsNullOrEmpty(projId))
-            {
-                // Fetch only supplies where MTLQuantity and Material.MTLPrice are not null
-                quotationData = await _dataContext.Supply
-                    .Include(m => m.Material)
-                    .Include(m => m.Equipment)
-                    .Include(m => m.Project)
-                    .Where(p => p.Project.ProjId == projId
-                                && p.MTLQuantity != null // Ensure MTLQuantity is not null
-                                && p.Material.MTLPrice != null) // Ensure MTLPrice is not null
-                    .OrderBy(c => c.Material.MTLCategory)
-                    .ToListAsync();
-            }
 
-            // If no data is found, return an empty list
-            if (quotationData == null || !quotationData.Any())
-            {
-                return new List<ProjectQuotationSupply>();  // Return an empty collection
-            }
+            return await _dataContext.Supply
+                .Where(p => p.Project.ProjId == projId)
+                .Include(i => i.Material)
+                .GroupBy(c => c.Material.MTLCategory)
+                .Select(g => new ProjectQuotationSupply
+                {
+                    description = g.Key,
+                    lineTotal = (g.Sum(s => (decimal)(s.MTLQuantity ?? 0) * s.Material.MTLPrice * (s.Project.ProfitRate + 1))).ToString("#,##0.00") // Calculate the total expense
 
-            var result = quotationData.Select(supply => new ProjectQuotationSupply
-            {
-                description = supply.Material?.MTLDescript ?? "No Description",  // Provide a default description if null
-                lineTotal = (((decimal)(supply.MTLQuantity ?? 0) * (supply.Material?.MTLPrice ?? 0)) * 1.3m).ToString("#,##0.00") // Calculate total safely
-            }).ToList();
+                })
+                .ToListAsync();
 
-            return result;
+            //if (!string.IsNullOrEmpty(projId))
+            //{
+            //    // Fetch only supplies where MTLQuantity and Material.MTLPrice are not null
+            //    quotationData = await _dataContext.Supply
+            //        .Include(m => m.Material)
+            //        .Include(m => m.Equipment)
+            //        .Include(m => m.Project)
+            //        .Where(p => p.Project.ProjId == projId
+            //                    && p.MTLQuantity != null // Ensure MTLQuantity is not null
+            //                    && p.Material.MTLPrice != null) // Ensure MTLPrice is not null
+            //        .OrderBy(c => c.Material.MTLCategory)
+            //        .ToListAsync();
+            //}
+
+            //// If no data is found, return an empty list
+            //if (quotationData == null || !quotationData.Any())
+            //{
+            //    return new List<ProjectQuotationSupply>();  // Return an empty collection
+            //}
+
+            //var result = quotationData.Select(supply => new ProjectQuotationSupply
+            //{
+            //    description = supply.Material?.MTLDescript ?? "No Description",  // Provide a default description if null
+            //    lineTotal = (((decimal)(supply.MTLQuantity ?? 0) * (supply.Material?.MTLPrice ?? 0)) * supply.Project.ProfitRate).ToString("#,##0.00") // Calculate total safely
+            //}).ToList();
+
+            //return result;
         }
 
 
@@ -426,22 +449,55 @@ namespace ProjectLibrary.Services.Repositories
 
             if (client == null) return (false, "Client not found");
 
+            var labor = await _dataContext.Labor
+                .Include(p => p.Project)
+                .FirstOrDefaultAsync(i => i.Project.ProjId == project.ProjId && i.LaborDescript == "Manpower");
+
+
+            // Update labor quantity based on kW capacity, if there's a change
+            if (project.kWCapacity != updateProject.kWCapacity && labor != null)
+            {
+                if (updateProject.kWCapacity <= 5)
+                {
+                    labor.LaborQuantity = 5;
+                }
+                else if (updateProject.kWCapacity > 5 && updateProject.kWCapacity <= 10)
+                {
+                    labor.LaborQuantity = 7;
+                }
+                else if (updateProject.kWCapacity > 10 && updateProject.kWCapacity <= 15)
+                {
+                    labor.LaborQuantity = 10;
+                }
+                else
+                {
+                    labor.LaborQuantity = 12;
+                }
+
+                labor.UpdatedAt = DateTimeOffset.UtcNow;   
+            }
+
             // Update project properties
             project.ProjName = updateProject.ProjName;
             project.ProjDescript = updateProject.ProjDescript;
             project.UpdatedAt = DateTimeOffset.UtcNow;
-            project.DiscountRate = updateProject.DiscountRate / 100;
+            project.Discount = updateProject.Discount;
             project.VatRate = updateProject.VatRate / 100;
+            project.kWCapacity = updateProject.kWCapacity;
+            project.SystemType = updateProject.SystemType;
 
             // Update client properties
             client.UserName = updateProject.clientFName + "_" + updateProject.clientLName;
             client.Client.ClientContactNum = updateProject.clientContactNum;
             client.Client.ClientAddress = updateProject.clientAddress;
-            client.Client.ClientMonthlyElectricBill = updateProject.clientMonthlyElectricBill;
+            client.Client.IsMale = updateProject.isMale;
             client.UpdatedAt = DateTimeOffset.UtcNow;
+
 
             // Update the project entity in the context
             _dataContext.Project.Update(project);
+            _dataContext.Labor.Update(labor);
+            
 
             // Update the client entity
             var updateResult = await _userManager.UpdateAsync(client);
@@ -496,6 +552,29 @@ namespace ProjectLibrary.Services.Repositories
 
             // Save changes to the database
             return await Save();
+        }
+
+        public async Task<(bool, string)> UpdateProfit(UpdateProfitRate updateProfit)
+        {
+            var user = await _userManager.FindByEmailAsync(updateProfit.userEmail);
+            if (user == null)
+                return (false, "Invalid User!");
+
+            // Retrieve the project entity
+            var project = await _dataContext.Project
+                .FindAsync(updateProfit.projId);
+
+            if (project == null)
+                return (false, "Project not found!");
+
+            if (updateProfit.profitRate < 1 || updateProfit.profitRate > 30)
+                return (false, "Invalid profit rate!");
+
+            project.ProfitRate = updateProfit.profitRate / 100;
+            project.UpdatedAt = DateTimeOffset.UtcNow;
+            await _dataContext.SaveChangesAsync();
+
+            return (true, "Profit successfully change.");
         }
     }
 }

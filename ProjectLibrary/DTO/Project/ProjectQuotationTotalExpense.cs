@@ -11,11 +11,11 @@ namespace ProjectLibrary.DTO.Project
         public required string QuoteId { get; set; }
         public required string SubTotal { get; set; }
         public required string Discount { get; set; }
-        public required string DiscountRate { get; set; }
         public required string SubTotalAfterDiscount { get; set; }
         public required string VAT { get; set; }
         public required string VatRate { get; set; }
         public required string Total { get; set; }
+        public required int EstimationDate { get; set; }
 
         public required ProjectQuotationSupply TotalMaterialCost { get; set; }
         public required ProjectQuotationSupply TotalLaborCost { get; set; }

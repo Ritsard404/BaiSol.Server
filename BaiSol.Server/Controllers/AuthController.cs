@@ -7,6 +7,7 @@ using DataLibrary.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using ProjectLibrary.DTO.Equipment;
 namespace BaiSol.Server.Controllers
 {
     [Route("auth/[controller]")]
@@ -41,6 +42,13 @@ namespace BaiSol.Server.Controllers
         [HttpPost("Login")]
         public async Task<IActionResult> Login(LoginDto loginDto)
         {
+            // Retrieve the client IP address
+            var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
+
+            // Validate IP address
+            if (string.IsNullOrWhiteSpace(ipAddress)) return BadRequest("IP address is required and cannot be empty");
+            loginDto.UserIpAddress = ipAddress;
+
             var response = await _userAccount.LoginAccount(loginDto);
             if (!response.Flag)
             {
@@ -49,10 +57,34 @@ namespace BaiSol.Server.Controllers
             return Ok(response);
         }
 
+        [HttpPost("LogOut")]
+        public async Task<IActionResult> LogOut(string email)
+        {
+            // Retrieve the client IP address
+            var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
+
+            // Validate IP address
+            if (string.IsNullOrWhiteSpace(ipAddress)) return BadRequest("IP address is required and cannot be empty");
+
+
+            var (isLogOut, Message) = await _userAccount.LogOut(email, ipAddress);
+            if (!isLogOut)
+            {
+                return BadRequest(Message);
+            }
+            return Ok(Message);
+        }
+
         [HttpPost("Login-2FA")]
         public async Task<IActionResult> OTPLogin(OTPDto otp)
         {
-            var login = await _userAccount.Login2FA(otp.Code, otp.Email);
+            // Retrieve the client IP address
+            var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
+            // Validate IP address
+            if (string.IsNullOrWhiteSpace(ipAddress)) return BadRequest("IP address is required and cannot be empty");
+
+
+            var login = await _userAccount.Login2FA(otp.Code, otp.Email, ipAddress);
             if (login.AccessToken == null)
             {
                 return BadRequest(login);

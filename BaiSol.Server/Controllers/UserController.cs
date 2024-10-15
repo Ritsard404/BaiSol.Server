@@ -141,7 +141,6 @@ namespace BaiSol.Server.Controllers
         }
 
         [HttpGet("Users-By-Role")]
-
         public async Task<IActionResult> GetUsersByRole(string role)
         {
             var users = await _userAccount.GetUsersByRole(role);

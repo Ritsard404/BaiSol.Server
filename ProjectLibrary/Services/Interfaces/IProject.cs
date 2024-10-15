@@ -20,5 +20,7 @@ namespace ProjectLibrary.Services.Interfaces
         Task<ICollection<ProjectQuotationSupply>> ProjectQuotationSupply(string? projId);
         Task<ProjectQuotationTotalExpense> ProjectQuotationExpense(string? projId, string? customerEmail);
 
+        Task<(bool, string)> UpdateProfit(UpdateProfitRate updateProfit);
+
     }
 }
