@@ -10,6 +10,13 @@ namespace BaiSol.Server.Controllers.Projects
     public class ProjectController(IProject _project) : ControllerBase
     {
 
+        [HttpGet("[action]")]
+        public async Task<IActionResult> IsProjectOnGoing(string projId)
+        {
+            var projects = await _project.IsProjectOnGoing(projId);
+            return Ok(projects); // Wrap the result in an Ok result
+        }
+
         [HttpGet("Get-All-Projects")]
         public async Task<IActionResult> GetClientProjects()
         {
@@ -74,6 +81,17 @@ namespace BaiSol.Server.Controllers.Projects
             if (updateProfit == null) return BadRequest(ModelState);
 
             var (success, message) = await _project.UpdateProfit(updateProfit);
+
+            if (!success) return BadRequest(message);
+
+            return Ok(message);
+        }
+
+        [HttpPut("[action]")]
+        public async Task<IActionResult> UpdateProjectToOnWork(UpdateProjectToOnWorkDTO updateProjectToOnWork)
+        {
+
+            var (success, message) = await _project.UpdateProjectToOnWork(updateProjectToOnWork);
 
             if (!success) return BadRequest(message);
 

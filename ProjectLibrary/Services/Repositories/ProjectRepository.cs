@@ -189,6 +189,15 @@ namespace ProjectLibrary.Services.Repositories
 
             return projectDtos;
         }
+
+        public async Task<bool> IsProjectOnGoing(string projId)
+        {
+            var project = await _dataContext.Project
+                .FirstOrDefaultAsync(i => i.ProjId == projId && i.Status == "OnGoing");
+
+            return project != null; // Returns true if project exists, false otherwise
+        }
+
         public async Task<bool> IsProjIdExist(string projId)
         {
             return await _dataContext.Project.AnyAsync(p => p.ProjId == projId);
@@ -474,7 +483,7 @@ namespace ProjectLibrary.Services.Repositories
                     labor.LaborQuantity = 12;
                 }
 
-                labor.UpdatedAt = DateTimeOffset.UtcNow;   
+                labor.UpdatedAt = DateTimeOffset.UtcNow;
             }
 
             // Update project properties
@@ -497,7 +506,7 @@ namespace ProjectLibrary.Services.Repositories
             // Update the project entity in the context
             _dataContext.Project.Update(project);
             _dataContext.Labor.Update(labor);
-            
+
 
             // Update the client entity
             var updateResult = await _userManager.UpdateAsync(client);
@@ -575,6 +584,24 @@ namespace ProjectLibrary.Services.Repositories
             await _dataContext.SaveChangesAsync();
 
             return (true, "Profit successfully change.");
+        }
+
+        public async Task<(bool,string)> UpdateProjectToOnWork(UpdateProjectToOnWorkDTO updateProjectToOnWork)
+        {
+            // Retrieve the project entity
+            var project = await _dataContext.Project
+                .FindAsync(updateProjectToOnWork.projId);
+
+            if (project == null)
+                return (false,"Invalid Project");
+
+            project.Status = "OnWork";
+            project.UpdatedAt = DateTimeOffset.UtcNow;
+
+            _dataContext.Project.Update(project);
+            await _dataContext.SaveChangesAsync();
+
+            return (true, "Project set to OnWork now. You can't edit the quotation!");
         }
     }
 }
