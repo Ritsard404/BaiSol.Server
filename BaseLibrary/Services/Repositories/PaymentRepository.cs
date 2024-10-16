@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using RestSharp;
+using System.Globalization;
 using System.Text.Json;
 
 namespace BaseLibrary.Services.Repositories
@@ -63,7 +64,8 @@ namespace BaseLibrary.Services.Repositories
             if (user == null) return (false, "Invalid user!");
 
 
-            var amount = 1000; // Example amount, replace with your actual logic if necessary
+
+            var amount = await GetTotalProjectExpense(projId: createPayment.projId);
 
             // Define the payloads with different amounts and descriptions
             var payloads = new[]
@@ -74,8 +76,8 @@ namespace BaseLibrary.Services.Repositories
                     {
                         attributes = new
                         {
-                            amount = (amount * 0.6) * 100,
-                            description = $"Project {project.ProjName} 60% downpayment."
+                            amount = (amount * 0.6m) * 100,
+                            description = $"60% downpayment."
                         }
                     }
                 },
@@ -85,8 +87,8 @@ namespace BaseLibrary.Services.Repositories
                     {
                         attributes = new
                         {
-                            amount = (amount * 0.3) * 100,
-                            description = $"Project {project.ProjName} 30% progress payment."
+                            amount = (amount * 0.3m) * 100,
+                            description = $"30% progress payment."
                         }
                     }
                 },
@@ -96,8 +98,8 @@ namespace BaseLibrary.Services.Repositories
                     {
                         attributes = new
                         {
-                            amount = (amount * 0.1) * 100,
-                            description = $"Project {project.ProjName} 10% final payment."
+                            amount = (amount * 0.1m) * 100,
+                            description = $"10% final payment."
                         }
                     }
                 }
@@ -258,9 +260,13 @@ namespace BaseLibrary.Services.Repositories
 
             }
 
+            // Order the client payments by the amount in descending order
+            var orderedClientPayments = clientPayments
+                .OrderByDescending(cp => decimal.Parse(cp.amount, NumberStyles.Currency, CultureInfo.InvariantCulture))
+                .ToList();
 
-            // Return the list of client payments
-            return clientPayments;
+            return orderedClientPayments;
+
         }
 
         public async Task<ICollection<GetClientPaymentDTO>> GetClientPayments(string projId)
@@ -356,15 +362,107 @@ namespace BaseLibrary.Services.Repositories
                     acknowledgedAt = reference.AcknowledgedAt.HasValue
                             ? reference.AcknowledgedAt.Value.ToString("yyyy-MM-dd HH:mm:ss")
                             : null,
-                    
+
                 });
 
             }
 
+            // Order the client payments by the amount in descending order
+            var orderedClientPayments = clientPayments
+                .OrderByDescending(cp => decimal.Parse(cp.amount, NumberStyles.Currency, CultureInfo.InvariantCulture))
+                .ToList();
 
-            // Return the list of client payments
-            return clientPayments;
+            return orderedClientPayments;
+
         }
+
+        public async Task<bool> IsProjectPayedDownpayment(string projId)
+        {
+            var project = await _dataContext.Project
+                .FirstOrDefaultAsync(id => id.ProjId == projId);
+            if (project == null)
+                return false;
+
+            var paymentReferences = await _dataContext.Payment
+             .Where(p => p.Project == project)
+             .ToListAsync();
+
+            var totalAmount = await GetTotalProjectExpense(projId: projId);
+
+            string status = string.Empty;
+
+            foreach (var reference in paymentReferences)
+            {
+                var options = new RestClientOptions($"{_config["Payment:API"]}/{reference.Id}");
+                var client = new RestClient(options);
+                var request = new RestRequest("");
+
+                request.AddHeader("accept", "application/json");
+                request.AddHeader("authorization", $"Basic {_config["Payment:Key"]}");
+
+                var response = await client.GetAsync(request);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    var responseData = JsonDocument.Parse(response.Content);
+                    var data = responseData.RootElement.GetProperty("data");
+                    var attributes = data.GetProperty("attributes");
+
+                    decimal amount = attributes.GetProperty("amount").GetDecimal() / 100m;
+                    string currentStatus = attributes.GetProperty("status").GetString();
+
+                    // Update largest amount and status if a larger amount is found
+                    if (amount == (totalAmount * 0.6m))
+                    {
+                        status = currentStatus;
+                    }
+                }
+            }
+
+            if (status != "paid")
+                return false;
+
+            return true;
+        }
+
+        private async Task<decimal> GetTotalProjectExpense(string projId)
+        {
+            if (string.IsNullOrEmpty(projId))
+                return 0;
+
+            // Fetch material supply for the project
+            var materialSupply = await _dataContext.Supply
+                .Include(i => i.Material)
+                .Where(p => p.Project.ProjId == projId)
+                .ToListAsync();
+
+            // Calculate total unit cost
+            var totalUnitCost = materialSupply
+                .Where(m => m.Material != null)
+                .Sum(m => (m.MTLQuantity ?? 0) * m.Material.MTLPrice);
+
+            // Calculate profit and material total
+            var profitRate = materialSupply.Select(p => p.Project.ProfitRate).FirstOrDefault();
+            var overallMaterialTotal = totalUnitCost * (1 + profitRate);
+
+            // Calculate overall labor cost
+            var overallLaborTotal = await _dataContext.Labor
+                .Where(p => p.Project.ProjId == projId)
+                .SumAsync(o => o.LaborCost) * (1 + profitRate);
+
+            // Fetch discount and VAT rates
+            var project = await _dataContext.Project
+                .Where(p => p.ProjId == projId)
+                .Select(p => new { Discount = p.Discount ?? 0, VatRate = p.VatRate ?? 0 })
+                .FirstOrDefaultAsync();
+
+            // Calculate final total with discount and VAT
+            var subtotal = overallMaterialTotal + overallLaborTotal - project.Discount;
+            var finalTotal = subtotal * (1 + project.VatRate);
+
+            return (finalTotal);
+        }
+
         private async Task<bool> LogUserActionAsync(string userEmail, string action, string entityName, string entityId, string details, string userIpAddress)
         {
             // Fetch the user by email and ensure the user exists
