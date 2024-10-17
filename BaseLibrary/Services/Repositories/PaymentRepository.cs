@@ -169,6 +169,117 @@ namespace BaseLibrary.Services.Repositories
             return (false, "One or more payments were not successfully created.");
         }
 
+        public async Task<ICollection<AllPaymentsDTO>> GetAllPayment()
+        {
+            var allPayments = await _dataContext.Payment
+                .Include(p => p.Project)
+                .OrderByDescending(o => o.Project)
+                .ToListAsync();
+
+            var clientPayments = new List<AllPaymentsDTO>();
+
+            foreach (var reference in allPayments)
+            {
+                // Initialize variables to store the extracted data
+                int amount = 0;
+                int netAmount = 0;
+                string description = string.Empty;
+                string status = string.Empty;
+                int createdAt = 0;
+                int updatedAt = 0;
+                int paidAt = 0;
+                int paymentFee = 0;
+                string sourceType = string.Empty;
+                string billingEmail = string.Empty;
+                string billingName = string.Empty;
+                string billingPhone = string.Empty;
+
+                // Create a new request instance for each API call
+
+                var options = new RestClientOptions($"{_config["Payment:API"]}/{reference.Id}");
+                var client = new RestClient(options);
+                var request = new RestRequest("");
+
+                request.AddHeader("accept", "application/json");
+                request.AddHeader("authorization", $"Basic {_config["Payment:Key"]}");
+
+                var response = await client.GetAsync(request);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    // Deserialize the response content into a dynamic object
+                    var responseData = JsonDocument.Parse(response.Content);
+
+                    // Extract specific fields from the JSON response
+                    var data = responseData.RootElement.GetProperty("data");
+                    var attributes = data.GetProperty("attributes");
+
+                    // Extract the required properties from attributes
+                    amount = attributes.GetProperty("amount").GetInt32();
+                    description = attributes.GetProperty("description").GetString();
+                    status = attributes.GetProperty("status").GetString();
+                    createdAt = attributes.GetProperty("created_at").GetInt32();
+                    updatedAt = attributes.GetProperty("updated_at").GetInt32();
+
+                    // Access the 'payments' property
+                    var payments = attributes.GetProperty("payments");
+                    // Check if the payments array has any elements
+
+                    if (payments.ValueKind == JsonValueKind.Array && payments.GetArrayLength() > 0)
+                    {
+                        foreach (var payment in payments.EnumerateArray())
+                        {
+                            // Extract properties from each payment object
+                            var paymentData = payment.GetProperty("data");
+                            var paymentAttributes = paymentData.GetProperty("attributes");
+
+                            paymentFee = paymentAttributes.GetProperty("fee").GetInt32(); // Payment status
+                            sourceType = paymentAttributes.GetProperty("source").GetProperty("type").GetString(); // Payment status
+                            paidAt = paymentAttributes.GetProperty("paid_at").GetInt32();
+                            netAmount = paymentAttributes.GetProperty("net_amount").GetInt32();
+                            billingEmail = paymentAttributes.GetProperty("billing").GetProperty("email").GetString();
+                            billingName = paymentAttributes.GetProperty("billing").GetProperty("name").GetString();
+                            billingPhone = paymentAttributes.GetProperty("billing").GetProperty("phone").GetString();
+                        }
+                    }
+                }
+
+                clientPayments.Add(new AllPaymentsDTO
+                {
+                    referenceNumber = reference.Id,
+                    checkoutUrl = reference.checkoutUrl, // Ensure this is defined in the Payment model
+                    isAcknowledged = reference.IsAcknowledged,
+                    acknowledgedBy = reference.AcknowledgedBy?.Email ?? string.Empty,
+                    amount = (amount / 100).ToString("#,##0.00"),
+                    description = description,
+                    status = status,
+                    sourceType = sourceType,
+                    createdAt = DateTimeOffset.FromUnixTimeSeconds(createdAt).UtcDateTime.ToString("yyyy-MM-dd HH:mm:ss"),
+                    paidAt = paidAt > 0
+                        ? DateTimeOffset.FromUnixTimeSeconds(paidAt).UtcDateTime.ToString("yyyy-MM-dd HH:mm:ss")
+                        : string.Empty,
+                    paymentFee = (paymentFee / 100).ToString("#,##0.00"),
+                    acknowledgedAt = reference.AcknowledgedAt.HasValue
+                            ? reference.AcknowledgedAt.Value.ToString("yyyy-MM-dd HH:mm:ss")
+                            : null,
+                    projId = reference.Project.ProjId,
+                    projName = reference.Project.ProjName,
+                    netAmount = (netAmount / 100).ToString("#,##0.00"),
+                    billingEmail = billingEmail,
+                    billingName = billingName,
+                    billingPhone = billingPhone,
+                });
+
+            }
+
+            // Order the client payments by the amount in descending order
+            var orderedClientPayments = clientPayments
+                .OrderByDescending(cp => decimal.Parse(cp.amount, NumberStyles.Currency, CultureInfo.InvariantCulture))
+                .ToList();
+
+            return orderedClientPayments;
+        }
+
         public async Task<ICollection<GetClientPaymentDTO>> GetAllPayments()
         {
             var allPayments = await _dataContext.Payment
@@ -230,9 +341,8 @@ namespace BaseLibrary.Services.Repositories
 
                             paymentFee = paymentAttributes.GetProperty("fee").GetInt32(); // Payment status
                             sourceType = paymentAttributes.GetProperty("source").GetProperty("type").GetString(); // Payment status
-                            paidAt = paymentAttributes.GetProperty("paid_at").GetInt32(); // Use appropriate property
-                                                                                          //var billingEmail = paymentAttributes.GetProperty("billing").GetProperty("email").GetString(); // Example for nested billing
-                                                                                          // Additional properties as needed...
+                            paidAt = paymentAttributes.GetProperty("paid_at").GetInt32();
+
                         }
                     }
                 }
