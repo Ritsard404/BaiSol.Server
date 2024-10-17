@@ -21,6 +21,7 @@ namespace BaiSol.Server.Controllers
             return Ok(payments);
 
         }
+
         [HttpGet]
         public async Task<IActionResult> IsProjectPayedDownpayment(string projId)
         {
@@ -30,11 +31,21 @@ namespace BaiSol.Server.Controllers
 
         }
 
+        //[HttpGet]
+        //public async Task<IActionResult> GetAllPayments()
+        //{
+
+        //    var payments = await _payment.GetAllPayments();
+
+        //    return Ok(payments);
+
+        //}
+
         [HttpGet]
-        public async Task<IActionResult> GetAllPayments()
+        public async Task<IActionResult> GetAllPayment()
         {
 
-            var payments = await _payment.GetAllPayments();
+            var payments = await _payment.GetAllPayment();
 
             return Ok(payments);
 
