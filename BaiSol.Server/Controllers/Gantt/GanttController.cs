@@ -21,10 +21,12 @@ namespace BaiSol.Server.Controllers.Gantt
         }
 
 
-        [HttpGet]
-        public async Task<IActionResult> Get()
+        [HttpGet("{projectId}")]
+        public async Task<IActionResult> Get(string projectId)
         {
+            // Filter GanttData by project
             var dataList = await _dataContext.GanttData
+                .Where(g => g.ProjId == projectId)
                 .ToListAsync();
 
             var response = new GanttResponse<List<GanttData>>
@@ -36,16 +38,28 @@ namespace BaiSol.Server.Controllers.Gantt
             return Ok(response); // Return 200 OK response with the data
         }
 
-        [HttpPost]
-        public async Task<IActionResult> Post([FromBody] GanttData[] data)
+        [HttpPost("{projectId}")]
+        public async Task<IActionResult> AddTaskToProject(string projectId, [FromBody] GanttData task)
         {
-            await _dataContext.GanttData.AddRangeAsync(data);
+            if (task == null)
+            {
+                return BadRequest("No task provided.");
+            }
+
+            // Set the ProjId for the task
+            task.ProjId = projectId;
+
+            // Add the task to the GanttData DbSet
+            await _dataContext.GanttData.AddAsync(task);
+
+            // Save the task to the database
             await _dataContext.SaveChangesAsync();
-            return Ok(data);
+
+            return Ok(task); // Return the newly added task
         }
 
-        [HttpPut]
-        public async Task<IActionResult> Put([FromBody] GanttData[] value)
+        [HttpPut("{projectId}")]
+        public async Task<IActionResult> Put(string projectId, [FromBody] GanttData[] value)
         {
             if (value == null || value.Length == 0)
             {
@@ -54,11 +68,13 @@ namespace BaiSol.Server.Controllers.Gantt
 
             foreach (var updatedData in value)
             {
-                var existingData = await _dataContext.GanttData.FindAsync(updatedData.TaskId);
+                var existingData = await _dataContext.GanttData
+                    .Where(g => g.TaskId == updatedData.TaskId && g.ProjId == projectId)
+                    .FirstOrDefaultAsync();
 
                 if (existingData == null)
                 {
-                    return NotFound($"GanttData with TaskId {updatedData.TaskId} not found.");
+                    return NotFound($"GanttData with TaskId {updatedData.TaskId} not found or not associated with Project {projectId}.");
                 }
 
                 // Update properties
