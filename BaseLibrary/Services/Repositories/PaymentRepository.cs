@@ -254,13 +254,13 @@ namespace BaseLibrary.Services.Repositories
                     description = description,
                     status = status,
                     sourceType = sourceType,
-                    createdAt = DateTimeOffset.FromUnixTimeSeconds(createdAt).UtcDateTime.ToString("yyyy-MM-dd HH:mm:ss"),
+                    createdAt = DateTimeOffset.FromUnixTimeSeconds(createdAt).UtcDateTime.ToString("MMMM dd, yyyy, hh:mm tt"),
                     paidAt = paidAt > 0
-                        ? DateTimeOffset.FromUnixTimeSeconds(paidAt).UtcDateTime.ToString("yyyy-MM-dd HH:mm:ss")
+                        ? DateTimeOffset.FromUnixTimeSeconds(paidAt).UtcDateTime.ToString("MMMM dd, yyyy, hh:mm tt")
                         : string.Empty,
                     paymentFee = (paymentFee / 100).ToString("#,##0.00"),
                     acknowledgedAt = reference.AcknowledgedAt.HasValue
-                            ? reference.AcknowledgedAt.Value.ToString("yyyy-MM-dd HH:mm:ss")
+                            ? reference.AcknowledgedAt.Value.ToString("MMMM dd, yyyy, hh:mm tt")
                             : null,
                     projId = reference.Project.ProjId,
                     projName = reference.Project.ProjName,
@@ -463,14 +463,14 @@ namespace BaseLibrary.Services.Repositories
                     description = description,
                     status = status,
                     sourceType = sourceType,
-                    createdAt = DateTimeOffset.FromUnixTimeSeconds(createdAt).UtcDateTime.ToString("yyyy-MM-dd HH:mm:ss"),
-                    updatedAt = DateTimeOffset.FromUnixTimeSeconds(updatedAt).UtcDateTime.ToString("yyyy-MM-dd HH:mm:ss"),
+                    createdAt = DateTimeOffset.FromUnixTimeSeconds(createdAt).UtcDateTime.ToString("MMMM dd, yyyy, hh:mm tt"),
+                    updatedAt = DateTimeOffset.FromUnixTimeSeconds(updatedAt).UtcDateTime.ToString("MMMM dd, yyyy, hh:mm tt"),
                     paidAt = paidAt > 0
-                        ? DateTimeOffset.FromUnixTimeSeconds(paidAt).UtcDateTime.ToString("yyyy-MM-dd HH:mm:ss")
+                        ? DateTimeOffset.FromUnixTimeSeconds(paidAt).UtcDateTime.ToString("MMMM dd, yyyy, hh:mm tt")
                         : string.Empty,
                     paymentFee = (paymentFee / 100).ToString("#,##0.00"),
                     acknowledgedAt = reference.AcknowledgedAt.HasValue
-                            ? reference.AcknowledgedAt.Value.ToString("yyyy-MM-dd HH:mm:ss")
+                            ? reference.AcknowledgedAt.Value.ToString("MMMM dd, yyyy, hh:mm tt")
                             : null,
 
                 });
