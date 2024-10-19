@@ -19,6 +19,7 @@ namespace BaseLibrary.DTO.Payment
         public required string createdAt { get; set; }
         public required string paidAt { get; set; }
         public required string paymentFee { get; set; }
+        public required string paymentFeePercent { get; set; }
 
         public bool isAcknowledged { get; set; }
         public required string acknowledgedBy { get; set; }

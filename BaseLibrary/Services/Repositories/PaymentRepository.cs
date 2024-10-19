@@ -181,14 +181,14 @@ namespace BaseLibrary.Services.Repositories
             foreach (var reference in allPayments)
             {
                 // Initialize variables to store the extracted data
-                int amount = 0;
-                int netAmount = 0;
+                decimal amount = 0;
+                decimal netAmount = 0;
                 string description = string.Empty;
                 string status = string.Empty;
                 int createdAt = 0;
                 int updatedAt = 0;
                 int paidAt = 0;
-                int paymentFee = 0;
+                decimal paymentFee = 0m;
                 string sourceType = string.Empty;
                 string billingEmail = string.Empty;
                 string billingName = string.Empty;
@@ -215,7 +215,7 @@ namespace BaseLibrary.Services.Repositories
                     var attributes = data.GetProperty("attributes");
 
                     // Extract the required properties from attributes
-                    amount = attributes.GetProperty("amount").GetInt32();
+                    amount = attributes.GetProperty("amount").GetDecimal();
                     description = attributes.GetProperty("description").GetString();
                     status = attributes.GetProperty("status").GetString();
                     createdAt = attributes.GetProperty("created_at").GetInt32();
@@ -233,10 +233,10 @@ namespace BaseLibrary.Services.Repositories
                             var paymentData = payment.GetProperty("data");
                             var paymentAttributes = paymentData.GetProperty("attributes");
 
-                            paymentFee = paymentAttributes.GetProperty("fee").GetInt32(); // Payment status
+                            paymentFee = paymentAttributes.GetProperty("fee").GetDecimal(); // Payment status
                             sourceType = paymentAttributes.GetProperty("source").GetProperty("type").GetString(); // Payment status
                             paidAt = paymentAttributes.GetProperty("paid_at").GetInt32();
-                            netAmount = paymentAttributes.GetProperty("net_amount").GetInt32();
+                            netAmount = paymentAttributes.GetProperty("net_amount").GetDecimal();
                             billingEmail = paymentAttributes.GetProperty("billing").GetProperty("email").GetString();
                             billingName = paymentAttributes.GetProperty("billing").GetProperty("name").GetString();
                             billingPhone = paymentAttributes.GetProperty("billing").GetProperty("phone").GetString();
@@ -250,7 +250,7 @@ namespace BaseLibrary.Services.Repositories
                     checkoutUrl = reference.checkoutUrl, // Ensure this is defined in the Payment model
                     isAcknowledged = reference.IsAcknowledged,
                     acknowledgedBy = reference.AcknowledgedBy?.Email ?? string.Empty,
-                    amount = (amount / 100).ToString("#,##0.00"),
+                    amount = (amount / 100m).ToString("#,##0.00"),
                     description = description,
                     status = status,
                     sourceType = sourceType,
@@ -258,13 +258,14 @@ namespace BaseLibrary.Services.Repositories
                     paidAt = paidAt > 0
                         ? DateTimeOffset.FromUnixTimeSeconds(paidAt).UtcDateTime.ToString("MMMM dd, yyyy, hh:mm tt")
                         : string.Empty,
-                    paymentFee = (paymentFee / 100).ToString("#,##0.00"),
+                    paymentFee = (paymentFee / 100m).ToString("#,##0.00"),
+                    paymentFeePercent = (((amount - netAmount) / amount) * 100).ToString("#,##0.00") + "%",
                     acknowledgedAt = reference.AcknowledgedAt.HasValue
                             ? reference.AcknowledgedAt.Value.ToString("MMMM dd, yyyy, hh:mm tt")
                             : null,
                     projId = reference.Project.ProjId,
                     projName = reference.Project.ProjName,
-                    netAmount = (netAmount / 100).ToString("#,##0.00"),
+                    netAmount = (netAmount / 100m).ToString("#,##0.00"),
                     billingEmail = billingEmail,
                     billingName = billingName,
                     billingPhone = billingPhone,
@@ -291,13 +292,13 @@ namespace BaseLibrary.Services.Repositories
             foreach (var reference in allPayments)
             {
                 // Initialize variables to store the extracted data
-                int amount = 0;
+                decimal amount = 0;
                 string description = string.Empty;
                 string status = string.Empty;
                 int createdAt = 0;
                 int updatedAt = 0;
                 int paidAt = 0;
-                int paymentFee = 0;
+                decimal paymentFee = 0;
                 string sourceType = string.Empty;
 
                 // Create a new request instance for each API call
@@ -353,7 +354,7 @@ namespace BaseLibrary.Services.Repositories
                     checkoutUrl = reference.checkoutUrl, // Ensure this is defined in the Payment model
                     IsAcknowledged = reference.IsAcknowledged,
                     AcknowledgedBy = reference.AcknowledgedBy?.Email ?? string.Empty,
-                    amount = (amount / 100).ToString("#,##0.00"),
+                    amount = (amount).ToString("#,##0.00"),
                     description = description,
                     status = status,
                     sourceType = sourceType,
@@ -362,7 +363,7 @@ namespace BaseLibrary.Services.Repositories
                     paidAt = paidAt > 0
                         ? DateTimeOffset.FromUnixTimeSeconds(paidAt).UtcDateTime.ToString("yyyy-MM-dd HH:mm:ss")
                         : string.Empty,
-                    paymentFee = (paymentFee / 100).ToString("#,##0.00"),
+                    paymentFee = (paymentFee).ToString("#,##0.00"),
                     acknowledgedAt = reference.AcknowledgedAt.HasValue
                             ? reference.AcknowledgedAt.Value.ToString("yyyy-MM-dd HH:mm:ss")
                             : null,
@@ -396,13 +397,13 @@ namespace BaseLibrary.Services.Repositories
             foreach (var reference in paymentReference)
             {
                 // Initialize variables to store the extracted data
-                int amount = 0;
+                decimal amount = 0;
                 string description = string.Empty;
                 string status = string.Empty;
                 int createdAt = 0;
                 int updatedAt = 0;
                 int paidAt = 0;
-                int paymentFee = 0;
+                decimal paymentFee = 0;
                 string sourceType = string.Empty;
 
                 // Create a new request instance for each API call
@@ -426,7 +427,7 @@ namespace BaseLibrary.Services.Repositories
                     var attributes = data.GetProperty("attributes");
 
                     // Extract the required properties from attributes
-                    amount = attributes.GetProperty("amount").GetInt32();
+                    amount = attributes.GetProperty("amount").GetDecimal();
                     description = attributes.GetProperty("description").GetString();
                     status = attributes.GetProperty("status").GetString();
                     createdAt = attributes.GetProperty("created_at").GetInt32();
@@ -444,7 +445,7 @@ namespace BaseLibrary.Services.Repositories
                             var paymentData = payment.GetProperty("data");
                             var paymentAttributes = paymentData.GetProperty("attributes");
 
-                            paymentFee = paymentAttributes.GetProperty("fee").GetInt32(); // Payment status
+                            paymentFee = paymentAttributes.GetProperty("fee").GetDecimal(); // Payment status
                             sourceType = paymentAttributes.GetProperty("source").GetProperty("type").GetString(); // Payment status
                             paidAt = paymentAttributes.GetProperty("paid_at").GetInt32(); // Use appropriate property
                                                                                           //var billingEmail = paymentAttributes.GetProperty("billing").GetProperty("email").GetString(); // Example for nested billing
@@ -459,7 +460,7 @@ namespace BaseLibrary.Services.Repositories
                     checkoutUrl = reference.checkoutUrl, // Ensure this is defined in the Payment model
                     IsAcknowledged = reference.IsAcknowledged,
                     AcknowledgedBy = reference.AcknowledgedBy?.Email ?? string.Empty,
-                    amount = (amount / 100).ToString("#,##0.00"),
+                    amount = (amount / 100m).ToString("#,##0.00"),
                     description = description,
                     status = status,
                     sourceType = sourceType,
@@ -468,7 +469,7 @@ namespace BaseLibrary.Services.Repositories
                     paidAt = paidAt > 0
                         ? DateTimeOffset.FromUnixTimeSeconds(paidAt).UtcDateTime.ToString("MMMM dd, yyyy, hh:mm tt")
                         : string.Empty,
-                    paymentFee = (paymentFee / 100).ToString("#,##0.00"),
+                    paymentFee = (paymentFee / 100m).ToString("#,##0.00"),
                     acknowledgedAt = reference.AcknowledgedAt.HasValue
                             ? reference.AcknowledgedAt.Value.ToString("MMMM dd, yyyy, hh:mm tt")
                             : null,

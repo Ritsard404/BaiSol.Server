@@ -586,14 +586,42 @@ namespace ProjectLibrary.Services.Repositories
             return (true, "Profit successfully change.");
         }
 
-        public async Task<(bool,string)> UpdateProjectToOnWork(UpdateProjectToOnWorkDTO updateProjectToOnWork)
+        public async Task<(bool, string)> UpdateProjectToOnWork(UpdateProjectToOnWorkDTO updateProjectToOnWork)
         {
             // Retrieve the project entity
             var project = await _dataContext.Project
                 .FindAsync(updateProjectToOnWork.projId);
 
             if (project == null)
-                return (false,"Invalid Project");
+                return (false, "Invalid Project");
+
+            var hasFacilitators = await _dataContext.ProjectWorkLog
+                .Include(f => f.Facilitator)
+                .Where(p => p.Project == project)
+                .AnyAsync();
+
+            if (!hasFacilitators)
+                return (false, "Cannot seal the quotation. No Facilitator assigned yet!");
+
+            var installers = await _dataContext.ProjectWorkLog
+                .Include(i => i.Installer)
+                .Where(p => p.Project == project)
+                .CountAsync();
+
+            if (installers == 0)
+                return (false, "Cannot seal the quotation. Insufficient installers!");
+
+            var labor = await _dataContext.Labor
+              .Include(p => p.Project)
+              .FirstOrDefaultAsync(i => i.Project.ProjId == project.ProjId && i.LaborDescript == "Manpower");
+
+            if (labor == null)
+                return (false, "Invalid labor quote");
+
+            // Validate number of installers based on project capacity
+            string validationMessage = ValidateInstallersByCapacity(project.kWCapacity, installers);
+            if (validationMessage != null)
+                return (false, validationMessage);
 
             project.Status = "OnWork";
             project.UpdatedAt = DateTimeOffset.UtcNow;
@@ -602,6 +630,25 @@ namespace ProjectLibrary.Services.Repositories
             await _dataContext.SaveChangesAsync();
 
             return (true, "Project set to OnWork now. You can't edit the quotation!");
+        }
+
+        // Helper method to validate the number of installers based on project capacity
+        private string ValidateInstallersByCapacity(decimal kWCapacity, int installerCount)
+        {
+            if (kWCapacity <= 5 && installerCount != 5)
+            {
+                return "Cannot seal the quotation. Insufficient installers!";
+            }
+            if (kWCapacity > 5 && kWCapacity <= 10 && installerCount != 7)
+            {
+                return "Cannot seal the quotation. Insufficient installers!";
+            }
+            if (kWCapacity > 10 && kWCapacity <= 15 && installerCount != 10)
+            {
+                return "Cannot seal the quotation. Insufficient installers!";
+            }
+
+            return null; // Return null if valid
         }
     }
 }

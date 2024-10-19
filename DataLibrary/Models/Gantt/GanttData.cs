@@ -41,5 +41,8 @@ namespace DataLibrary.Models.Gantt
 
         [JsonPropertyName("ParentId")]
         public int? ParentId { get; set; }
+
+        //[JsonPropertyName("ProjId")]
+        //public int? ProjId { get; set; }
     }
 }
