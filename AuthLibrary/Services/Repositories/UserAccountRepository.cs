@@ -100,9 +100,12 @@ namespace AuthLibrary.Services.Repositories
 
                     if (role == UserRoles.Client)
                     {
+                        var project = await _dataContext.Project
+                            .FirstOrDefaultAsync(c => c.Client == user);
                         userDto.ClientContactNum = user.Client?.ClientContactNum;
                         userDto.ClientAddress = user.Client?.ClientAddress;
                         userDto.Sex = user.Client.IsMale ? "Male" : "Female";
+                        userDto.kWCapacity = project?.kWCapacity;
                     }
 
                     userList.Add(userDto);
@@ -445,13 +448,17 @@ namespace AuthLibrary.Services.Repositories
             return clientList.OrderBy(a => a.ClientEmail).ToList();
         }
 
-        public async Task<ApprovalResponse> ApproveClient(string clientId)
+        public async Task<ApprovalResponse> ApproveClient(string clientId, string adminEmail)
         {
             var newClient = await _userManager.Users
                 .Include(c => c.Client)
                 .FirstOrDefaultAsync(u => u.Id == clientId);
 
             if (newClient == null) return new ApprovalResponse(false, null);
+
+            var admin = await _userManager.FindByEmailAsync(adminEmail);
+            if (admin == null)
+                return new ApprovalResponse(false, null);
 
 
             //Project newProject = new Project
@@ -485,6 +492,7 @@ namespace AuthLibrary.Services.Repositories
             //}
 
             newClient.Status = "Active";
+            newClient.AdminEmail = admin.Email;
             return new ApprovalResponse(await Save(), newClient);
         }
     }

@@ -78,9 +78,9 @@ namespace BaiSol.Server.Controllers
         }
 
         [HttpPut("Approve-Client-Account")]
-        public async Task<IActionResult> ApproveClientAccount(string clientId)
+        public async Task<IActionResult> ApproveClientAccount(string clientId,string adminEmail)
         {
-            var approveClient = await _userAccount.ApproveClient(clientId);
+            var approveClient = await _userAccount.ApproveClient(clientId, adminEmail);
             if (!approveClient.Flag) return BadRequest("Client does not exist.");
 
 
