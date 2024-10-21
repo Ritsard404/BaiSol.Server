@@ -1,4 +1,6 @@
-﻿namespace ProjectLibrary.DTO.Project
+﻿using System.Text.Json.Serialization;
+
+namespace ProjectLibrary.DTO.Project
 {
     public class ProjectDto
     {
@@ -7,5 +9,7 @@
         public required string ClientId { get; set; }
         public required string SystemType { get; set; }
         public required decimal kWCapacity { get; set; }
+        [JsonIgnore]
+        public required string ipAddress { get; set; }
     }
 }

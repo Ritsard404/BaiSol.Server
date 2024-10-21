@@ -1,6 +1,7 @@
 ﻿
 
 using AutoMapper;
+using BaseLibrary.Services.Interfaces;
 using DataLibrary.Data;
 using DataLibrary.Models;
 using Microsoft.AspNetCore.Identity;
@@ -15,7 +16,7 @@ namespace ProjectLibrary.Services.Repositories
     {
         TextInfo textInfo = CultureInfo.CurrentCulture.TextInfo;
 
-        public string textFormat(string text)
+        private string textFormat(string text)
         {
             var formmatedText = textInfo.ToTitleCase(text).Trim();
             return formmatedText;

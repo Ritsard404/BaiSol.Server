@@ -1,5 +1,7 @@
 ﻿
 
+using AutoMapper.Configuration.Annotations;
+using BaseLibrary.Services.Interfaces;
 using DataLibrary.Data;
 using DataLibrary.Models;
 using Microsoft.AspNetCore.Identity;
@@ -12,7 +14,7 @@ using ProjectLibrary.Services.Interfaces;
 
 namespace ProjectLibrary.Services.Repositories
 {
-    public class ProjectRepository(UserManager<AppUsers> _userManager, DataContext _dataContext) : IProject
+    public class ProjectRepository(UserManager<AppUsers> _userManager, DataContext _dataContext, IUserLogs _userLogs) : IProject
     {
         public async Task<string> AddNewClientProject(ProjectDto projectDto)
         {
@@ -22,8 +24,8 @@ namespace ProjectLibrary.Services.Repositories
             }
 
             // Check if the client exists
-            var isClientExist = await _userManager.FindByIdAsync(projectDto.ClientId);
-            if (isClientExist == null)
+            var client = await _userManager.FindByIdAsync(projectDto.ClientId);
+            if (client == null)
             {
                 return "Client does not exist";
             }
@@ -45,7 +47,7 @@ namespace ProjectLibrary.Services.Repositories
                 ProjDescript = projectDto.ProjDescript,
                 ProjName = projectDto.ProjName,
                 ProjId = uniqueProjId,
-                Client = isClientExist,
+                Client = client,
                 kWCapacity = projectDto.kWCapacity,
                 SystemType = projectDto.SystemType,
             };
@@ -72,6 +74,8 @@ namespace ProjectLibrary.Services.Repositories
                     _dataContext.Labor.Add(labor);
                 }
             }
+
+            await _userLogs.LogUserActionAsync(client.Email, "Create", "Project", newProject.ProjId, $"New project created", projectDto.ipAddress);
 
             // Save changes to the database
             var saveResult = await Save();

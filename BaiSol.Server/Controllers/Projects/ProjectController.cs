@@ -53,6 +53,13 @@ namespace BaiSol.Server.Controllers.Projects
         {
             if (projectDto == null) return BadRequest(ModelState);
 
+            // Retrieve the client IP address
+            var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
+
+            // Validate IP address
+            if (string.IsNullOrWhiteSpace(ipAddress)) return BadRequest("IP address is required and cannot be empty");
+            projectDto.ipAddress = ipAddress;
+
             var result = await _project.AddNewClientProject(projectDto);
 
             if (result != null)

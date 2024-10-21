@@ -63,9 +63,10 @@ namespace BaseLibrary.Services.Repositories
             var user = await _userManager.FindByEmailAsync(createPayment.userEmail);
             if (user == null) return (false, "Invalid user!");
 
-
-
-            var amount = await GetTotalProjectExpense(projId: createPayment.projId);
+            //var amount = await GetTotalProjectExpense(projId: createPayment.projId);
+            //if (amount < 1)
+            //    return (false, "No Quotation Cost Yet!");
+            decimal amount = 10000;
 
             // Define the payloads with different amounts and descriptions
             var payloads = new[]
@@ -173,6 +174,8 @@ namespace BaseLibrary.Services.Repositories
         {
             var allPayments = await _dataContext.Payment
                 .Include(p => p.Project)
+                .Include(p => p.AcknowledgedBy)
+                .Include(p => p.Project.Client)
                 .OrderByDescending(o => o.Project)
                 .ToListAsync();
 
@@ -247,28 +250,28 @@ namespace BaseLibrary.Services.Repositories
                 clientPayments.Add(new AllPaymentsDTO
                 {
                     referenceNumber = reference.Id,
-                    checkoutUrl = reference.checkoutUrl, // Ensure this is defined in the Payment model
+                    checkoutUrl = reference.checkoutUrl, 
                     isAcknowledged = reference.IsAcknowledged,
                     acknowledgedBy = reference.AcknowledgedBy?.Email ?? string.Empty,
                     amount = (amount / 100m).ToString("#,##0.00"),
                     description = description,
-                    status = status,
-                    sourceType = sourceType,
-                    createdAt = DateTimeOffset.FromUnixTimeSeconds(createdAt).UtcDateTime.ToString("MMMM dd, yyyy, hh:mm tt"),
+                    status = reference.IsCashPayed ? "paid" : status,
+                    sourceType = reference.IsCashPayed ? "Cash Pay" : sourceType,
+                    createdAt = reference.IsCashPayed ? reference.CashPaidAt?.ToString("MMMM dd, yyyy, hh:mm tt") : DateTimeOffset.FromUnixTimeSeconds(createdAt).UtcDateTime.ToString("MMMM dd, yyyy, hh:mm tt"),
                     paidAt = paidAt > 0
                         ? DateTimeOffset.FromUnixTimeSeconds(paidAt).UtcDateTime.ToString("MMMM dd, yyyy, hh:mm tt")
-                        : string.Empty,
-                    paymentFee = (paymentFee / 100m).ToString("#,##0.00"),
-                    paymentFeePercent = (((amount - netAmount) / amount) * 100).ToString("#,##0.00") + "%",
+                        : reference.IsCashPayed ? reference.CashPaidAt?.ToString("MMMM dd, yyyy, hh:mm tt") : string.Empty,
+                    paymentFee = reference.IsCashPayed ? "0.00" : (paymentFee / 100m).ToString("#,##0.00"),
+                    paymentFeePercent = reference.IsCashPayed ? "0%" : (((amount - netAmount) / amount) * 100).ToString("#,##0.00") + "%",
                     acknowledgedAt = reference.AcknowledgedAt.HasValue
                             ? reference.AcknowledgedAt.Value.ToString("MMMM dd, yyyy, hh:mm tt")
                             : null,
                     projId = reference.Project.ProjId,
                     projName = reference.Project.ProjName,
-                    netAmount = (netAmount / 100m).ToString("#,##0.00"),
-                    billingEmail = billingEmail,
-                    billingName = billingName,
-                    billingPhone = billingPhone,
+                    netAmount = reference.IsCashPayed ? (amount / 100m).ToString("#,##0.00") : (netAmount / 100m).ToString("#,##0.00"),
+                    billingEmail = reference.IsCashPayed ? reference.Project?.Client?.Email : billingEmail,
+                    billingName = reference.IsCashPayed ? $"{reference.Project?.Client?.FirstName} {reference.Project?.Client?.LastName}" : billingName,
+                    billingPhone = reference.IsCashPayed ? reference.Project?.Client?.PhoneNumber : billingPhone,
                 });
 
             }
@@ -377,7 +380,6 @@ namespace BaseLibrary.Services.Repositories
                 .ToList();
 
             return orderedClientPayments;
-
         }
 
         public async Task<ICollection<GetClientPaymentDTO>> GetClientPayments(string projId)
@@ -462,14 +464,14 @@ namespace BaseLibrary.Services.Repositories
                     AcknowledgedBy = reference.AcknowledgedBy?.Email ?? string.Empty,
                     amount = (amount / 100m).ToString("#,##0.00"),
                     description = description,
-                    status = status,
-                    sourceType = sourceType,
-                    createdAt = DateTimeOffset.FromUnixTimeSeconds(createdAt).UtcDateTime.ToString("MMMM dd, yyyy, hh:mm tt"),
-                    updatedAt = DateTimeOffset.FromUnixTimeSeconds(updatedAt).UtcDateTime.ToString("MMMM dd, yyyy, hh:mm tt"),
+                    status = reference.IsCashPayed ? "paid" : status,
+                    sourceType = reference.IsCashPayed ? "Cash Pay" : sourceType,
+                    createdAt = reference.IsCashPayed ? reference.CashPaidAt?.ToString("MMMM dd, yyyy, hh:mm tt") : DateTimeOffset.FromUnixTimeSeconds(createdAt).UtcDateTime.ToString("MMMM dd, yyyy, hh:mm tt"),
                     paidAt = paidAt > 0
                         ? DateTimeOffset.FromUnixTimeSeconds(paidAt).UtcDateTime.ToString("MMMM dd, yyyy, hh:mm tt")
-                        : string.Empty,
-                    paymentFee = (paymentFee / 100m).ToString("#,##0.00"),
+                        : reference.IsCashPayed ? reference.CashPaidAt?.ToString("MMMM dd, yyyy, hh:mm tt") : string.Empty,
+                    updatedAt = reference.IsCashPayed ? reference.CashPaidAt?.ToString("MMMM dd, yyyy, hh:mm tt") : DateTimeOffset.FromUnixTimeSeconds(updatedAt).UtcDateTime.ToString("MMMM dd, yyyy, hh:mm tt"),
+                    paymentFee = reference.IsCashPayed ? "0.00" : (paymentFee / 100m).ToString("#,##0.00"),
                     acknowledgedAt = reference.AcknowledgedAt.HasValue
                             ? reference.AcknowledgedAt.Value.ToString("MMMM dd, yyyy, hh:mm tt")
                             : null,
@@ -534,6 +536,57 @@ namespace BaseLibrary.Services.Repositories
                 return false;
 
             return true;
+        }
+
+        public async Task<(bool, string)> PayOnCash(PayOnCashDTO payOnCash)
+        {
+            var options = new RestClientOptions($"{_config["Payment:API"]}/{payOnCash.referenceNumber}");
+            var client = new RestClient(options);
+            var request = new RestRequest("");
+
+            request.AddHeader("accept", "application/json");
+            request.AddHeader("authorization", $"Basic {_config["Payment:Key"]}");
+
+            var payment = await _dataContext.Payment
+                .FirstOrDefaultAsync(i => i.Id == payOnCash.referenceNumber);
+            if (payment == null)
+                return (false, "Invalid reference!");
+
+            // Fetch the user by email and ensure the user exists
+            var user = await _userManager.FindByEmailAsync(payOnCash.userEmail);
+            if (user == null) return (false, "Invalid user!");
+
+            decimal amount = 0;
+
+            var response = await client.GetAsync(request);
+
+            if (!response.IsSuccessStatusCode)
+                return (false, "Reference Id not exist!");
+
+            // Deserialize the response content into a dynamic object
+            var responseData = JsonDocument.Parse(response.Content);
+
+            // Extract specific fields from the JSON response
+            var data = responseData.RootElement.GetProperty("data");
+            var attributes = data.GetProperty("attributes");
+
+            // Extract the required properties from attributes
+            amount = attributes.GetProperty("amount").GetDecimal();
+
+            payment.IsAcknowledged = true;
+            payment.AcknowledgedBy = user;
+            payment.AcknowledgedAt = DateTimeOffset.UtcNow;
+
+            payment.IsCashPayed = true;
+            payment.CashAmount = amount;
+            payment.CashPaidAt = DateTimeOffset.UtcNow;
+
+
+            _dataContext.Payment.Update(payment);
+
+            await _dataContext.SaveChangesAsync();
+
+            return (true, "Project payed on cash.");
         }
 
         private async Task<decimal> GetTotalProjectExpense(string projId)

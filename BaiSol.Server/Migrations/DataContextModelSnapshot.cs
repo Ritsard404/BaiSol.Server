@@ -371,7 +371,16 @@ namespace BaiSol.Server.Migrations
                     b.Property<string>("AcknowledgedById")
                         .HasColumnType("text");
 
+                    b.Property<decimal?>("CashAmount")
+                        .HasColumnType("numeric");
+
+                    b.Property<DateTimeOffset?>("CashPaidAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<bool>("IsAcknowledged")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsCashPayed")
                         .HasColumnType("boolean");
 
                     b.Property<string>("ProjectProjId")

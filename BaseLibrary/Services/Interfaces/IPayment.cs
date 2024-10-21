@@ -9,6 +9,7 @@ namespace BaseLibrary.Services.Interfaces
         Task<ICollection<AllPaymentsDTO>> GetAllPayment();
         Task<(bool, string)> CreatePayment(CreatePaymentDTO createPayment);
         Task<(bool, string)> AcknowledgePayment(AcknowledgePaymentDTO acknowledgePayment);
+        Task<(bool, string)> PayOnCash(PayOnCashDTO payOnCash);
         Task<bool> IsProjectPayedDownpayment(string projId);
     }
 }

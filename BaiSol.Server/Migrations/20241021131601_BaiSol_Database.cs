@@ -359,6 +359,9 @@ namespace BaiSol.Server.Migrations
                     Id = table.Column<string>(type: "text", nullable: false),
                     checkoutUrl = table.Column<string>(type: "text", nullable: false),
                     IsAcknowledged = table.Column<bool>(type: "boolean", nullable: false),
+                    IsCashPayed = table.Column<bool>(type: "boolean", nullable: false),
+                    CashAmount = table.Column<decimal>(type: "numeric", nullable: true),
+                    CashPaidAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
                     AcknowledgedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
                     AcknowledgedById = table.Column<string>(type: "text", nullable: true),
                     ProjectProjId = table.Column<string>(type: "text", nullable: false)

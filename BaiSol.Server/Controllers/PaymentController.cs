@@ -90,5 +90,25 @@ namespace BaiSol.Server.Controllers
             return Ok(message);
 
         }
+
+        [HttpPut]
+        public async Task<IActionResult> PayOnCash(PayOnCashDTO payOnCash)
+        {
+            // Retrieve the client IP address
+            var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
+
+            if (payOnCash == null) return BadRequest(ModelState);
+
+            // Validate IP address
+            if (string.IsNullOrWhiteSpace(ipAddress)) return BadRequest("IP address is required and cannot be empty");
+            payOnCash.UserIpAddress = ipAddress;
+
+            var (isSuccessful, message) = await _payment.PayOnCash(payOnCash);
+            if (!isSuccessful)
+                return BadRequest(message);
+
+            return Ok(message);
+
+        }
     }
 }

@@ -12,7 +12,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace BaiSol.Server.Migrations
 {
     [DbContext(typeof(DataContext))]
-    [Migration("20241015102949_BaiSol_Database")]
+    [Migration("20241021131601_BaiSol_Database")]
     partial class BaiSol_Database
     {
         /// <inheritdoc />
@@ -374,7 +374,16 @@ namespace BaiSol.Server.Migrations
                     b.Property<string>("AcknowledgedById")
                         .HasColumnType("text");
 
+                    b.Property<decimal?>("CashAmount")
+                        .HasColumnType("numeric");
+
+                    b.Property<DateTimeOffset?>("CashPaidAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<bool>("IsAcknowledged")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsCashPayed")
                         .HasColumnType("boolean");
 
                     b.Property<string>("ProjectProjId")

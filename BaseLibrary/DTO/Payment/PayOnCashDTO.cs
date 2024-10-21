@@ -8,11 +8,11 @@ using System.Threading.Tasks;
 
 namespace BaseLibrary.DTO.Payment
 {
-    public class CreatePaymentDTO
+    public class PayOnCashDTO
     {
-        public required string projId { get; set; }
+        public required string referenceNumber { get; set; }
         [EmailAddress]
-        public  string? userEmail { get; set; }
+        public required string userEmail { get; set; }
 
         [JsonIgnore]
         public string? UserIpAddress { get; set; }
