@@ -627,6 +627,10 @@ namespace ProjectLibrary.Services.Repositories
             if (validationMessage != null)
                 return (false, validationMessage);
 
+            var amount = await GetTotalProjectExpense(projId: project.ProjId);
+            if (amount < 1)
+                return (false, "No Quotation Cost Yet!");
+
             project.Status = "OnWork";
             project.UpdatedAt = DateTimeOffset.UtcNow;
 
@@ -635,6 +639,45 @@ namespace ProjectLibrary.Services.Repositories
 
             return (true, "Project set to OnWork now. You can't edit the quotation!");
         }
+
+        private async Task<decimal> GetTotalProjectExpense(string projId)
+        {
+            if (string.IsNullOrEmpty(projId))
+                return 0;
+
+            // Fetch material supply for the project
+            var materialSupply = await _dataContext.Supply
+                .Include(i => i.Material)
+                .Where(p => p.Project.ProjId == projId)
+                .ToListAsync();
+
+            // Calculate total unit cost
+            var totalUnitCost = materialSupply
+                .Where(m => m.Material != null)
+                .Sum(m => (m.MTLQuantity ?? 0) * m.Material.MTLPrice);
+
+            // Calculate profit and material total
+            var profitRate = materialSupply.Select(p => p.Project.ProfitRate).FirstOrDefault();
+            var overallMaterialTotal = totalUnitCost * (1 + profitRate);
+
+            // Calculate overall labor cost
+            var overallLaborTotal = await _dataContext.Labor
+                .Where(p => p.Project.ProjId == projId)
+                .SumAsync(o => o.LaborCost) * (1 + profitRate);
+
+            // Fetch discount and VAT rates
+            var project = await _dataContext.Project
+                .Where(p => p.ProjId == projId)
+                .Select(p => new { Discount = p.Discount ?? 0, VatRate = p.VatRate ?? 0 })
+                .FirstOrDefaultAsync();
+
+            // Calculate final total with discount and VAT
+            var subtotal = overallMaterialTotal + overallLaborTotal - project.Discount;
+            var finalTotal = subtotal * (1 + project.VatRate);
+
+            return (finalTotal);
+        }
+
 
         // Helper method to validate the number of installers based on project capacity
         private string ValidateInstallersByCapacity(decimal kWCapacity, int installerCount)

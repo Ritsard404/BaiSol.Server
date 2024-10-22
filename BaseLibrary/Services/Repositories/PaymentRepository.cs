@@ -63,10 +63,9 @@ namespace BaseLibrary.Services.Repositories
             var user = await _userManager.FindByEmailAsync(createPayment.userEmail);
             if (user == null) return (false, "Invalid user!");
 
-            //var amount = await GetTotalProjectExpense(projId: createPayment.projId);
-            //if (amount < 1)
-            //    return (false, "No Quotation Cost Yet!");
-            decimal amount = 10000;
+            var amount = await GetTotalProjectExpense(projId: createPayment.projId);
+            if (amount < 1)
+                return (false, "No Quotation Cost Yet!");
 
             // Define the payloads with different amounts and descriptions
             var payloads = new[]
