@@ -184,12 +184,11 @@ namespace BaiSol.Server.Migrations
 
             modelBuilder.Entity("DataLibrary.Models.Gantt.GanttData", b =>
                 {
-                    b.Property<int>("TaskId")
+                    b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasAnnotation("Relational:JsonPropertyName", "TaskId");
+                        .HasColumnType("integer");
 
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("TaskId"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<DateTime?>("ActualEndDate")
                         .HasColumnType("timestamp with time zone")
@@ -223,11 +222,20 @@ namespace BaiSol.Server.Migrations
                         .HasColumnType("integer")
                         .HasAnnotation("Relational:JsonPropertyName", "Progress");
 
+                    b.Property<string>("ProjId")
+                        .HasColumnType("text");
+
+                    b.Property<int>("TaskId")
+                        .HasColumnType("integer")
+                        .HasAnnotation("Relational:JsonPropertyName", "TaskId");
+
                     b.Property<string>("TaskName")
                         .HasColumnType("text")
                         .HasAnnotation("Relational:JsonPropertyName", "TaskName");
 
-                    b.HasKey("TaskId");
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProjId");
 
                     b.ToTable("GanttData");
                 });
@@ -763,6 +771,13 @@ namespace BaiSol.Server.Migrations
                     b.Navigation("Client");
                 });
 
+            modelBuilder.Entity("DataLibrary.Models.Gantt.GanttData", b =>
+                {
+                    b.HasOne("DataLibrary.Models.Project", null)
+                        .WithMany("GanttData")
+                        .HasForeignKey("ProjId");
+                });
+
             modelBuilder.Entity("DataLibrary.Models.Installer", b =>
                 {
                     b.HasOne("DataLibrary.Models.AppUsers", "Admin")
@@ -948,6 +963,11 @@ namespace BaiSol.Server.Migrations
             modelBuilder.Entity("DataLibrary.Models.Client", b =>
                 {
                     b.Navigation("Admin");
+                });
+
+            modelBuilder.Entity("DataLibrary.Models.Project", b =>
+                {
+                    b.Navigation("GanttData");
                 });
 #pragma warning restore 612, 618
         }

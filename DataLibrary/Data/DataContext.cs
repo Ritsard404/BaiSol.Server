@@ -26,6 +26,16 @@ namespace DataLibrary.Data
         {
             base.OnModelCreating(modelBuilder); // Make sure to call the base method
 
+
+            modelBuilder.Entity<GanttData>(entity =>
+            {
+                entity.HasKey(e => e.Id); // Set Id as the primary key
+                // Configure the one-to-many relationship using only the foreign key
+                entity.HasOne<Project>() // Specify the related entity type
+                      .WithMany(p => p.GanttData) // A Project has many GanttData
+                      .HasForeignKey(g => g.ProjId); // Specify the foreign key property
+
+            });
         }
 
     }

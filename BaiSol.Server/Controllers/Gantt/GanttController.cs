@@ -11,7 +11,7 @@ namespace BaiSol.Server.Controllers.Gantt
     [ApiController]
     public class GanttController(DataContext _dataContext) : ControllerBase
     {
-        public class GanttResponse<T>
+        private class GanttResponse<T>
         {
             [JsonPropertyName("Items")]
             public T Items { get; set; }
@@ -20,32 +20,105 @@ namespace BaiSol.Server.Controllers.Gantt
             public int Count { get; set; }
         }
 
-
-        [HttpGet]
-        public async Task<IActionResult> Get()
+        private class Gantt
         {
-            var dataList = await _dataContext.GanttData
+            [JsonPropertyName("TaskId")]
+            public int TaskId { get; set; }
+
+            [JsonPropertyName("TaskName")]
+            public string? TaskName { get; set; }
+
+            [JsonPropertyName("PlannedStartDate")]
+            public DateTime? PlannedStartDate { get; set; }
+
+            [JsonPropertyName("PlannedEndDate")]
+            public DateTime? PlannedEndDate { get; set; }
+
+            [JsonPropertyName("ActualStartDate")]
+            public DateTime? ActualStartDate { get; set; }
+
+            [JsonPropertyName("ActualEndDate")]
+            public DateTime? ActualEndDate { get; set; }
+
+            [JsonPropertyName("Progress")]
+            public int? Progress { get; set; }
+
+            [JsonPropertyName("Duration")]
+            public int? Duration { get; set; }
+
+            [JsonPropertyName("Predecessor")]
+            public string? Predecessor { get; set; }
+
+            [JsonPropertyName("ParentId")]
+            public int? ParentId { get; set; }
+        }
+
+        [HttpGet("{projId}")]
+        public async Task<IActionResult> Get(string projId)
+        {
+            var tasks = await _dataContext.GanttData
+                .Where(p => p.ProjId == projId)
                 .ToListAsync();
+
+            // Map GanttTask to Gantt DTO
+            var mappedData = tasks.Select(task => new Gantt
+            {
+                TaskId = task.TaskId,
+                TaskName = task.TaskName,
+                PlannedStartDate = task.PlannedStartDate,
+                PlannedEndDate = task.PlannedEndDate,
+                ActualStartDate = task.ActualStartDate,
+                ActualEndDate = task.ActualEndDate,
+                Progress = task.Progress,
+                Duration = task.Duration,
+                Predecessor = task.Predecessor,
+                ParentId = task.ParentId
+            }).ToList();
+
 
             var response = new GanttResponse<List<GanttData>>
             {
-                Items = dataList,
-                Count = dataList.Count
+                Items = tasks,
+                Count = tasks.Count
             };
 
-            return Ok(response); // Return 200 OK response with the data
+            // Return the list as a JSON response
+            return Ok(response);
         }
 
-        [HttpPost]
-        public async Task<IActionResult> Post([FromBody] GanttData[] data)
+        [HttpPost("{projId}")]
+        public async Task<IActionResult> Post([FromBody] GanttData[] data, string projId)
         {
+            // Set the projId for each Gantt object
+            foreach (var gantt in data)
+            {
+                gantt.ProjId = projId; // Assign projId to each Gantt item
+            }
+
+            //// Get existing TaskIds from the database
+            //var existingIds = _dataContext.GanttData
+            //    .Where(g => data.Select(d => d.TaskId).Contains(g.TaskId))
+            //    .Select(g => g.TaskId)
+            //    .ToHashSet(); // Use HashSet for faster lookups
+
+            //// Generate unique TaskIds if they already exist
+            //foreach (var gantt in data)
+            //{
+            //    while (existingIds.Contains(gantt.TaskId))
+            //    {
+            //        gantt.TaskId++; // Increment to find a unique TaskId
+            //    }
+            //    existingIds.Add(gantt.TaskId); // Add the new TaskId to the set
+            //}
+
+
             await _dataContext.GanttData.AddRangeAsync(data);
             await _dataContext.SaveChangesAsync();
             return Ok(data);
         }
 
-        [HttpPut]
-        public async Task<IActionResult> Put([FromBody] GanttData[] value)
+        [HttpPut("{projId}")]
+        public async Task<IActionResult> Put([FromBody] GanttData[] value, string projId)
         {
             if (value == null || value.Length == 0)
             {
@@ -54,7 +127,8 @@ namespace BaiSol.Server.Controllers.Gantt
 
             foreach (var updatedData in value)
             {
-                var existingData = await _dataContext.GanttData.FindAsync(updatedData.TaskId);
+                var existingData = await _dataContext.GanttData
+                    .FirstOrDefaultAsync(i => i.TaskId == updatedData.TaskId && i.ProjId == projId);
 
                 if (existingData == null)
                 {
@@ -77,11 +151,12 @@ namespace BaiSol.Server.Controllers.Gantt
             return Ok(value);
         }
 
-        [HttpDelete("{id:int}")]
-        public async Task<IActionResult> Delete(int id)
+        [HttpDelete("{projId}/{id:int}")]
+        public async Task<IActionResult> Delete(int id, string projId)
         {
             // Find the existing record by TaskId
-            var existingData = await _dataContext.GanttData.FindAsync(id);
+            var existingData = await _dataContext.GanttData
+                    .FirstOrDefaultAsync(i => i.TaskId == id && i.ProjId == projId);
 
             if (existingData == null)
             {

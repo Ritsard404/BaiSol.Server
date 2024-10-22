@@ -1,4 +1,5 @@
 ﻿
+using DataLibrary.Models.Gantt;
 using System.ComponentModel.DataAnnotations;
 
 namespace DataLibrary.Models
@@ -18,6 +19,7 @@ namespace DataLibrary.Models
         public required string SystemType { get; set; }
         public required decimal kWCapacity { get; set; }
         public AppUsers? Client { get; set; }
+        public virtual ICollection<GanttData>? GanttData { get; set; }
 
         public Project()
         {

@@ -10,7 +10,9 @@ namespace DataLibrary.Models.Gantt
 {
     public class GanttData
     {
+        [JsonIgnore]
         [Key]
+        public int Id { get; set; }
 
         [JsonPropertyName("TaskId")]
         public int TaskId { get; set; }
@@ -42,7 +44,7 @@ namespace DataLibrary.Models.Gantt
         [JsonPropertyName("ParentId")]
         public int? ParentId { get; set; }
 
-        //[JsonPropertyName("ProjId")]
-        //public int? ProjId { get; set; }
+        [JsonIgnore]
+        public string? ProjId { get; set; }
     }
 }
