@@ -17,6 +17,27 @@ namespace BaiSol.Server.Controllers.Projects
             return Ok(projects); // Wrap the result in an Ok result
         }
 
+        [HttpGet("[action]")]
+        public async Task<IActionResult> IsProjectOnProcess(string projId)
+        {
+            var projects = await _project.IsProjectOnProcess(projId);
+            return Ok(projects); // Wrap the result in an Ok result
+        }
+
+        [HttpGet("[action]")]
+        public async Task<IActionResult> IsProjectOnWork(string projId)
+        {
+            var projects = await _project.IsProjectOnWork(projId);
+            return Ok(projects); // Wrap the result in an Ok result
+        }
+
+        [HttpGet("[action]")]
+        public async Task<IActionResult> IsProjectOnFinished(string projId)
+        {
+            var projects = await _project.IsProjectOnFinished(projId);
+            return Ok(projects); // Wrap the result in an Ok result
+        }
+
         [HttpGet("Get-All-Projects")]
         public async Task<IActionResult> GetClientProjects()
         {
@@ -95,7 +116,18 @@ namespace BaiSol.Server.Controllers.Projects
         }
 
         [HttpPut("[action]")]
-        public async Task<IActionResult> UpdateProjectToOnWork(UpdateProjectToOnWorkDTO updateProjectToOnWork)
+        public async Task<IActionResult> UpdateProjectToOnProcess(UpdateProjectStatusDTO updateProjectToOnProcess)
+        {
+
+            var (success, message) = await _project.UpdateProjectToOnProcess(updateProjectToOnProcess);
+
+            if (!success) return BadRequest(message);
+
+            return Ok(message);
+        }
+
+        [HttpPut("[action]")]
+        public async Task<IActionResult> UpdateProjectToOnWork(UpdateProjectStatusDTO updateProjectToOnWork)
         {
 
             var (success, message) = await _project.UpdateProjectToOnWork(updateProjectToOnWork);

@@ -13,7 +13,8 @@ namespace ProjectLibrary.Services.Interfaces
         Task<bool> IsProjIdExist(string projId);
         Task<bool> UpdatePersonnelWorkStarted(string projId);
         Task<bool> UpdatePersonnelWorkEnded(string projId, string reasonEnded);
-        Task<(bool, string)> UpdateProjectToOnWork(UpdateProjectToOnWorkDTO updateProjectToOnWork);
+        Task<(bool, string)> UpdateProjectToOnProcess(UpdateProjectStatusDTO updateProjectToOnProcess);
+        Task<(bool, string)> UpdateProjectToOnWork(UpdateProjectStatusDTO updateProjectToOnWork);
         Task<bool> Save();
 
         // Project Quotation
@@ -24,6 +25,9 @@ namespace ProjectLibrary.Services.Interfaces
         Task<(bool, string)> UpdateProfit(UpdateProfitRate updateProfit);
 
         Task<bool> IsProjectOnGoing(string projId);
+        Task<bool> IsProjectOnProcess(string projId);
+        Task<bool> IsProjectOnWork(string projId);
+        Task<bool> IsProjectOnFinished(string projId);
 
     }
 }

@@ -590,11 +590,28 @@ namespace ProjectLibrary.Services.Repositories
             return (true, "Profit successfully change.");
         }
 
-        public async Task<(bool, string)> UpdateProjectToOnWork(UpdateProjectToOnWorkDTO updateProjectToOnWork)
+        public async Task<(bool, string)> UpdateProjectToOnWork(UpdateProjectStatusDTO updateProjectToOnWork)
+        {
+            var project = await _dataContext.Project
+                .FindAsync(updateProjectToOnWork.projId);
+
+            if (project == null)
+                return (false, "Invalid Project");
+
+            project.Status = "OnWork";
+            project.UpdatedAt = DateTimeOffset.UtcNow;
+
+            _dataContext.Project.Update(project);
+            await _dataContext.SaveChangesAsync();
+
+            return (true, "Project set to OnWork now. You can't edit the tasks!");
+        }
+
+        public async Task<(bool, string)> UpdateProjectToOnProcess(UpdateProjectStatusDTO updateProjectToOnProcess)
         {
             // Retrieve the project entity
             var project = await _dataContext.Project
-                .FindAsync(updateProjectToOnWork.projId);
+                .FindAsync(updateProjectToOnProcess.projId);
 
             if (project == null)
                 return (false, "Invalid Project");
@@ -631,13 +648,13 @@ namespace ProjectLibrary.Services.Repositories
             if (amount < 1)
                 return (false, "No Quotation Cost Yet!");
 
-            project.Status = "OnWork";
+            project.Status = "OnProcess";
             project.UpdatedAt = DateTimeOffset.UtcNow;
 
             _dataContext.Project.Update(project);
             await _dataContext.SaveChangesAsync();
 
-            return (true, "Project set to OnWork now. You can't edit the quotation!");
+            return (true, "Project set to OnProcess now. You can't edit the quotation!");
         }
 
         private async Task<decimal> GetTotalProjectExpense(string projId)
@@ -696,6 +713,30 @@ namespace ProjectLibrary.Services.Repositories
             }
 
             return null; // Return null if valid
+        }
+
+        public async Task<bool> IsProjectOnProcess(string projId)
+        {
+            var project = await _dataContext.Project
+                .FirstOrDefaultAsync(i => i.ProjId == projId && i.Status == "OnProcess");
+
+            return project != null; // Returns true if project exists, false otherwise
+        }
+
+        public async Task<bool> IsProjectOnWork(string projId)
+        {
+            var project = await _dataContext.Project
+                .FirstOrDefaultAsync(i => i.ProjId == projId && i.Status == "OnOwrk");
+
+            return project != null; // Returns true if project exists, false otherwise
+        }
+
+        public async Task<bool> IsProjectOnFinished(string projId)
+        {
+            var project = await _dataContext.Project
+                .FirstOrDefaultAsync(i => i.ProjId == projId && i.Status == "Finished");
+
+            return project != null; // Returns true if project exists, false otherwise
         }
     }
 }

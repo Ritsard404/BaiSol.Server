@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace ProjectLibrary.DTO.Project
 {
-    public class UpdateProjectToOnWorkDTO
+    public class UpdateProjectStatusDTO
     {
         public required string projId { get; set; }
         [EmailAddress]

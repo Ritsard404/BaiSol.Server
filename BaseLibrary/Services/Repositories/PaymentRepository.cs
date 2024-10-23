@@ -21,6 +21,13 @@ namespace BaseLibrary.Services.Repositories
             if (payment == null)
                 return (false, "Payment not exist!");
 
+            if (acknowledgePayment.description == "60% downpayment." && await IsProjectPayedDownpayment(payment.Project.ProjId))
+            {
+                payment.Project.Status = "OnProcess";
+                payment.Project.UpdatedAt = DateTimeOffset.UtcNow;
+            }
+
+
             // Fetch the user by email and ensure the user exists
             var user = await _userManager.FindByEmailAsync(acknowledgePayment.userEmail);
             if (user == null) return (false, "Invalid user!");
@@ -249,7 +256,7 @@ namespace BaseLibrary.Services.Repositories
                 clientPayments.Add(new AllPaymentsDTO
                 {
                     referenceNumber = reference.Id,
-                    checkoutUrl = reference.checkoutUrl, 
+                    checkoutUrl = reference.checkoutUrl,
                     isAcknowledged = reference.IsAcknowledged,
                     acknowledgedBy = reference.AcknowledgedBy?.Email ?? string.Empty,
                     amount = (amount / 100m).ToString("#,##0.00"),
@@ -547,6 +554,7 @@ namespace BaseLibrary.Services.Repositories
             request.AddHeader("authorization", $"Basic {_config["Payment:Key"]}");
 
             var payment = await _dataContext.Payment
+                .Include(p => p.Project)
                 .FirstOrDefaultAsync(i => i.Id == payOnCash.referenceNumber);
             if (payment == null)
                 return (false, "Invalid reference!");
@@ -579,6 +587,9 @@ namespace BaseLibrary.Services.Repositories
             payment.IsCashPayed = true;
             payment.CashAmount = amount;
             payment.CashPaidAt = DateTimeOffset.UtcNow;
+
+            payment.Project.Status = "OnProcess";
+            payment.Project.UpdatedAt = DateTimeOffset.UtcNow;
 
 
             _dataContext.Payment.Update(payment);
