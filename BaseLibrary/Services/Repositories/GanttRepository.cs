@@ -1,173 +1,187 @@
-﻿using BaseLibrary.Services.Interfaces;
+﻿using BaseLibrary.DTO.Gantt;
+using BaseLibrary.Services.Interfaces;
 using DataLibrary.Data;
 using DataLibrary.Models.Gantt;
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace BaseLibrary.Services.Repositories
 {
     public class GanttRepository(DataContext _dataContext) : IGanttRepository
     {
-        //public async Task BatchSaveAsync(ICRUDModel<GanttData> batchData)
-        //{
-        //    List<GanttData> uAdded = new List<GanttData>();
-        //    List<GanttData> uChanged = new List<GanttData>();
-        //    List<GanttData> uDeleted = new List<GanttData>();
-
-        //    //if (batchData.added != null)
-        //    //{
-        //    //    await _dataContext.GanttData.AddRangeAsync(batchData.added);
-        //    //}
-        //    //if (batchData.changed != null)
-        //    //{
-        //    //    _dataContext.GanttData.UpdateRange(batchData.changed);
-        //    //}
-        //    //if (batchData.deleted != null)
-        //    //{
-        //    //    _dataContext.GanttData.RemoveRange(batchData.deleted);
-        //    //}
-
-        //    if (batchData.added != null && batchData.added.Count() > 0)
-        //    {
-        //        foreach (var rec in batchData.added)
-        //        {
-        //            // Await the asynchronous Create method
-        //            var addedRecord = await Create(rec);
-        //            uAdded.Add(addedRecord);  // Add the result to the uAdded list
-        //        }
-        //    }
-        //    if (batchData.changed != null && batchData.changed.Count() > 0)
-        //    {
-        //        foreach (var rec in batchData.changed)
-        //        {
-        //            var changedRecord = await Edit(rec);
-        //            uChanged.Add(changedRecord);  // Use uChanged here
-        //        }
-        //    }
-        //    if (batchData.deleted != null && batchData.deleted.Count() > 0)
-        //    {
-        //        foreach (var rec in batchData.deleted)
-        //        {
-        //            var deletedRecord = await Delete(rec.TaskId);  // Fixed incorrect method call
-        //            uDeleted.Add(deletedRecord);  // Use uDeleted here
-        //        }
-        //    }
-
-        //    await _dataContext.SaveChangesAsync();
-        //}
-
-        //private async Task<GanttData> Create(GanttData value)
-        //{
-        //    _dataContext.GanttData.Add(value);
-        //    await _dataContext.SaveChangesAsync();
-        //    return value;
-        //}
-
-        //private async Task<GanttData> Delete(string value)
-        //{
-        //    var result = _dataContext.GanttData.Where(currentData => currentData.TaskId == value).FirstOrDefault();
-        //    if (result != null)
-        //    {
-        //        _dataContext.GanttData.Remove(result);
-        //        RemoveChildRecords(value);
-        //        await _dataContext.SaveChangesAsync();
-        //    }
-        //    return result;
-        //}
-
-        //private async Task<GanttData> Edit(GanttData value)
-        //{
-        //    GanttData result = _dataContext.GanttData.Where(currentData => currentData.TaskId == value.TaskId).FirstOrDefault();
-
-        //    if (result != null)
-        //    {
-        //        result.TaskId = value.TaskId;
-        //        result.TaskName = value.TaskName;
-        //        result.StartDate = value.StartDate;
-        //        result.EndDate = value.EndDate;
-        //        result.Duration = value.Duration;
-        //        result.Progress = value.Progress;
-        //        result.Predecessor = value.Predecessor;
-        //        await _dataContext.SaveChangesAsync();
-        //        return result;
-        //    }
-        //    else return null;
-        //}
-
-        public async Task<IEnumerable<GanttData>> GetGanttDataAsync()
+        public async Task<ICollection<FacilitatorTasksDTO>> FacilitatorTasks(string projId)
         {
-            return await _dataContext.GanttData.ToListAsync();
+            var tasks = await _dataContext.GanttData
+                .Where(p => p.ProjId == projId)
+                .Include(t => t.TaskProofs)
+                .ToListAsync();
+
+            var taskMap = tasks.Select(task => new FacilitatorTasksDTO
+            {
+                Id = task.TaskId,
+                TaskId = task.TaskId,
+                TaskName = task.TaskName,
+                PlannedEndDate = task.PlannedStartDate,
+                PlannedStartDate = task.PlannedEndDate,
+                ActualStartDate = task.ActualEndDate,
+                ActualEndDate = task.ActualStartDate,
+                Progress = task.Progress,
+                ProjId = projId,
+                Subtasks = new List<Subtask>(),
+                StartProofImage = task.TaskProofs?.FirstOrDefault(tp => !tp.IsFinish)?.ProofImage, // Get the start proof image
+                EndProofImage = task.TaskProofs?.FirstOrDefault(tp => tp.IsFinish)?.ProofImage // Get the end proof image
+            }).ToDictionary(t => t.TaskId);
+
+            foreach (var task in tasks)
+            {
+                if (task.ParentId != null && taskMap.ContainsKey((int)task.ParentId))
+                {
+                    // Find the parent task and add the current task as a subtask
+                    var parentTask = taskMap[(int)task.ParentId];
+                    var subtask = new Subtask
+                    {
+                        Id = task.TaskId,
+                        TaskId = task.TaskId,
+                        TaskName = task.TaskName,
+                        PlannedEndDate = task.PlannedStartDate,
+                        PlannedStartDate = task.PlannedEndDate,
+                        ActualStartDate = task.ActualEndDate,
+                        ActualEndDate = task.ActualStartDate,
+                        Progress = task.Progress,
+                        Subtasks = new List<Subtask>(),
+                        StartProofImage = task.TaskProofs?.FirstOrDefault(tp => !tp.IsFinish)?.ProofImage, // Get the start proof image
+                        EndProofImage = task.TaskProofs?.FirstOrDefault(tp => tp.IsFinish)?.ProofImage // Get the end proof image
+                    };
+
+                    parentTask.Subtasks.Add(subtask);
+                }
+            }
+
+            foreach (var task in tasks)
+            {
+                if (taskMap.ContainsKey(task.TaskId))
+                {
+                    var taskDTO = taskMap[task.TaskId];
+                    taskDTO.Subtasks = GetNestedSubtasks(taskDTO.TaskId, taskMap, tasks);
+                }
+            }
+
+            var topLevelTasks = taskMap.Values
+                .Where(t => tasks.First(task => task.TaskId == t.TaskId).ParentId == null)
+                .ToList();
+
+            return topLevelTasks;
         }
 
-        //private void RemoveChildRecords(string key)
-        //{
-        //    var childList = _dataContext.GanttData.Where(x => x.TaskId == key).ToList();
-        //    foreach (var item in childList)
-        //    {
-        //        _dataContext.GanttData.Remove(item);
-        //        RemoveChildRecords(item.TaskId);
-        //    }
-        //}
+        public async Task<(bool, string)> HandleTask(UploadTaskDTO taskDto, bool isStarting)
+        {
+            var task = await _dataContext.GanttData.FirstOrDefaultAsync(i => i.Id == taskDto.id);
+            if (task == null)
+                return (false, "Task not exist!");
 
-        //public async Task BatchUpdate(CRUDModel batchModel)
-        //{
-        //    if (batchModel.changed != null)
-        //    {
-        //        for (var i = 0; i < batchModel.changed.Count(); i++)
-        //        {
-        //            var value = batchModel.changed[i];
-        //            GanttData result = await _dataContext.GanttData
-        //                .Where(or => or.TaskId == value.TaskId)
-        //                .FirstOrDefaultAsync();
-        //            // Update the record fields using GanttData properties
-        //            result.TaskId = value.TaskId;
-        //            result.TaskName = value.TaskName;
-        //            result.StartDate = value.StartDate;
-        //            result.EndDate = value.EndDate;
-        //            result.Duration = value.Duration;
-        //            result.Progress = value.Progress;
-        //            result.ParentID = value.ParentID;
-        //            result.Predecessor = value.Predecessor;
-        //        }
-        //    }
+            // Update task based on whether it's starting or finishing
+            if (isStarting)
+            {
+                task.ActualStartDate = DateTime.Now;
+            }
+            else
+            {
+                task.Progress = 100;
+                task.ActualEndDate = DateTime.Now;
+            }
 
-        //    if (batchModel.deleted != null)
-        //    {
-        //        for (var i = 0; i < batchModel.deleted.Count(); i++)
-        //        {
-        //            _dataContext.GanttData.Remove(await _dataContext.GanttData.Where(or => or.TaskId.Equals(batchModel.deleted[i].TaskId)).FirstOrDefaultAsync());
-        //            RemoveChilds(batchModel.deleted[i].TaskId);
-        //        }
+            // Save proof image
+            string[] allowedFileExtentions = { ".jpg", ".jpeg", ".png" };
+            string createdImageName = await SaveFileAsync(taskDto.ProofImage, allowedFileExtentions);
 
-        //    }
+            var proof = new TaskProof
+            {
+                ProofImage = createdImageName,
+                IsFinish = !isStarting,
+                Task = task
+            };
 
-        //    if (batchModel.added != null)
-        //    {
+            // Update task and save proof
+            _dataContext.GanttData.Update(task);
+            await _dataContext.TaskProof.AddAsync(proof);
+            await _dataContext.SaveChangesAsync();
 
-        //        for (var i = 0; i < batchModel.added.Count(); i++)
-        //        {
-        //            _dataContext.GanttData.Add(batchModel.added[i]);
-        //        }
-        //    }
-        //    await _dataContext.SaveChangesAsync();
-        //}
+            // Return appropriate message
+            return isStarting
+                ? (true, "Task started! Your report submitted to the admin.")
+                : (true, "Task finished! Your report submitted to the admin.");
+        }
 
-        //public void RemoveChilds(int key)
-        //{
-        //    var childList = _dataContext.GanttData
-        //        .Where(x => x.ParentID == key)
-        //        .ToList();
+        public async Task<string> SaveFileAsync(IFormFile imageFile, string[] allowedFileExtensions)
+        {
+            // Validate the input file
+            if (imageFile == null)
+            {
+                throw new ArgumentNullException(nameof(imageFile), "The uploaded file cannot be null.");
+            }
 
-        //    foreach (var item in childList)
-        //    {
-        //        _dataContext.Remove(item);
-        //        RemoveChilds(item.TaskId);
-        //    }
-        //     _dataContext.SaveChanges();
-        //}
+            // Get the content root path from the environment
+            var contentPath = @"C:\Users\Acer\Documents\Capstone\Sunvoltage System\Images";
+
+            // Combine the content path with the desired uploads directory
+            var uploadsPath = Path.Combine(contentPath, "Uploads");
+
+            // Create the uploads directory if it doesn't exist
+            if (!Directory.Exists(uploadsPath))
+            {
+                Directory.CreateDirectory(uploadsPath);
+            }
+
+            // Check the allowed file extensions
+            var ext = Path.GetExtension(imageFile.FileName).ToLowerInvariant();
+            if (!allowedFileExtensions.Contains(ext))
+            {
+                throw new ArgumentException($"Only the following file extensions are allowed: {string.Join(", ", allowedFileExtensions)}.", nameof(imageFile));
+            }
+
+            // Generate a unique filename
+            var fileName = $"{Guid.NewGuid()}{ext}";
+            var fileNameWithPath = Path.Combine(uploadsPath, fileName);
+
+            // Save the file to the specified path
+            using var stream = new FileStream(fileNameWithPath, FileMode.Create);
+            await imageFile.CopyToAsync(stream);
+
+            // Return the unique filename (without path) for reference
+            return fileName;
+        }
+
+
+        public async Task<TaskProof> TaskById(int id)
+        {
+            var task = await _dataContext.TaskProof
+                .FirstOrDefaultAsync(i => i.id == id);
+
+            return task;
+        }
+
+        private List<Subtask> GetNestedSubtasks(int parentId, Dictionary<int, FacilitatorTasksDTO> taskMap, List<GanttData> tasks)
+        {
+            var subtasks = tasks
+                .Where(t => t.ParentId == parentId)
+                .Select(t => new Subtask
+                {
+                    Id = t.TaskId,
+                    TaskId = t.TaskId,
+                    TaskName = t.TaskName,
+                    PlannedEndDate = t.PlannedStartDate,
+                    PlannedStartDate = t.PlannedEndDate,
+                    ActualStartDate = t.ActualEndDate,
+                    ActualEndDate = t.ActualStartDate,
+                    Progress = t.Progress,
+                    StartProofImage = t.TaskProofs?.FirstOrDefault(tp => !tp.IsFinish)?.ProofImage, // Get the start proof image
+                    EndProofImage = t.TaskProofs?.FirstOrDefault(tp => tp.IsFinish)?.ProofImage, // Get the end proof image
+                    Subtasks = GetNestedSubtasks(t.TaskId, taskMap, tasks)  
+                })
+                .ToList();
+
+            return subtasks;
+        }
     }
 }

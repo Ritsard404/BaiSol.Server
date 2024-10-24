@@ -15,6 +15,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.FileProviders;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using ProjectLibrary.Services.Interfaces;
@@ -178,6 +179,17 @@ namespace BaiSol.Server
                     Console.WriteLine($"An error occurred while seeding the admin user: {ex.Message}");
                 }
             }
+
+            app.UseHttpsRedirection();
+            app.UseStaticFiles(); // Enable serving static files
+
+            // Serve files from the "Uploads" directory
+            app.UseStaticFiles(new StaticFileOptions
+            {
+                FileProvider = new PhysicalFileProvider(
+                    Path.Combine(@"C:\Users\Acer\Documents\Capstone\Sunvoltage System\Images", "Uploads")),
+                RequestPath = "/uploads"
+            });
 
             // Configure the HTTP request pipeline.
             if (app.Environment.IsDevelopment())

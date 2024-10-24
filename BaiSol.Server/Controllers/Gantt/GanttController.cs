@@ -1,4 +1,6 @@
-﻿using DataLibrary.Data;
+﻿using BaseLibrary.DTO.Gantt;
+using BaseLibrary.Services.Interfaces;
+using DataLibrary.Data;
 using DataLibrary.Models.Gantt;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -9,7 +11,7 @@ namespace BaiSol.Server.Controllers.Gantt
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class GanttController(DataContext _dataContext) : ControllerBase
+    public class GanttController(DataContext _dataContext, IGanttRepository _gantt) : ControllerBase
     {
         private class GanttResponse<T>
         {
@@ -84,6 +86,14 @@ namespace BaiSol.Server.Controllers.Gantt
 
             // Return the list as a JSON response
             return Ok(response);
+        }
+
+        [HttpGet("[action]")]
+        public async Task<IActionResult> FacilitatorTasks(string projId)
+        {
+            var tasks = await _gantt.FacilitatorTasks(projId);
+
+            return Ok(tasks);
         }
 
         [HttpPost("{projId}")]
@@ -173,5 +183,32 @@ namespace BaiSol.Server.Controllers.Gantt
             return Ok(id);
         }
 
+        [HttpPost("[action]")]
+        public async Task<IActionResult> FinishTask(UploadTaskDTO finishTask)
+        {
+            var (isSuccess, Message) = await _gantt.HandleTask(finishTask, false);
+            if (!isSuccess)
+                return BadRequest(Message);
+
+            return Ok(Message);
+        }
+
+        [HttpPost("[action]")]
+        public async Task<IActionResult> StartTask(UploadTaskDTO finishTask)
+        {
+            var (isSuccess, Message) = await _gantt.HandleTask(finishTask, true);
+            if (!isSuccess)
+                return BadRequest(Message);
+
+            return Ok(Message);
+        }
+
+        [HttpGet("[action]")]
+        public async Task<IActionResult> TaskById(int id)
+        {
+            var task = await _gantt.TaskById(id);
+
+            return Ok(task);
+        }
     }
 }

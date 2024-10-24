@@ -46,5 +46,7 @@ namespace DataLibrary.Models.Gantt
 
         [JsonIgnore]
         public string? ProjId { get; set; }
+
+        public virtual ICollection<TaskProof>? TaskProofs { get; set; }
     }
 }

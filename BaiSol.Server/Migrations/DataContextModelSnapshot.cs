@@ -240,6 +240,33 @@ namespace BaiSol.Server.Migrations
                     b.ToTable("GanttData");
                 });
 
+            modelBuilder.Entity("DataLibrary.Models.Gantt.TaskProof", b =>
+                {
+                    b.Property<int>("id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("id"));
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsFinish")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("ProofImage")
+                        .HasColumnType("text");
+
+                    b.Property<int?>("TaskId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("id");
+
+                    b.HasIndex("TaskId");
+
+                    b.ToTable("TaskProof");
+                });
+
             modelBuilder.Entity("DataLibrary.Models.Installer", b =>
                 {
                     b.Property<int>("InstallerId")
@@ -778,6 +805,15 @@ namespace BaiSol.Server.Migrations
                         .HasForeignKey("ProjId");
                 });
 
+            modelBuilder.Entity("DataLibrary.Models.Gantt.TaskProof", b =>
+                {
+                    b.HasOne("DataLibrary.Models.Gantt.GanttData", "Task")
+                        .WithMany("TaskProofs")
+                        .HasForeignKey("TaskId");
+
+                    b.Navigation("Task");
+                });
+
             modelBuilder.Entity("DataLibrary.Models.Installer", b =>
                 {
                     b.HasOne("DataLibrary.Models.AppUsers", "Admin")
@@ -963,6 +999,11 @@ namespace BaiSol.Server.Migrations
             modelBuilder.Entity("DataLibrary.Models.Client", b =>
                 {
                     b.Navigation("Admin");
+                });
+
+            modelBuilder.Entity("DataLibrary.Models.Gantt.GanttData", b =>
+                {
+                    b.Navigation("TaskProofs");
                 });
 
             modelBuilder.Entity("DataLibrary.Models.Project", b =>

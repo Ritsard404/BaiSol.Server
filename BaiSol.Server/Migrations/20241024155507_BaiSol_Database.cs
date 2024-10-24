@@ -463,6 +463,27 @@ namespace BaiSol.Server.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "TaskProof",
+                columns: table => new
+                {
+                    id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    ProofImage = table.Column<string>(type: "text", nullable: true),
+                    IsFinish = table.Column<bool>(type: "boolean", nullable: false),
+                    CreatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    TaskId = table.Column<int>(type: "integer", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_TaskProof", x => x.id);
+                    table.ForeignKey(
+                        name: "FK_TaskProof_GanttData_TaskId",
+                        column: x => x.TaskId,
+                        principalTable: "GanttData",
+                        principalColumn: "Id");
+                });
+
+            migrationBuilder.CreateTable(
                 name: "Requisition",
                 columns: table => new
                 {
@@ -620,6 +641,11 @@ namespace BaiSol.Server.Migrations
                 column: "ProjectProjId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_TaskProof_TaskId",
+                table: "TaskProof",
+                column: "TaskId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_UserLogs_UserId",
                 table: "UserLogs",
                 column: "UserId");
@@ -644,9 +670,6 @@ namespace BaiSol.Server.Migrations
                 name: "AspNetUserTokens");
 
             migrationBuilder.DropTable(
-                name: "GanttData");
-
-            migrationBuilder.DropTable(
                 name: "Labor");
 
             migrationBuilder.DropTable(
@@ -659,6 +682,9 @@ namespace BaiSol.Server.Migrations
                 name: "Requisition");
 
             migrationBuilder.DropTable(
+                name: "TaskProof");
+
+            migrationBuilder.DropTable(
                 name: "UserLogs");
 
             migrationBuilder.DropTable(
@@ -669,6 +695,9 @@ namespace BaiSol.Server.Migrations
 
             migrationBuilder.DropTable(
                 name: "Supply");
+
+            migrationBuilder.DropTable(
+                name: "GanttData");
 
             migrationBuilder.DropTable(
                 name: "Equipment");
