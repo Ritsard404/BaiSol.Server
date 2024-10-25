@@ -3,10 +3,6 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.10.34928.147
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BaiSol.Server", "BaiSol.Server\BaiSol.Server.csproj", "{D9A57465-1132-44C4-8F68-60340C5F0F3E}"
-EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AuthLibrary", "AuthLibrary\AuthLibrary.csproj", "{C29111E9-F459-4971-886B-DAD9FFFFB55C}"
-EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BaseLibrary", "BaseLibrary\BaseLibrary.csproj", "{7C6942C5-8CC6-4834-A6C2-EDAE2ADE4459}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ClientLibrary", "ClientLibrary\ClientLibrary.csproj", "{5B1ADF01-3152-4107-87C5-23C3B553314A}"
@@ -17,20 +13,16 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FacilitatorLibrary", "Facil
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ProjectLibrary", "ProjectLibrary\ProjectLibrary.csproj", "{79E816BB-681D-4FCE-BAC2-E646773FBC58}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BaiSol.Server", "BaiSol.Server\BaiSol.Server.csproj", "{645B4A52-7D5A-444A-9BD7-A47C67787CBE}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AuthLibrary", "AuthLibrary\AuthLibrary.csproj", "{5FD54D9B-CE6E-40A8-AB0F-54A63FFDD9ED}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{D9A57465-1132-44C4-8F68-60340C5F0F3E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{D9A57465-1132-44C4-8F68-60340C5F0F3E}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{D9A57465-1132-44C4-8F68-60340C5F0F3E}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{D9A57465-1132-44C4-8F68-60340C5F0F3E}.Release|Any CPU.Build.0 = Release|Any CPU
-		{C29111E9-F459-4971-886B-DAD9FFFFB55C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{C29111E9-F459-4971-886B-DAD9FFFFB55C}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{C29111E9-F459-4971-886B-DAD9FFFFB55C}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{C29111E9-F459-4971-886B-DAD9FFFFB55C}.Release|Any CPU.Build.0 = Release|Any CPU
 		{7C6942C5-8CC6-4834-A6C2-EDAE2ADE4459}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{7C6942C5-8CC6-4834-A6C2-EDAE2ADE4459}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{7C6942C5-8CC6-4834-A6C2-EDAE2ADE4459}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -51,6 +43,14 @@ Global
 		{79E816BB-681D-4FCE-BAC2-E646773FBC58}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{79E816BB-681D-4FCE-BAC2-E646773FBC58}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{79E816BB-681D-4FCE-BAC2-E646773FBC58}.Release|Any CPU.Build.0 = Release|Any CPU
+		{645B4A52-7D5A-444A-9BD7-A47C67787CBE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{645B4A52-7D5A-444A-9BD7-A47C67787CBE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{645B4A52-7D5A-444A-9BD7-A47C67787CBE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{645B4A52-7D5A-444A-9BD7-A47C67787CBE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5FD54D9B-CE6E-40A8-AB0F-54A63FFDD9ED}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5FD54D9B-CE6E-40A8-AB0F-54A63FFDD9ED}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5FD54D9B-CE6E-40A8-AB0F-54A63FFDD9ED}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5FD54D9B-CE6E-40A8-AB0F-54A63FFDD9ED}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

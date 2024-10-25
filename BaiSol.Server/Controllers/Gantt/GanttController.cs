@@ -95,6 +95,13 @@ namespace BaiSol.Server.Controllers.Gantt
 
             return Ok(tasks);
         }
+        [HttpGet("[action]")]
+        public async Task<IActionResult> TasksToDo(string projId)
+        {
+            var tasks = await _gantt.TasksToDo(projId);
+
+            return Ok(tasks);
+        }
 
         [HttpPost("{projId}")]
         public async Task<IActionResult> Post([FromBody] GanttData[] data, string projId)

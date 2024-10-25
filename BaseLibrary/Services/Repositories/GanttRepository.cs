@@ -161,6 +161,53 @@ namespace BaseLibrary.Services.Repositories
             return task;
         }
 
+        public async Task<ICollection<TasksToDoDTO>> TasksToDo(string projId)
+        {
+            var tasks = await _dataContext.GanttData
+                .Where(p => p.ProjId == projId)
+                .Include(t => t.TaskProofs)
+                .OrderBy(s => s.PlannedStartDate)
+                .ToListAsync();
+
+            // Find tasks that are referenced as ParentId (tasks with subtasks)
+            var taskIdsWithSubtasks = tasks
+                .Where(t => tasks.Any(sub => sub.ParentId == t.TaskId))
+                .Select(t => t.TaskId)
+                .ToHashSet();
+
+            var toDoList = new List<TasksToDoDTO>();
+            bool previousTaskCompleted = true; // To enable the first task
+
+            foreach (var task in tasks)
+            {
+                // Skip tasks that have subtasks
+                if (taskIdsWithSubtasks.Contains(task.TaskId))
+                    continue;
+
+                // Set IsEnable to true if the previous task is completed, otherwise false
+                bool isEnable = previousTaskCompleted;
+
+                // Create the DTO object
+                var toDo = new TasksToDoDTO
+                {
+                    Id = task.Id,
+                    TaskName = task.TaskName,
+                    PlannedStartDate = task.PlannedStartDate,
+                    PlannedEndDate = task.PlannedEndDate,
+                    IsEnable = isEnable,
+                    IsFinished = task.Progress == 100
+                };
+
+                // Add to the final list
+                toDoList.Add(toDo);
+
+                // Update previousTaskCompleted based on the current task's progress
+                previousTaskCompleted = task.Progress == 100;
+            }
+
+            return toDoList;
+        }
+
         private List<Subtask> GetNestedSubtasks(int parentId, Dictionary<int, FacilitatorTasksDTO> taskMap, List<GanttData> tasks)
         {
             var subtasks = tasks
@@ -177,7 +224,7 @@ namespace BaseLibrary.Services.Repositories
                     Progress = t.Progress,
                     StartProofImage = t.TaskProofs?.FirstOrDefault(tp => !tp.IsFinish)?.ProofImage, // Get the start proof image
                     EndProofImage = t.TaskProofs?.FirstOrDefault(tp => tp.IsFinish)?.ProofImage, // Get the end proof image
-                    Subtasks = GetNestedSubtasks(t.TaskId, taskMap, tasks)  
+                    Subtasks = GetNestedSubtasks(t.TaskId, taskMap, tasks)
                 })
                 .ToList();
 
