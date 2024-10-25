@@ -10,9 +10,10 @@ namespace BaseLibrary.DTO.Gantt
     {
         public int Id { get; set; }
         public string? TaskName { get; set; }
-        public DateTime? PlannedStartDate { get; set; }
-        public DateTime? PlannedEndDate { get; set; }
+        public string? PlannedStartDate { get; set; }
+        public string? PlannedEndDate { get; set; }
         public bool? IsEnable { get; set; }
         public bool? IsFinished { get; set; }
+        public bool? IsStarting { get; set; }
     }
 }
