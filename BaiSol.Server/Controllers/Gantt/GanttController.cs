@@ -217,5 +217,29 @@ namespace BaiSol.Server.Controllers.Gantt
 
             return Ok(task);
         }
+
+        [HttpGet("[action]")]
+        public async Task<IActionResult> ProjectDateInfo(string projId)
+        {
+            var task = await _gantt.ProjectDateInfo(projId);
+
+            return Ok(task);
+        }
+
+        [HttpGet("[action]")]
+        public async Task<IActionResult> ProjectProgress(string projId)
+        {
+            var task = await _gantt.ProjectProgress(projId);
+
+            return Ok(task);
+        }
+
+        [HttpGet("[action]")]
+        public async Task<IActionResult> ProjectStatus(string projId)
+        {
+            var task = await _gantt.ProjectStatus(projId);
+
+            return Ok(task);
+        }
     }
 }

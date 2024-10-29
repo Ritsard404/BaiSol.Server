@@ -19,6 +19,7 @@ namespace DataLibrary.Models
         public required string SystemType { get; set; }
         public required decimal kWCapacity { get; set; }
         public AppUsers? Client { get; set; }
+        public virtual ICollection<ProjectWorkLog>? Facilitator { get; set; }
         public virtual ICollection<GanttData>? GanttData { get; set; }
 
         public Project()

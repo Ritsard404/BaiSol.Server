@@ -31,15 +31,14 @@ namespace BaiSol.Server.Controllers
 
         }
 
-        //[HttpGet]
-        //public async Task<IActionResult> GetAllPayments()
-        //{
+        [HttpGet]
+        public async Task<IActionResult> PaymentProgress(string projId)
+        {
 
-        //    var payments = await _payment.GetAllPayments();
+            var progress = await _payment.GetPaymentProgress(projId);
+            return Ok(progress);
 
-        //    return Ok(payments);
-
-        //}
+        }
 
         [HttpGet]
         public async Task<IActionResult> GetAllPayment()

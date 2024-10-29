@@ -11,5 +11,7 @@ namespace BaseLibrary.Services.Interfaces
         Task<(bool, string)> AcknowledgePayment(AcknowledgePaymentDTO acknowledgePayment);
         Task<(bool, string)> PayOnCash(PayOnCashDTO payOnCash);
         Task<bool> IsProjectPayedDownpayment(string projId);
+        Task<decimal> GetTotalProjectExpense(string projId);
+        Task<decimal> GetPaymentProgress(string projId);
     }
 }

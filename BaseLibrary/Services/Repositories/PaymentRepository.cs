@@ -74,6 +74,7 @@ namespace BaseLibrary.Services.Repositories
             if (amount < 1)
                 return (false, "No Quotation Cost Yet!");
 
+
             // Define the payloads with different amounts and descriptions
             var payloads = new[]
             {
@@ -599,7 +600,7 @@ namespace BaseLibrary.Services.Repositories
             return (true, "Project payed on cash.");
         }
 
-        private async Task<decimal> GetTotalProjectExpense(string projId)
+        public async Task<decimal> GetTotalProjectExpense(string projId)
         {
             if (string.IsNullOrEmpty(projId))
                 return 0;
@@ -668,6 +669,50 @@ namespace BaseLibrary.Services.Repositories
             await _dataContext.SaveChangesAsync();
 
             return true;
+        }
+
+        public async Task<decimal> GetPaymentProgress(string projId)
+        {
+            var project = await _dataContext.Project
+                .FirstOrDefaultAsync(id => id.ProjId == projId);
+
+            if (project == null)
+                return 0;
+
+            var paymentReferences = await _dataContext.Payment
+             .Where(p => p.Project == project)
+             .ToListAsync();
+
+            if (!paymentReferences.Any())
+                return 0;
+
+            int paid = 0;
+
+            foreach (var reference in paymentReferences)
+            {
+                var options = new RestClientOptions($"{_config["Payment:API"]}/{reference.Id}");
+                var client = new RestClient(options);
+                var request = new RestRequest("");
+
+                request.AddHeader("accept", "application/json");
+                request.AddHeader("authorization", $"Basic {_config["Payment:Key"]}");
+
+                var response = await client.GetAsync(request);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    var responseData = JsonDocument.Parse(response.Content);
+                    var data = responseData.RootElement.GetProperty("data");
+                    var attributes = data.GetProperty("attributes");
+
+                    string currentStatus = attributes.GetProperty("status").GetString();
+
+                    if (currentStatus == "paid" || reference.IsCashPayed)
+                        paid++;
+                }
+            }
+
+            return (decimal)paid / paymentReferences.Count * 100;
         }
     }
 }

@@ -4,11 +4,14 @@ using DataLibrary.Data;
 using DataLibrary.Models.Gantt;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+using RestSharp;
+using System.Text.Json;
 using System.Threading.Tasks;
 
 namespace BaseLibrary.Services.Repositories
 {
-    public class GanttRepository(DataContext _dataContext) : IGanttRepository
+    public class GanttRepository(DataContext _dataContext, IPayment _payment, IConfiguration _config) : IGanttRepository
     {
         public async Task<ICollection<FacilitatorTasksDTO>> FacilitatorTasks(string projId)
         {
@@ -266,6 +269,8 @@ namespace BaseLibrary.Services.Repositories
                     TaskName = task.TaskName,
                     PlannedStartDate = task.PlannedStartDate?.ToString("MMM dd, yyyy"),
                     PlannedEndDate = task.PlannedEndDate?.ToString("MMM dd, yyyy"),
+                    StartDate = task.ActualStartDate?.ToString("MMM dd, yyyy"),
+                    EndDate = task.ActualEndDate?.ToString("MMM dd, yyyy"),
                     IsEnable = isEnable || (task.PlannedStartDate.HasValue && (task.PlannedStartDate.Value - DateTime.Today).Days <= 2),
                     IsFinished = task.Progress == 100,
                     IsStarting = task.ActualStartDate != null,
@@ -302,6 +307,177 @@ namespace BaseLibrary.Services.Repositories
                 .ToList();
 
             return subtasks;
+        }
+
+        public async Task<ProjectDateInfo> ProjectDateInfo(string projId)
+        {
+            var project = await _dataContext.Project
+                .Include(f => f.Facilitator)
+                .ThenInclude(wl => wl.Facilitator)
+                .FirstOrDefaultAsync(id => id.ProjId == projId);
+            if (project == null)
+                return null;
+
+            var paymentReferences = await _dataContext.Payment
+             .Where(p => p.Project == project)
+             .ToListAsync();
+
+            var totalAmount = await _payment.GetTotalProjectExpense(projId: projId);
+            totalAmount = 100000;
+
+            string payRef = string.Empty;
+            string status = string.Empty;
+            int createdAt = 0;
+
+
+            foreach (var reference in paymentReferences)
+            {
+                var options = new RestClientOptions($"{_config["Payment:API"]}/{reference.Id}");
+                var client = new RestClient(options);
+                var request = new RestRequest("");
+
+                request.AddHeader("accept", "application/json");
+                request.AddHeader("authorization", $"Basic {_config["Payment:Key"]}");
+
+                var response = await client.GetAsync(request);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    var responseData = JsonDocument.Parse(response.Content);
+                    var data = responseData.RootElement.GetProperty("data");
+                    var attributes = data.GetProperty("attributes");
+
+                    decimal amount = attributes.GetProperty("amount").GetDecimal() / 100m;
+                    string currentStatus = attributes.GetProperty("status").GetString();
+                    createdAt = attributes.GetProperty("created_at").GetInt32();
+
+                    // Update largest amount and status if a larger amount is found
+                    if (amount == (totalAmount * 0.6m))
+                    {
+                        status = currentStatus;
+                        payRef = reference.Id;
+                    }
+                }
+            }
+
+            var payment = await _dataContext.Payment
+                .FirstOrDefaultAsync(i => i.Id == payRef);
+            if (payment == null)
+                return null;
+
+            if (status != "paid" && !payment.IsCashPayed)
+                return null;
+
+            int estimatedDaysToEnd = project.kWCapacity <= 5 ? 7
+                   : project.kWCapacity >= 6 && project.kWCapacity <= 10 ? 15
+                   : project.kWCapacity >= 11 && project.kWCapacity <= 15 ? 25
+                   : 35;
+
+            ProjectDateInfo info;
+
+            if (payment.IsCashPayed)
+            {
+                info = new ProjectDateInfo
+                {
+                    AssignedFacilitator = project.Facilitator.FirstOrDefault()?.Facilitator?.Email ?? "No Facilitator Assigned",
+                    StartDate = payment.CashPaidAt?.ToString("yyyy-MM-dd"),
+                    EstimatedStartDate = payment.CashPaidAt?.AddDays(2).ToString("MMMM dd, yyyy"),
+                    EstimatedEndDate = payment.CashPaidAt?.AddDays(estimatedDaysToEnd + 2).ToString("MMMM dd, yyyy")
+                };
+            }
+            else
+            {
+                info = new ProjectDateInfo
+                {
+                    AssignedFacilitator = project.Facilitator.FirstOrDefault()?.Facilitator?.Email ?? "No Facilitator Assigned",
+                    StartDate = DateTimeOffset.FromUnixTimeSeconds(createdAt).UtcDateTime.ToString("yyyy-MM-dd"),
+                    EstimatedStartDate = DateTimeOffset.FromUnixTimeSeconds(createdAt).AddDays(2).UtcDateTime.ToString("MMMM dd, yyyy"),
+                    EstimatedEndDate = project.CreatedAt.AddDays(9).AddDays(estimatedDaysToEnd + 2).UtcDateTime.ToString("MMMM dd, yyyy")
+                };
+            }
+
+
+            return info;
+
+        }
+
+        public async Task<ProjProgressDTO> ProjectProgress(string projId)
+        {
+            // Get the tasks that match the criteria
+            var tasks = await _dataContext.GanttData
+                .Where(i => i.ProjId == projId && i.ParentId == null)
+                .ToListAsync();
+
+            // Calculate the total progress
+            var tasksProgress = tasks.Sum(p => p.Progress) ?? 0;
+
+            // Calculate the number of tasks
+            var taskCount = tasks.Count;
+
+            // Calculate the average progress
+            decimal averageProgress = taskCount > 0 ? tasksProgress / taskCount : 0;
+
+            // Return the result
+            return new ProjProgressDTO { progress = averageProgress };
+        }
+
+        public async Task<ProjectStatusDTO> ProjectStatus(string projId)
+        {
+            var projectDateInfo = await ProjectDateInfo(projId);
+
+
+            var tasks = await _dataContext.GanttData
+                .Where(p => p.ProjId == projId)
+                .Include(t => t.TaskProofs)
+                .OrderBy(s => s.PlannedStartDate)
+                .ToListAsync();
+
+            // Find tasks that are referenced as ParentId (tasks with subtasks)
+            var taskIdsWithSubtasks = tasks
+                .Where(t => tasks.Any(sub => sub.ParentId == t.TaskId))
+                .Select(t => t.TaskId)
+                .ToHashSet();
+
+            var toDoList = new List<ProjectTasks>();
+
+            foreach (var task in tasks)
+            {
+                // Skip tasks that have subtasks
+                if (taskIdsWithSubtasks.Contains(task.TaskId))
+                    continue;
+
+
+                // Get the first proof marked as finished
+                var finishProof = task.TaskProofs?.FirstOrDefault(proof => proof.IsFinish);
+
+                // Get the first proof marked as not finished
+                var startProof = task.TaskProofs?.FirstOrDefault(proof => !proof.IsFinish);
+
+                // Create the DTO object
+                var toDo = new ProjectTasks
+                {
+                    Id = task.Id,
+                    TaskName = task.TaskName,
+                    StartDate = task.ActualStartDate?.ToString("MMM dd, yyyy"),
+                    EndDate = task.ActualEndDate?.ToString("MMM dd, yyyy"),
+                    IsFinished = task.Progress == 100,
+                    IsStarting = task.ActualStartDate != null,
+                    FinishProofImage = finishProof?.ProofImage,
+                    StartProofImage = startProof?.ProofImage
+                };
+
+                // Add to the final list
+                toDoList.Add(toDo);
+
+            }
+
+
+            return new ProjectStatusDTO
+            {
+                Info = projectDateInfo,
+                Tasks = toDoList
+
+            };
         }
     }
 }

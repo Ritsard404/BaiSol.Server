@@ -9,5 +9,8 @@ namespace BaseLibrary.Services.Interfaces
         Task<ICollection<TasksToDoDTO>> TasksToDo(string projId);
         Task<(bool, string)> HandleTask(UploadTaskDTO taskDto, bool isStarting);
         Task<TaskProof> TaskById(int id);
+        Task<ProjectDateInfo> ProjectDateInfo(string projId);
+        Task<ProjProgressDTO> ProjectProgress(string projId);
+        Task<ProjectStatusDTO> ProjectStatus(string projId);
     }
 }
