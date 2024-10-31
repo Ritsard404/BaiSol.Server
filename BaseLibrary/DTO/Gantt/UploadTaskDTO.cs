@@ -14,10 +14,10 @@ namespace BaseLibrary.DTO.Gantt
         public int? id { get; set; }
         public required IFormFile ProofImage { get; set; }
 
-        [EmailAddress]
-        public required string userEmail { get; set; }
+        //[EmailAddress]
+        //public required string userEmail { get; set; }
 
-        [JsonIgnore]
-        public string? UserIpAddress { get; set; }
+        //[JsonIgnore]
+        //public string? UserIpAddress { get; set; }
     }
 }

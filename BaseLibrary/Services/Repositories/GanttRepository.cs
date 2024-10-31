@@ -83,12 +83,12 @@ namespace BaseLibrary.Services.Repositories
             // Update task based on whether it's starting or finishing
             if (isStarting)
             {
-                task.ActualStartDate = DateTime.Now;
+                task.ActualStartDate = DateTime.UtcNow;
             }
             else
             {
                 task.Progress = 100;
-                task.ActualEndDate = DateTime.Now;
+                task.ActualEndDate = DateTime.UtcNow;
             }
 
             // Save proof image
@@ -106,6 +106,12 @@ namespace BaseLibrary.Services.Repositories
             _dataContext.GanttData.Update(task);
             await _dataContext.TaskProof.AddAsync(proof);
             await _dataContext.SaveChangesAsync();
+
+            // If task has a parent, update the parent's actual dates based on all child levels
+            if (task.ParentId.HasValue)
+            {
+                await UpdateParentDatesRecursive(task.ParentId.Value);
+            }
 
             // Return appropriate message
             return isStarting
@@ -152,6 +158,65 @@ namespace BaseLibrary.Services.Repositories
             return fileName;
         }
 
+        private async Task UpdateParentDatesRecursive(int parentId)
+        {
+            var parentTask = await _dataContext.GanttData.FirstOrDefaultAsync(p => p.TaskId == parentId);
+            if (parentTask == null) return;
+
+            // Fetch all descendant tasks
+            var allDescendants = await GetAllDescendants(parentTask.TaskId);
+
+            // Find the earliest ActualStartDate and latest ActualEndDate among descendants
+            var earliestStartDate = allDescendants
+                                    .Where(ct => ct.ActualStartDate.HasValue)
+                                    .Min(ct => ct.ActualStartDate);
+
+            var latestEndDate = allDescendants
+                                .Where(ct => ct.ActualEndDate.HasValue)
+                                .Max(ct => ct.ActualEndDate);
+
+            // Update parent's ActualStartDate if necessary
+            if (earliestStartDate.HasValue &&
+                (!parentTask.ActualStartDate.HasValue || parentTask.ActualStartDate > earliestStartDate.Value))
+            {
+                parentTask.ActualStartDate = earliestStartDate.Value;
+            }
+
+            // Update parent's ActualEndDate if necessary
+            if (latestEndDate.HasValue &&
+                (!parentTask.ActualEndDate.HasValue || parentTask.ActualEndDate < latestEndDate.Value))
+            {
+                parentTask.ActualEndDate = latestEndDate.Value;
+            }
+
+            // Save parent task if updated
+            _dataContext.GanttData.Update(parentTask);
+            await _dataContext.SaveChangesAsync();
+
+            // Continue updating up the hierarchy if the parent has its own parent
+            if (parentTask.ParentId.HasValue)
+            {
+                await UpdateParentDatesRecursive(parentTask.ParentId.Value);
+            }
+        }
+
+        // Helper method to get all descendant tasks of a parent task
+        private async Task<List<GanttData>> GetAllDescendants(int parentId)
+        {
+            var descendants = new List<GanttData>();
+            var directChildren = await _dataContext.GanttData
+                                                   .Where(ct => ct.ParentId == parentId)
+                                                   .ToListAsync();
+            descendants.AddRange(directChildren);
+
+            foreach (var child in directChildren)
+            {
+                var childDescendants = await GetAllDescendants(child.TaskId);
+                descendants.AddRange(childDescendants);
+            }
+
+            return descendants;
+        }
 
         public async Task<TaskProof> TaskById(int id)
         {
@@ -163,6 +228,12 @@ namespace BaseLibrary.Services.Repositories
 
         public async Task<ICollection<TasksToDoDTO>> TasksToDo(string projId)
         {
+
+            //var assignedFacilitatorProjId = await _dataContext.ProjectWorkLog
+            //    .Where(e => e.Facilitator.Email == userEmail && e.Project.Status != "Finished")
+            //    .Select(e => e.Project.ProjId) // Only select the project ID
+            //    .FirstOrDefaultAsync();
+
             var tasks = await _dataContext.GanttData
                 .Where(p => p.ProjId == projId)
                 .Include(t => t.TaskProofs)
@@ -187,6 +258,7 @@ namespace BaseLibrary.Services.Repositories
                 // Set IsEnable to true if the previous task is completed, otherwise false
                 bool isEnable = previousTaskCompleted;
 
+
                 // Create the DTO object
                 var toDo = new TasksToDoDTO
                 {
@@ -194,7 +266,7 @@ namespace BaseLibrary.Services.Repositories
                     TaskName = task.TaskName,
                     PlannedStartDate = task.PlannedStartDate?.ToString("MMM dd, yyyy"),
                     PlannedEndDate = task.PlannedEndDate?.ToString("MMM dd, yyyy"),
-                    IsEnable = isEnable,
+                    IsEnable = isEnable || (task.PlannedStartDate.HasValue && (task.PlannedStartDate.Value - DateTime.Today).Days <= 2),
                     IsFinished = task.Progress == 100,
                     IsStarting = task.ActualStartDate != null,
                 };
