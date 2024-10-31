@@ -61,5 +61,12 @@ namespace BaiSol.Server.Controllers.Facilitator
             return Ok(requests);
         }
 
+        [HttpGet]
+        public async Task<IActionResult> GetAssignedProject(string userEmail)
+        {
+            var requests = await _assignedSupply.GetAssignedProject(userEmail);
+            return Ok(requests);
+        }
+
     }
 }

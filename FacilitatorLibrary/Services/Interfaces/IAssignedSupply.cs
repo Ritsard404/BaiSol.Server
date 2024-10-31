@@ -11,5 +11,6 @@ namespace FacilitatorLibrary.Services.Interfaces
     {
         Task<ICollection<AssignedMaterialsDTO>> GetAssignedMaterials(string? userEmail);
         Task<ICollection<AssignedEquipmentDTO>> GetAssignedEquipment(string? userEmail);
+        Task<string> GetAssignedProject(string? userEmail);
     }
 }

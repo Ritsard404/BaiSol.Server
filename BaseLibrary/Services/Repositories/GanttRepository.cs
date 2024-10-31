@@ -458,10 +458,11 @@ namespace BaseLibrary.Services.Repositories
                 {
                     Id = task.Id,
                     TaskName = task.TaskName,
+                    PlannedStartDate = task.PlannedStartDate?.ToString("MMM dd, yyyy"),
+                    PlannedEndDate = task.PlannedEndDate?.ToString("MMM dd, yyyy"),
                     StartDate = task.ActualStartDate?.ToString("MMM dd, yyyy"),
                     EndDate = task.ActualEndDate?.ToString("MMM dd, yyyy"),
                     IsFinished = task.Progress == 100,
-                    IsStarting = task.ActualStartDate != null,
                     FinishProofImage = finishProof?.ProofImage,
                     StartProofImage = startProof?.ProofImage
                 };

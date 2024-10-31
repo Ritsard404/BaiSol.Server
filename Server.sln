@@ -3,10 +3,6 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.10.34928.147
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BaseLibrary", "BaseLibrary\BaseLibrary.csproj", "{41AFF116-05A4-4F79-97CF-E301E75212AD}"
-EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DataLibrary", "DataLibrary\DataLibrary.csproj", "{86ED5746-A3DD-43E3-B864-398170C0CD65}"
-EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BaiSol.Server", "BaiSol.Server\BaiSol.Server.csproj", "{6863D161-4C46-402A-BE39-62671531BE78}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AuthLibrary", "AuthLibrary\AuthLibrary.csproj", "{7D1DB2E3-7B68-4D92-BC2C-9FEE36FBF236}"
@@ -17,20 +13,14 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FacilitatorLibrary", "Facil
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ProjectLibrary", "ProjectLibrary\ProjectLibrary.csproj", "{4B192127-B0F1-414D-B87F-06ED26C2EE46}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BaseLibrary", "BaseLibrary\BaseLibrary.csproj", "{64EA1169-D6C8-42AF-A8D3-3379C33E4853}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{41AFF116-05A4-4F79-97CF-E301E75212AD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{41AFF116-05A4-4F79-97CF-E301E75212AD}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{41AFF116-05A4-4F79-97CF-E301E75212AD}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{41AFF116-05A4-4F79-97CF-E301E75212AD}.Release|Any CPU.Build.0 = Release|Any CPU
-		{86ED5746-A3DD-43E3-B864-398170C0CD65}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{86ED5746-A3DD-43E3-B864-398170C0CD65}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{86ED5746-A3DD-43E3-B864-398170C0CD65}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{86ED5746-A3DD-43E3-B864-398170C0CD65}.Release|Any CPU.Build.0 = Release|Any CPU
 		{6863D161-4C46-402A-BE39-62671531BE78}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{6863D161-4C46-402A-BE39-62671531BE78}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{6863D161-4C46-402A-BE39-62671531BE78}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -51,6 +41,10 @@ Global
 		{4B192127-B0F1-414D-B87F-06ED26C2EE46}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{4B192127-B0F1-414D-B87F-06ED26C2EE46}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{4B192127-B0F1-414D-B87F-06ED26C2EE46}.Release|Any CPU.Build.0 = Release|Any CPU
+		{64EA1169-D6C8-42AF-A8D3-3379C33E4853}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{64EA1169-D6C8-42AF-A8D3-3379C33E4853}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{64EA1169-D6C8-42AF-A8D3-3379C33E4853}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{64EA1169-D6C8-42AF-A8D3-3379C33E4853}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

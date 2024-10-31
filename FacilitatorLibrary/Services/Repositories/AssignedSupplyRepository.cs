@@ -99,5 +99,14 @@ namespace FacilitatorLibrary.Services.Repositories
 
             return category;
         }
+
+        public async Task<string> GetAssignedProject(string? userEmail)
+        {
+            // Retrieve the assigned facilitator's project information based on the user email
+            return await _dataContext.ProjectWorkLog
+                .Where(e => e.Facilitator.Email == userEmail && e.Project.Status != "Finished")
+                .Select(e => e.Project.ProjId) // Only select the project ID
+                .FirstOrDefaultAsync() ?? ""; // Return an empty string if no match is found
+        }
     }
 }
