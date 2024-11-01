@@ -6,15 +6,18 @@ using DataLibrary.Data;
 using DataLibrary.Models;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using ProjectLibrary.DTO.Material;
 using ProjectLibrary.DTO.Project;
 using ProjectLibrary.DTO.Quote;
 using ProjectLibrary.Services.Interfaces;
+using RestSharp;
+using System.Text.Json;
 
 namespace ProjectLibrary.Services.Repositories
 {
-    public class ProjectRepository(UserManager<AppUsers> _userManager, DataContext _dataContext, IUserLogs _userLogs) : IProject
+    public class ProjectRepository(UserManager<AppUsers> _userManager, DataContext _dataContext, IUserLogs _userLogs, IConfiguration _config) : IProject
     {
         public async Task<string> AddNewClientProject(ProjectDto projectDto)
         {
@@ -737,6 +740,111 @@ namespace ProjectLibrary.Services.Repositories
                 .FirstOrDefaultAsync(i => i.ProjId == projId && i.Status == "Finished");
 
             return project != null; // Returns true if project exists, false otherwise
+        }
+
+        public async Task<ICollection<ClientProjectInfoDTO>> GetClientsProjectInfos()
+        {
+            // Step 1: Get the projects with their client information
+            var projectData = await _dataContext.Project
+                .Include(p => p.Client)
+                .Include(p => p.Client.Client)
+                .Where(i => i.Client.EmailConfirmed == true)
+                .Select(d => new
+                {
+                    d.ProjId,
+                    d.ProjName,
+                    d.ProjDescript,
+                    Discount = d.Discount ?? 0,
+                    VatRate = (d.VatRate ?? 0) * 100,
+                    clientId = d.Client.Id,
+                    clientFName = d.Client.FirstName,
+                    clientLName = d.Client.LastName,
+                    clientContactNum = d.Client.Client.ClientContactNum,
+                    clientAddress = d.Client.Client.ClientAddress,
+                    kWCapacity = d.kWCapacity,
+                    Sex = d.Client.Client.IsMale ? "Male" : "Female",
+                    SystemType = d.SystemType,
+                    isMale = d.Client.Client.IsMale,
+                    status = d.Status
+                })
+                .ToListAsync(); // Fetch all projects first
+
+            // Step 2: Calculate the average progress and payment progress for each project
+            var clientProjectInfos = new List<ClientProjectInfoDTO>();
+
+            foreach (var project in projectData)
+            {
+                // Fetch tasks for the current project
+                var tasks = await _dataContext.GanttData
+                    .Where(i => i.ProjId == project.ProjId && i.ParentId == null)
+                    .ToListAsync();
+
+                // Calculate the total progress
+                var tasksProgress = tasks.Sum(p => p.Progress) ?? 0;
+
+                // Calculate the number of tasks
+                var taskCount = tasks.Count;
+
+                // Calculate the average progress
+                decimal averageProgress = taskCount > 0 ? tasksProgress / taskCount : 0;
+
+                // Step 3: Calculate payment progress
+                var paymentReferences = await _dataContext.Payment
+                    .Where(p => p.Project.ProjId == project.ProjId) // Ensure you use the correct navigation property
+                    .ToListAsync();
+
+                int paid = 0;
+
+                foreach (var reference in paymentReferences)
+                {
+                    var options = new RestClientOptions($"{_config["Payment:API"]}/{reference.Id}");
+                    var client = new RestClient(options);
+                    var request = new RestRequest("");
+
+                    request.AddHeader("accept", "application/json");
+                    request.AddHeader("authorization", $"Basic {_config["Payment:Key"]}");
+
+                    var response = await client.GetAsync(request);
+
+                    if (response.IsSuccessStatusCode)
+                    {
+                        var responseData = JsonDocument.Parse(response.Content);
+                        var data = responseData.RootElement.GetProperty("data");
+                        var attributes = data.GetProperty("attributes");
+
+                        string currentStatus = attributes.GetProperty("status").GetString();
+
+                        if (currentStatus == "paid" || reference.IsCashPayed)
+                            paid++;
+                    }
+                }
+
+                decimal paymentProgress = paymentReferences.Any() ? (decimal)paid / paymentReferences.Count * 100 : 0;
+
+                // Add to the result list
+                clientProjectInfos.Add(new ClientProjectInfoDTO
+                {
+                    ProjId = project.ProjId,
+                    ProjName = project.ProjName,
+                    ProjDescript = project.ProjDescript,
+                    Discount = project.Discount,
+                    VatRate = project.VatRate,
+                    clientId = project.clientId,
+                    clientFName = project.clientFName,
+                    clientLName = project.clientLName,
+                    clientContactNum = project.clientContactNum,
+                    clientAddress = project.clientAddress,
+                    kWCapacity = project.kWCapacity,
+                    Sex = project.Sex,
+                    SystemType = project.SystemType,
+                    isMale = project.isMale,
+                    ProjectProgress = averageProgress, // Include average progress
+                    PaymentProgress = paymentProgress, // Include payment progress
+                    Status=project.status
+                });
+            }
+
+            return clientProjectInfos; // Return the final list
         }
     }
 }

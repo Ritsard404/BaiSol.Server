@@ -1,4 +1,5 @@
-﻿using BaseLibrary.DTO.Gantt;
+﻿using BaiSol.Server.Models.Email;
+using BaseLibrary.DTO.Gantt;
 using BaseLibrary.Services.Interfaces;
 using DataLibrary.Data;
 using DataLibrary.Models.Gantt;
@@ -11,7 +12,7 @@ using System.Threading.Tasks;
 
 namespace BaseLibrary.Services.Repositories
 {
-    public class GanttRepository(DataContext _dataContext, IPayment _payment, IConfiguration _config) : IGanttRepository
+    public class GanttRepository(DataContext _dataContext, IPayment _payment, IConfiguration _config, IEmailRepository _email) : IGanttRepository
     {
         public async Task<ICollection<FacilitatorTasksDTO>> FacilitatorTasks(string projId)
         {
@@ -83,6 +84,11 @@ namespace BaseLibrary.Services.Repositories
             if (task == null)
                 return (false, "Task not exist!");
 
+            var project = await _dataContext.Project
+                .FirstOrDefaultAsync(i => i.ProjId == task.ProjId); 
+            if (project == null)
+                return (false, "Project not exist!");
+
             // Update task based on whether it's starting or finishing
             if (isStarting)
             {
@@ -115,6 +121,54 @@ namespace BaseLibrary.Services.Repositories
             {
                 await UpdateParentDatesRecursive(task.ParentId.Value);
             }
+
+            EmailMessage message;
+
+            string greeting = $"<p>Hello {(project.Client.Client.IsMale ? "Mr." : "Ms.")} {project.Client.LastName},</p>";
+
+            string startContent = $@"
+                <p>We're excited to inform you that the task <strong>{task.TaskName}</strong> for your project <strong>{project.ProjName}</strong> has just started!</p>
+                <p>Start Date: <strong>{task.ActualStartDate:MMMM dd, yyyy}</strong></p>
+                <p>Please log in to our site to monitor progress and stay updated.</p>
+            ";
+
+            string finishContent = $@"
+                <p>We’re pleased to inform you that the task <strong>{task.TaskName}</strong> for your project <strong>{project.ProjName}</strong> has been successfully completed!</p>
+                <p>Completion Date: <strong>{task.ActualEndDate:MMMM dd, yyyy}</strong></p>
+                <p>Feel free to check the site for a detailed update on your project.</p>
+            ";
+
+            string footer = @"
+                <p>Best regards,<br>BaiSol Team</p>
+            ";
+
+            if (isStarting)
+            {
+                message = new EmailMessage(
+                    new string[] { project.Client.Email },
+                    "Project Task Started: " + task.TaskName,
+                    $"{greeting}{startContent}{footer}"
+                );
+            }
+            else
+            {
+                message = new EmailMessage(
+                    new string[] { project.Client.Email },
+                    "Project Task Completed: " + task.TaskName,
+                    $"{greeting}{finishContent}{footer}"
+                );
+            }
+
+
+            // Send the email if message is initialized.
+            if (message != null)
+            {
+                _email.SendEmail(message);
+            }
+
+
+            //var message = new EmailMessage(new string[] { "richardquirante98@gmail.com" }, "Test", "<h1>Test ra goy</h1>");
+            //_emailRepository.SendEmail(message);
 
             // Return appropriate message
             return isStarting

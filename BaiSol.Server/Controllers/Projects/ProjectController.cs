@@ -45,6 +45,13 @@ namespace BaiSol.Server.Controllers.Projects
             return Ok(projects); // Wrap the result in an Ok result
         }
 
+        [HttpGet("[action]")]
+        public async Task<IActionResult> GetClientsProjectInfos()
+        {
+            var projects = await _project.GetClientsProjectInfos();
+            return Ok(projects); // Wrap the result in an Ok result
+        }
+
         [HttpGet("Get-Client-Project")]
         public async Task<IActionResult> GetClientProject(string clientId)
         {

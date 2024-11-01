@@ -5,6 +5,7 @@ namespace ProjectLibrary.Services.Interfaces
     public interface IProject
     {
         Task<ICollection<GetProjects>> GetClientsProject();
+        Task<ICollection<ClientProjectInfoDTO>> GetClientsProjectInfos();
         Task<ICollection<GetProjects>> GetClientProject(string clientId);
         Task<ClientProjectInfoDTO> GetClientProjectInfo(string projId);
         Task<(bool, string)> UpdateClientProject(ClientProjectInfoDTO updateProject);

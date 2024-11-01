@@ -16,5 +16,8 @@
         public required decimal kWCapacity { get; set; }
         public required string Sex { get; set; }
         public required bool isMale { get; set; }
+        public decimal? PaymentProgress { get; set; }
+        public decimal? ProjectProgress { get; set; }
+        public string? Status { get; set; }
     }
 }
