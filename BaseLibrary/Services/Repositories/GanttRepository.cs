@@ -85,7 +85,9 @@ namespace BaseLibrary.Services.Repositories
                 return (false, "Task not exist!");
 
             var project = await _dataContext.Project
-                .FirstOrDefaultAsync(i => i.ProjId == task.ProjId); 
+                .Include(c => c.Client)
+                .Include(c => c.Client.Client)
+                .FirstOrDefaultAsync(i => i.ProjId == task.ProjId);
             if (project == null)
                 return (false, "Project not exist!");
 
@@ -372,12 +374,19 @@ namespace BaseLibrary.Services.Repositories
             if (project == null)
                 return null;
 
+            var facilitator = await _dataContext.ProjectWorkLog
+                .Include(f => f.Facilitator)
+                .FirstOrDefaultAsync(p => p.Project.ProjId == projId && p.Facilitator != null);
+
+            if (facilitator?.Facilitator == null)
+                return null;
+
             var paymentReferences = await _dataContext.Payment
              .Where(p => p.Project == project)
              .ToListAsync();
 
             var totalAmount = await _payment.GetTotalProjectExpense(projId: projId);
-            totalAmount = 100000;
+            //totalAmount = 100000;
 
             string payRef = string.Empty;
             string status = string.Empty;
@@ -433,7 +442,7 @@ namespace BaseLibrary.Services.Repositories
             {
                 info = new ProjectDateInfo
                 {
-                    AssignedFacilitator = project.Facilitator.FirstOrDefault()?.Facilitator?.Email ?? "No Facilitator Assigned",
+                    AssignedFacilitator = facilitator.Facilitator.Email ?? "No Facilitator Assigned",
                     StartDate = payment.CashPaidAt?.ToString("yyyy-MM-dd"),
                     EstimatedStartDate = payment.CashPaidAt?.AddDays(2).ToString("MMMM dd, yyyy"),
                     EstimatedEndDate = payment.CashPaidAt?.AddDays(estimatedDaysToEnd + 2).ToString("MMMM dd, yyyy")
@@ -443,7 +452,7 @@ namespace BaseLibrary.Services.Repositories
             {
                 info = new ProjectDateInfo
                 {
-                    AssignedFacilitator = project.Facilitator.FirstOrDefault()?.Facilitator?.Email ?? "No Facilitator Assigned",
+                    AssignedFacilitator = facilitator.Facilitator.Email ?? "No Facilitator Assigned",
                     StartDate = DateTimeOffset.FromUnixTimeSeconds(createdAt).UtcDateTime.ToString("yyyy-MM-dd"),
                     EstimatedStartDate = DateTimeOffset.FromUnixTimeSeconds(createdAt).AddDays(2).UtcDateTime.ToString("MMMM dd, yyyy"),
                     EstimatedEndDate = project.CreatedAt.AddDays(9).AddDays(estimatedDaysToEnd + 2).UtcDateTime.ToString("MMMM dd, yyyy")

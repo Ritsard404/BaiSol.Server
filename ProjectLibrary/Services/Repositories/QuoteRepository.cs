@@ -74,7 +74,7 @@ namespace ProjectLibrary.Services.Repositories
 
 
             var isMaterialExist = await _dataContext.Supply
-                .FirstOrDefaultAsync(i => i.Material.MTLCode == materialQuoteDto.MTLCode);
+                .FirstOrDefaultAsync(i => i.Material.MTLCode == materialQuoteDto.MTLCode && i.Project == clientProject);
             if (isMaterialExist != null)
                 return "Material supply already exist!";
 
@@ -129,7 +129,7 @@ namespace ProjectLibrary.Services.Repositories
                 return (false, "Invalid quanity!");
 
             var isEquipmentExist = await _dataContext.Supply
-                .FirstOrDefaultAsync(i => i.Equipment.EQPTId == assignEquipmentDto.EQPTId);
+                .FirstOrDefaultAsync(i => i.Equipment.EQPTId == assignEquipmentDto.EQPTId && i.Project == clientProject);
             if (isEquipmentExist != null)
                 return (false, "Equipment supply already exist!");
 

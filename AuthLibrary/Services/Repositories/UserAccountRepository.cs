@@ -263,7 +263,7 @@ namespace AuthLibrary.Services.Repositories
             AppUsers newFacilitatorUser = new AppUsers()
             {
                 UserName = facilitatorDto.FirstName + "_" + facilitatorDto.Email, // Create a username by concatenating first and last names.
-                FirstName = facilitatorDto.LastName,
+                FirstName = facilitatorDto.FirstName,
                 LastName = facilitatorDto.LastName,
                 Email = facilitatorDto.Email,
                 PasswordHash = facilitatorDto.Password,

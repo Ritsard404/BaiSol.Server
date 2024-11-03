@@ -11,6 +11,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BaseLibrary", "BaseLibrary\
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BaiSol.Server", "BaiSol.Server\BaiSol.Server.csproj", "{A0F16127-713D-4940-92F0-AACBEC80F4A0}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AuthLibrary", "AuthLibrary\AuthLibrary.csproj", "{B8712182-67CB-4813-B50D-C018E0D5F979}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -33,6 +35,10 @@ Global
 		{A0F16127-713D-4940-92F0-AACBEC80F4A0}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{A0F16127-713D-4940-92F0-AACBEC80F4A0}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{A0F16127-713D-4940-92F0-AACBEC80F4A0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B8712182-67CB-4813-B50D-C018E0D5F979}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B8712182-67CB-4813-B50D-C018E0D5F979}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B8712182-67CB-4813-B50D-C018E0D5F979}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B8712182-67CB-4813-B50D-C018E0D5F979}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

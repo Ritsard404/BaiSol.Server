@@ -629,7 +629,7 @@ namespace ProjectLibrary.Services.Repositories
 
             var installers = await _dataContext.ProjectWorkLog
                 .Include(i => i.Installer)
-                .Where(p => p.Project == project)
+                .Where(p => p.Project == project && p.Installer != null)
                 .CountAsync();
 
             if (installers == 0)

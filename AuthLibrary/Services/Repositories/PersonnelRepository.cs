@@ -192,7 +192,7 @@ namespace AuthLibrary.Services.Repositories
 
             return await _dataContext.ProjectWorkLog
                 .Include(i => i.Installer)
-                .Where(p => p.Project.ProjId == projectId)
+                .Where(p => p.Project.ProjId == projectId && p.Installer != null && p.Installer.Name != null && p.Installer.Position != null)
                 .OrderBy(n => n.Installer.Name)
                 .ThenBy(a => a.Installer.Position)
                 .Select(s => new AvailableInstallerDto { InstallerId = s.Installer.InstallerId, Name = s.Installer.Name, Position = s.Installer.Position })
