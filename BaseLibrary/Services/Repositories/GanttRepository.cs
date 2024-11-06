@@ -323,10 +323,10 @@ namespace BaseLibrary.Services.Repositories
                 {
                     Id = task.Id,
                     TaskName = task.TaskName,
-                    PlannedStartDate = task.PlannedStartDate?.ToString("MMM dd, yyyy"),
-                    PlannedEndDate = task.PlannedEndDate?.ToString("MMM dd, yyyy"),
-                    StartDate = task.ActualStartDate?.ToString("MMM dd, yyyy"),
-                    EndDate = task.ActualEndDate?.ToString("MMM dd, yyyy"),
+                    PlannedStartDate = task.PlannedStartDate?.ToString("MMM dd, yyyy") ?? "",
+                    PlannedEndDate = task.PlannedEndDate?.ToString("MMM dd, yyyy") ?? "",
+                    StartDate = task.ActualStartDate?.ToString("MMM dd, yyyy") ?? "",
+                    EndDate = task.ActualEndDate?.ToString("MMM dd, yyyy") ?? "",
                     IsEnable = isEnable || (task.PlannedStartDate.HasValue && (task.PlannedStartDate.Value - DateTime.Today).Days <= 2),
                     IsFinished = task.Progress == 100,
                     IsStarting = task.ActualStartDate != null,
@@ -543,5 +543,53 @@ namespace BaseLibrary.Services.Repositories
 
             };
         }
+
+        public async Task<ICollection<AllProjectTasksDTO>> AllProjectTasksReport()
+        {
+            var tasks = await _dataContext.GanttData
+                .Include(t => t.TaskProofs)
+                .OrderBy(s => s.ProjId)
+                .ThenBy(s => s.PlannedStartDate)
+                .ToListAsync();
+
+            var parentIds = tasks.Select(t => t.ParentId).Where(id => id.HasValue).Select(id => id.Value).ToHashSet();
+
+            var projectLogs = await _dataContext.ProjectWorkLog
+                .Include(p => p.Facilitator)
+                .Where(pl => tasks.Select(t => t.ProjId).Contains(pl.Project.ProjId))
+                .ToListAsync();
+
+            var reportTasksLists = tasks
+                .Where(t => !parentIds.Contains(t.TaskId)) // Skip tasks with subtasks
+                .Select(task =>
+                {
+                    var project = projectLogs.FirstOrDefault(pl => pl.Project.ProjId == task.ProjId);
+                    var finishProof = task.TaskProofs?.FirstOrDefault(proof => proof.IsFinish);
+                    var startProof = task.TaskProofs?.FirstOrDefault(proof => !proof.IsFinish);
+
+                    return new AllProjectTasksDTO
+                    {
+                        Id = task.Id,
+                        ProjId = task.ProjId,
+                        TaskName = task.TaskName,
+                        PlannedStartDate = FormatDate(task.PlannedStartDate),
+                        PlannedEndDate = FormatDate(task.PlannedEndDate),
+                        StartDate = FormatDate(task.ActualStartDate),
+                        EndDate = FormatDate(task.ActualEndDate),
+                        IsFinished = task.Progress == 100,
+                        FinishProofImage = finishProof?.ProofImage,
+                        StartProofImage = startProof?.ProofImage,
+                        FacilitatorName = project?.Facilitator != null
+                            ? $"{project.Facilitator.FirstName} {project.Facilitator.LastName}"
+                            : null,
+                        FacilitatorEmail = project?.Facilitator?.Email,
+                    };
+                })
+                .ToList();
+
+            return reportTasksLists;
+        }
+
+        private string FormatDate(DateTime? date) => date?.ToString("MMM dd, yyyy");
     }
 }

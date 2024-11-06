@@ -30,6 +30,12 @@ namespace BaiSol.Server.Controllers.Projects
             var requests = await _requisition.RequestSupplies(projId, supplyCtgry);
             return Ok(requests);
         }
+        [HttpGet]
+        public async Task<IActionResult> RequestUnrequestedEquipment(string projId)
+        {
+            var requests = await _requisition.RequestUnrequestedEquipment(projId);
+            return Ok(requests);
+        }
 
 
         [HttpPost]

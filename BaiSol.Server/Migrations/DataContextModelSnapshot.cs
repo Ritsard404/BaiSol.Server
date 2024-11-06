@@ -873,7 +873,7 @@ namespace BaiSol.Server.Migrations
                         .HasForeignKey("InstallerId");
 
                     b.HasOne("DataLibrary.Models.Project", "Project")
-                        .WithMany()
+                        .WithMany("Facilitator")
                         .HasForeignKey("ProjectProjId");
 
                     b.Navigation("AssignedByAdmin");
@@ -1008,6 +1008,8 @@ namespace BaiSol.Server.Migrations
 
             modelBuilder.Entity("DataLibrary.Models.Project", b =>
                 {
+                    b.Navigation("Facilitator");
+
                     b.Navigation("GanttData");
                 });
 #pragma warning restore 612, 618

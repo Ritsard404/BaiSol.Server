@@ -12,7 +12,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace BaiSol.Server.Migrations
 {
     [DbContext(typeof(DataContext))]
-    [Migration("20241024155507_BaiSol_Database")]
+    [Migration("20241104162333_BaiSol_Database")]
     partial class BaiSol_Database
     {
         /// <inheritdoc />
@@ -876,7 +876,7 @@ namespace BaiSol.Server.Migrations
                         .HasForeignKey("InstallerId");
 
                     b.HasOne("DataLibrary.Models.Project", "Project")
-                        .WithMany()
+                        .WithMany("Facilitator")
                         .HasForeignKey("ProjectProjId");
 
                     b.Navigation("AssignedByAdmin");
@@ -1011,6 +1011,8 @@ namespace BaiSol.Server.Migrations
 
             modelBuilder.Entity("DataLibrary.Models.Project", b =>
                 {
+                    b.Navigation("Facilitator");
+
                     b.Navigation("GanttData");
                 });
 #pragma warning restore 612, 618

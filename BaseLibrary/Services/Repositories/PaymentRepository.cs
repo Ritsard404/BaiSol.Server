@@ -714,5 +714,25 @@ namespace BaseLibrary.Services.Repositories
 
             return (decimal)paid / paymentReferences.Count * 100;
         }
+
+        public async Task<ICollection<SalesReportDTO>> SalesReport()
+        {
+            // Retrieve all payments
+            var allPayments = await GetAllPayment();
+
+            // Filter and map to SalesReportDTO only for paid entries
+            var salesReports = allPayments
+                .Where(payment => payment.status == "paid") // Filter for paid status
+                .Select(payment => new SalesReportDTO
+                {
+                    Date = DateTime.Parse(payment.paidAt).ToString("MM-dd-yyyy"), // Use the paid date
+                    Amount = decimal.Parse(payment.amount, NumberStyles.Currency, CultureInfo.InvariantCulture) // Convert amount to decimal
+                })
+                .OrderBy(report => DateTime.ParseExact(report.Date, "MM-dd-yyyy", CultureInfo.InvariantCulture)) // Order by date in ascending order
+                .ToList();
+
+            return salesReports;
+        }
+
     }
 }

@@ -241,5 +241,13 @@ namespace BaiSol.Server.Controllers.Gantt
 
             return Ok(task);
         }
+
+        [HttpGet("[action]")]
+        public async Task<IActionResult> AllProjectTasksReport()
+        {
+            var task = await _gantt.AllProjectTasksReport();
+
+            return Ok(task);
+        }
     }
 }

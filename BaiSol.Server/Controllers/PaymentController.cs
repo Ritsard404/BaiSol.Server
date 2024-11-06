@@ -50,6 +50,16 @@ namespace BaiSol.Server.Controllers
 
         }
 
+        [HttpGet]
+        public async Task<IActionResult> SalesReport()
+        {
+
+            var payments = await _payment.SalesReport();
+
+            return Ok(payments);
+
+        }
+
         [HttpPost]
         public async Task<IActionResult> CreatePayment(CreatePaymentDTO createPayment)
         {

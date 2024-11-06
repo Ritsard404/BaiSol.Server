@@ -236,6 +236,25 @@ namespace ProjectLibrary.Services.Repositories
             return (true, "Requested supply deleted!");
         }
 
+        public async Task<List<AvailableRequestSupplies>> RequestUnrequestedEquipment(string projId)
+        {
+            var unrequestedEquipment = await _dataContext.Equipment
+                .Where(e => !_dataContext.Requisition
+                    .Any(r => r.RequestSupply.Equipment.EQPTId == e.EQPTId
+                              && r.RequestSupply.Project.ProjId == projId
+                              && (r.Status == "OnReview" || r.Status == "Approved")))
+                .Select(e => new AvailableRequestSupplies
+                {
+                    suppId = e.EQPTId,
+                    supplyName = e.EQPTDescript
+                })
+                .ToListAsync();
+
+            return unrequestedEquipment;
+        }
+
+
+
         public async Task<List<AvailableRequestSupplies>> RequestSupplies(string projId, string supplyCtgry)
         {
             var supplies = await _dataContext.Supply

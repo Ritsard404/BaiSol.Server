@@ -19,5 +19,8 @@ namespace ProjectLibrary.Services.Interfaces
         Task<(bool, string)> DeleteRequest(DeleteRequest deleteRequest);
 
         Task<List<AvailableRequestSupplies>> RequestSupplies(string projId, string supplyCtgry);
+
+        Task<List<AvailableRequestSupplies>> RequestUnrequestedEquipment(string projId);
+
     }
 }
