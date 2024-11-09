@@ -91,6 +91,8 @@ namespace BaseLibrary.Services.Repositories
             if (project == null)
                 return (false, "Project not exist!");
 
+
+
             // Update task based on whether it's starting or finishing
             if (isStarting)
             {
@@ -169,8 +171,31 @@ namespace BaseLibrary.Services.Repositories
             }
 
 
-            //var message = new EmailMessage(new string[] { "richardquirante98@gmail.com" }, "Test", "<h1>Test ra goy</h1>");
-            //_emailRepository.SendEmail(message);
+            var allTask = await TasksToDo(task.ProjId);
+            var lastTask = allTask.Last();
+
+            string finishProjectMessage = $@"
+                    <p>We’re delighted to inform you that your project <strong>{project.ProjName}</strong> has been successfully completed!</p>
+                    <p>Completion Date: <strong>{project.UpdatedAt:MMMM dd, yyyy}</strong></p>
+                    <p>Thank you for trusting us with your project. We hope you’re satisfied with the results!</p>
+                    <p>Feel free to review all project details on our website.</p>
+                ";
+
+
+            if (!string.IsNullOrEmpty(lastTask.EndDate))
+            {
+                project.Status = "Finished";
+                project.UpdatedAt = DateTimeOffset.UtcNow;
+
+                await _dataContext.SaveChangesAsync();
+
+                message = new EmailMessage(
+                    new string[] { project.Client.Email },
+                    "Project Finished",
+                    $"{greeting}{finishProjectMessage}{footer}");
+
+                return (true, "All the tasks complete! The project is Finished.");
+            }
 
             // Return appropriate message
             return isStarting
@@ -369,9 +394,14 @@ namespace BaseLibrary.Services.Repositories
         {
             var project = await _dataContext.Project
                 .Include(f => f.Facilitator)
-                .ThenInclude(wl => wl.Facilitator)
                 .FirstOrDefaultAsync(id => id.ProjId == projId);
             if (project == null)
+                return null;
+
+            var paymentReference = await _dataContext.Payment
+                .OrderBy(p => p.AcknowledgedAt)
+                .FirstOrDefaultAsync(p => p.Project == project && p.AcknowledgedAt != null);
+            if (paymentReference == null)
                 return null;
 
             var facilitator = await _dataContext.ProjectWorkLog
@@ -386,50 +416,74 @@ namespace BaseLibrary.Services.Repositories
              .ToListAsync();
 
             var totalAmount = await _payment.GetTotalProjectExpense(projId: projId);
-            //totalAmount = 100000;
 
             string payRef = string.Empty;
             string status = string.Empty;
             int createdAt = 0;
 
 
-            foreach (var reference in paymentReferences)
+                var options = new RestClientOptions($"{_config["Payment:API"]}/{paymentReference.Id}");
+            var client = new RestClient(options);
+            var request = new RestRequest("");
+
+            request.AddHeader("accept", "application/json");
+            request.AddHeader("authorization", $"Basic {_config["Payment:Key"]}");
+
+            var response = await client.GetAsync(request);
+
+            if (response.IsSuccessStatusCode)
             {
-                var options = new RestClientOptions($"{_config["Payment:API"]}/{reference.Id}");
-                var client = new RestClient(options);
-                var request = new RestRequest("");
+                var responseData = JsonDocument.Parse(response.Content);
+                var data = responseData.RootElement.GetProperty("data");
+                var attributes = data.GetProperty("attributes");
 
-                request.AddHeader("accept", "application/json");
-                request.AddHeader("authorization", $"Basic {_config["Payment:Key"]}");
+                decimal amount = attributes.GetProperty("amount").GetDecimal() / 100m;
+                string currentStatus = attributes.GetProperty("status").GetString();
+                createdAt = attributes.GetProperty("created_at").GetInt32();
 
-                var response = await client.GetAsync(request);
-
-                if (response.IsSuccessStatusCode)
-                {
-                    var responseData = JsonDocument.Parse(response.Content);
-                    var data = responseData.RootElement.GetProperty("data");
-                    var attributes = data.GetProperty("attributes");
-
-                    decimal amount = attributes.GetProperty("amount").GetDecimal() / 100m;
-                    string currentStatus = attributes.GetProperty("status").GetString();
-                    createdAt = attributes.GetProperty("created_at").GetInt32();
-
-                    // Update largest amount and status if a larger amount is found
-                    if (amount == (totalAmount * 0.6m))
-                    {
-                        status = currentStatus;
-                        payRef = reference.Id;
-                    }
-                }
+                status = currentStatus;
+                payRef = paymentReference.Id;
+                
             }
 
-            var payment = await _dataContext.Payment
-                .FirstOrDefaultAsync(i => i.Id == payRef);
-            if (payment == null)
-                return null;
 
-            if (status != "paid" && !payment.IsCashPayed)
-                return null;
+            //foreach (var reference in paymentReferences)
+            //{
+            //    var options = new RestClientOptions($"{_config["Payment:API"]}/{reference.Id}");
+            //    var client = new RestClient(options);
+            //    var request = new RestRequest("");
+
+            //    request.AddHeader("accept", "application/json");
+            //    request.AddHeader("authorization", $"Basic {_config["Payment:Key"]}");
+
+            //    var response = await client.GetAsync(request);
+
+            //    if (response.IsSuccessStatusCode)
+            //    {
+            //        var responseData = JsonDocument.Parse(response.Content);
+            //        var data = responseData.RootElement.GetProperty("data");
+            //        var attributes = data.GetProperty("attributes");
+
+            //        decimal amount = attributes.GetProperty("amount").GetDecimal() / 100m;
+            //        string currentStatus = attributes.GetProperty("status").GetString();
+            //        createdAt = attributes.GetProperty("created_at").GetInt32();
+
+            //        // Update largest amount and status if a larger amount is found
+            //        if (amount == (totalAmount * 0.6m))
+            //        {
+            //            status = currentStatus;
+            //            payRef = reference.Id;
+            //        }
+            //    }
+            //}
+
+            //var payment = await _dataContext.Payment
+            //    .FirstOrDefaultAsync(i => i.Id == payRef);
+            //if (payment == null)
+            //    return null;
+
+            //if (status != "paid" && !payment.IsCashPayed)
+            //    return null;
 
             int estimatedDaysToEnd = project.kWCapacity <= 5 ? 7
                    : project.kWCapacity >= 6 && project.kWCapacity <= 10 ? 15
@@ -438,14 +492,14 @@ namespace BaseLibrary.Services.Repositories
 
             ProjectDateInfo info;
 
-            if (payment.IsCashPayed)
+            if (paymentReference.IsCashPayed)
             {
                 info = new ProjectDateInfo
                 {
                     AssignedFacilitator = facilitator.Facilitator.Email ?? "No Facilitator Assigned",
-                    StartDate = payment.CashPaidAt?.ToString("yyyy-MM-dd"),
-                    EstimatedStartDate = payment.CashPaidAt?.AddDays(2).ToString("MMMM dd, yyyy"),
-                    EstimatedEndDate = payment.CashPaidAt?.AddDays(estimatedDaysToEnd + 2).ToString("MMMM dd, yyyy")
+                    StartDate = paymentReference.CashPaidAt?.ToString("yyyy-MM-dd"),
+                    EstimatedStartDate = paymentReference.CashPaidAt?.AddDays(2).ToString("MMMM dd, yyyy"),
+                    EstimatedEndDate = paymentReference.CashPaidAt?.AddDays(estimatedDaysToEnd + 2).ToString("MMMM dd, yyyy")
                 };
             }
             else
@@ -544,52 +598,5 @@ namespace BaseLibrary.Services.Repositories
             };
         }
 
-        public async Task<ICollection<AllProjectTasksDTO>> AllProjectTasksReport()
-        {
-            var tasks = await _dataContext.GanttData
-                .Include(t => t.TaskProofs)
-                .OrderBy(s => s.ProjId)
-                .ThenBy(s => s.PlannedStartDate)
-                .ToListAsync();
-
-            var parentIds = tasks.Select(t => t.ParentId).Where(id => id.HasValue).Select(id => id.Value).ToHashSet();
-
-            var projectLogs = await _dataContext.ProjectWorkLog
-                .Include(p => p.Facilitator)
-                .Where(pl => tasks.Select(t => t.ProjId).Contains(pl.Project.ProjId))
-                .ToListAsync();
-
-            var reportTasksLists = tasks
-                .Where(t => !parentIds.Contains(t.TaskId)) // Skip tasks with subtasks
-                .Select(task =>
-                {
-                    var project = projectLogs.FirstOrDefault(pl => pl.Project.ProjId == task.ProjId);
-                    var finishProof = task.TaskProofs?.FirstOrDefault(proof => proof.IsFinish);
-                    var startProof = task.TaskProofs?.FirstOrDefault(proof => !proof.IsFinish);
-
-                    return new AllProjectTasksDTO
-                    {
-                        Id = task.Id,
-                        ProjId = task.ProjId,
-                        TaskName = task.TaskName,
-                        PlannedStartDate = FormatDate(task.PlannedStartDate),
-                        PlannedEndDate = FormatDate(task.PlannedEndDate),
-                        StartDate = FormatDate(task.ActualStartDate),
-                        EndDate = FormatDate(task.ActualEndDate),
-                        IsFinished = task.Progress == 100,
-                        FinishProofImage = finishProof?.ProofImage,
-                        StartProofImage = startProof?.ProofImage,
-                        FacilitatorName = project?.Facilitator != null
-                            ? $"{project.Facilitator.FirstName} {project.Facilitator.LastName}"
-                            : null,
-                        FacilitatorEmail = project?.Facilitator?.Email,
-                    };
-                })
-                .ToList();
-
-            return reportTasksLists;
-        }
-
-        private string FormatDate(DateTime? date) => date?.ToString("MMM dd, yyyy");
     }
 }

@@ -726,7 +726,7 @@ namespace BaseLibrary.Services.Repositories
                 .Select(payment => new SalesReportDTO
                 {
                     Date = DateTime.Parse(payment.paidAt).ToString("MM-dd-yyyy"), // Use the paid date
-                    Amount = decimal.Parse(payment.amount, NumberStyles.Currency, CultureInfo.InvariantCulture) // Convert amount to decimal
+                    Amount = Math.Round(decimal.Parse(payment.amount, NumberStyles.Currency, CultureInfo.InvariantCulture), 2)
                 })
                 .OrderBy(report => DateTime.ParseExact(report.Date, "MM-dd-yyyy", CultureInfo.InvariantCulture)) // Order by date in ascending order
                 .ToList();

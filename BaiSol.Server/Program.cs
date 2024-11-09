@@ -74,6 +74,9 @@ namespace BaiSol.Server
             // Payment
             builder.Services.AddScoped<IPayment, PaymentRepository>();
 
+            // Report
+            builder.Services.AddScoped<IReportRepository, ReportRepository>();
+
 
             // Add Email Config
             var emailConfig = builder.Configuration
