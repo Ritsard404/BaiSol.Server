@@ -8,6 +8,60 @@ namespace BaseLibrary.Services.Repositories
 {
     public class ReportRepository(DataContext _dataContext) : IReportRepository
     {
+        public async Task<ICollection<EquipmentReportDTO>> AllEquipmentReport()
+        {
+            var result = await _dataContext.Supply
+                .Include(x => x.Equipment)
+                .Include(x => x.Project)
+                .Where(m => m.Equipment != null)
+                .Select(s => new EquipmentReportDTO
+                {
+                    SuppId = s.SuppId,
+                    EQPTQuantity = s.EQPTQuantity,
+                    ProjId = s.Project.ProjId,
+                    AssignedPrice = s.Price.ToString("#,##0.##"),
+                    EQPTCode = s.Equipment.EQPTCode,
+                    EQPTDescript = s.Equipment.EQPTDescript,
+                    CurrentPrice = s.Equipment.EQPTPrice.ToString("#,##0.##"),
+                    EQPTQOH = s.Equipment.EQPTQOH,
+                    EQPTUnit = s.Equipment.EQPTUnit,
+                    EQPTCategory = s.Equipment.EQPTCategory,
+                    UpdatedAt = s.Equipment.UpdatedAt.ToString("MMM dd, yyyy"),
+                    CreatedAt = s.Equipment.CreatedAt.ToString("MMM dd, yyyy")
+                })
+                .OrderBy(c => c.ProjId)
+                .ToListAsync();
+
+            return result;
+        }
+
+        public async Task<ICollection<MaterialReportDTO>> AllMaterialReport()
+        {
+            var result = await _dataContext.Supply
+                .Include(x => x.Material)
+                .Include(x => x.Project)
+                .Where(m => m.Material != null)
+                .Select(s => new MaterialReportDTO
+                {
+                    SuppId = s.SuppId,
+                    MTLQuantity = s.MTLQuantity,
+                    ProjId = s.Project.ProjId,
+                    AssignedPrice = s.Price.ToString("#,##0.##"),
+                    MTLCode = s.Material.MTLCode,
+                    MTLDescript = s.Material.MTLDescript,
+                    CurrentPrice = s.Material.MTLPrice.ToString("#,##0.##"),
+                    MTLQOH = s.Material.MTLQOH,
+                    MTLUnit = s.Material.MTLUnit,
+                    MTLCategory = s.Material.MTLCategory,
+                    UpdatedAt = s.Material.UpdatedAt.ToString("MMM dd, yyyy"),
+                    CreatedAt = s.Material.CreatedAt.ToString("MMM dd, yyyy")
+                })
+                .OrderBy(c => c.ProjId)
+                .ToListAsync();
+
+            return result;
+        }
+
         public async Task<ProjectCounts> AllProjectsCount()
         {
             var projects = await _dataContext.Project.CountAsync();
@@ -25,18 +79,24 @@ namespace BaseLibrary.Services.Repositories
                 .ThenBy(s => s.PlannedStartDate)
                 .ToListAsync();
 
-            var parentIds = tasks.Select(t => t.ParentId).Where(id => id.HasValue).Select(id => id.Value).ToHashSet();
+            var parentIds = tasks
+                .Select(t => t.ParentId)
+                .Where(id => id.HasValue)
+                .Select(id => id.Value)
+                .ToHashSet();
+
+            var taskProjIds = tasks.Select(t => t.ProjId).ToHashSet();
 
             var projectLogs = await _dataContext.ProjectWorkLog
                 .Include(p => p.Facilitator)
-                .Where(pl => tasks.Select(t => t.ProjId).Contains(pl.Project.ProjId))
+                .Where(pl => taskProjIds.Contains(pl.Project.ProjId))
                 .ToListAsync();
 
             var reportTasksLists = tasks
                 .Where(t => !parentIds.Contains(t.TaskId)) // Skip tasks with subtasks
                 .Select(task =>
                 {
-                    var project = projectLogs.FirstOrDefault(pl => pl.Project.ProjId == task.ProjId);
+                    var project = projectLogs.FirstOrDefault(pl => pl.Project != null && pl.Project.ProjId == task.ProjId);
                     var finishProof = task.TaskProofs?.FirstOrDefault(proof => proof.IsFinish);
                     var startProof = task.TaskProofs?.FirstOrDefault(proof => !proof.IsFinish);
 

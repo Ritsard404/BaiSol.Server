@@ -4,12 +4,12 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace BaiSol.Server.Controllers
 {
-    [Route("api/[controller]")]
+    [Route("api/[controller]/[action]")]
     [ApiController]
     public class ReportController(IReportRepository _report) : ControllerBase
     {
 
-        [HttpGet("[action]")]
+        [HttpGet()]
         public async Task<IActionResult> AllProjectTasksReport()
         {
             var task = await _report.AllProjectTasksReport();
@@ -17,7 +17,7 @@ namespace BaiSol.Server.Controllers
             return Ok(task);
         }
         
-        [HttpGet("[action]")]
+        [HttpGet()]
         public async Task<IActionResult> TasksAndProjectCounts()
         {
             var taskCount = await _report.AllProjectTasksReportCount();
@@ -28,6 +28,22 @@ namespace BaiSol.Server.Controllers
                 taskCount,
                 projectCount
             });
+        }
+        
+        [HttpGet()]
+        public async Task<IActionResult> AllMaterialReport()
+        {
+            var materialReport = await _report.AllMaterialReport();
+
+            return Ok(materialReport);
+        }
+        
+        [HttpGet()]
+        public async Task<IActionResult> AllEquipmentReport()
+        {
+            var equipmentReport = await _report.AllEquipmentReport();
+
+            return Ok(equipmentReport);
         }
 
     }

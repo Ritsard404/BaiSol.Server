@@ -249,7 +249,7 @@ namespace ProjectLibrary.Services.Repositories
 
             if (supply == null) return false;
 
-            if (isSupplyUsed == null) return false;
+            if (isSupplyUsed != null) return false;
 
             material.MTLQOH = material.MTLQOH + (supply.MTLQuantity ?? 0);
 

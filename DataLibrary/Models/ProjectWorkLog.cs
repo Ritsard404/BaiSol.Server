@@ -16,6 +16,7 @@ namespace DataLibrary.Models
         public DateTimeOffset? WorkEnded { get; set; }
         public string? WorkEndedReason { get; set; }
         public required AppUsers AssignedByAdmin { get; set; }
+
         public AppUsers? Facilitator { get; set; }
         public Installer? Installer { get; set; }
         public required Project Project { get; set; }

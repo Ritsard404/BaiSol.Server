@@ -36,6 +36,7 @@ namespace DataLibrary.Data
                       .WithMany(p => p.GanttData) // A Project has many GanttData
                       .HasForeignKey(g => g.ProjId); // Specify the foreign key property
 
+
             });
         }
 

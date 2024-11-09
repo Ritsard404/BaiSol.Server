@@ -104,7 +104,11 @@ namespace ProjectLibrary.Services.Repositories
             var material = await _dataContext.Material.FindAsync(mtlId);
             if (material == null) return (false, "Material not found!");
 
-            if (material.MTLQOH > 0)
+
+            var suppliedMaterial = await _dataContext.Supply
+                .FirstOrDefaultAsync(m => m.Material == material);
+
+            if (material.MTLQOH > 0 || suppliedMaterial == null)
                 return (false, "Material cannot be deleted!");
 
             // Check if the material is used in any finished project
@@ -115,8 +119,6 @@ namespace ProjectLibrary.Services.Repositories
 
             // Remove the material
             _dataContext.Material.Remove(material);
-
-
 
             // Check User Existence
             var user = await _userManager.FindByEmailAsync(adminEmail);
