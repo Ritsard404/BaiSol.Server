@@ -89,6 +89,7 @@ namespace BaseLibrary.Services.Repositories
 
             var projectLogs = await _dataContext.ProjectWorkLog
                 .Include(p => p.Facilitator)
+                .Include(p => p.Project)
                 .Where(pl => taskProjIds.Contains(pl.Project.ProjId))
                 .ToListAsync();
 
@@ -137,6 +138,32 @@ namespace BaseLibrary.Services.Repositories
             {
                 AllTasks = allTasksCount,
                 FinishedTasks = finishedTasksCount
+            };
+        }
+
+        public async Task<DashboardDTO> DashboardData()
+        {
+            var totalPersonnel = await _dataContext.Users.CountAsync() + await _dataContext.Installer.CountAsync();
+
+            var projectCounts = await _dataContext.Project
+                .GroupBy(p => p.Status)
+                .Select(g => new
+                {
+                    Status = g.Key,
+                    Count = g.Count()
+                })
+                .ToListAsync();
+
+            var finishedProjects = projectCounts.FirstOrDefault(p => p.Status == "Finished")?.Count ?? 0;
+            var pendingProjects = projectCounts.FirstOrDefault(p => p.Status == "OnGoing")?.Count ?? 0;
+            var onWorkProjects = projectCounts.FirstOrDefault(p => p.Status == "OnWork")?.Count ?? 0;
+
+            return new DashboardDTO
+            {
+                TotalPersonnel = totalPersonnel,
+                FinishedProjects = finishedProjects,
+                PendingProjects = pendingProjects,
+                OnWorkProjects = onWorkProjects
             };
         }
 

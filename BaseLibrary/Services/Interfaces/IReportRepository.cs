@@ -14,6 +14,8 @@ namespace BaseLibrary.Services.Interfaces
         Task<TaskCounts> AllProjectTasksReportCount();
         Task<ProjectCounts> AllProjectsCount();
 
+        Task<DashboardDTO> DashboardData();
+
         Task<ICollection<MaterialReportDTO>> AllMaterialReport();
         Task<ICollection<EquipmentReportDTO>> AllEquipmentReport();
     }

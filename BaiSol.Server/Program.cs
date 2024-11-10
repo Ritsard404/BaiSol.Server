@@ -61,6 +61,7 @@ namespace BaiSol.Server
             // Facilitator
             builder.Services.AddScoped<IRequestSupply, RequestSupplyRepository>();
             builder.Services.AddScoped<IAssignedSupply, AssignedSupplyRepository>();
+            builder.Services.AddScoped<IHistoryRepository, HistoryRepository>();
 
             // Client
             builder.Services.AddScoped<IClientProject, ClientProjectRepository>();

@@ -22,7 +22,7 @@ namespace AuthLibrary.Services.Repositories
             }
 
             // Check if the installer already exists
-            var isInstallerExist = await IsInstallerExist(installerDto.Name);
+            var isInstallerExist = await IsInstallerExist(installerDto.Name.ToUpper());
             if (isInstallerExist)
             {
                 return "Installer Already Exists";

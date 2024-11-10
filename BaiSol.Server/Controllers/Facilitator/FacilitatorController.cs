@@ -7,7 +7,7 @@ namespace BaiSol.Server.Controllers.Facilitator
 {
     [Route("api/[controller]/[action]")]
     [ApiController]
-    public class FacilitatorController(IRequestSupply _requestSupply, IAssignedSupply _assignedSupply) : ControllerBase
+    public class FacilitatorController(IRequestSupply _requestSupply, IAssignedSupply _assignedSupply, IHistoryRepository _history) : ControllerBase
     {
         [HttpGet]
         public async Task<IActionResult> SentRequestByProj(string userEmail)
@@ -68,5 +68,11 @@ namespace BaiSol.Server.Controllers.Facilitator
             return Ok(requests);
         }
 
+        [HttpGet]
+        public async Task<IActionResult> GetProjectHistories(string userEmail)
+        {
+            var requests = await _history.GetProjectHistories(userEmail);
+            return Ok(requests);
+        }
     }
 }
