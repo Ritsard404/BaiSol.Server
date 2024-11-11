@@ -151,6 +151,23 @@ namespace ProjectLibrary.Services.Repositories
                 })
                 .FirstOrDefaultAsync();
 
+            var installers = await _dataContext.ProjectWorkLog
+                .Include(i => i.Installer)
+                .Where(w => w.Project.ProjId == projId && w.Installer != null)
+                .OrderBy(p => p.Installer.Position)
+                .ToListAsync();
+
+            List<InstallerInfo> installerList = new List<InstallerInfo>();
+
+            foreach (var installer in installers)
+            {
+                installerList.Add(new InstallerInfo
+                {
+                    Name = installer.Installer.Name, // Adjust based on your model properties
+                    Position = installer.Installer.Position // Adjust based on your model properties
+                });
+            }
+
             return new ClientProjectInfoDTO
             {
                 ProjId = projectData?.ProjId ?? "",
@@ -166,7 +183,8 @@ namespace ProjectLibrary.Services.Repositories
                 kWCapacity = projectData.kWCapacity,
                 Sex = projectData.sex,
                 SystemType = projectData.SystemType,
-                isMale = projectData.boolSex
+                isMale = projectData.boolSex,
+                Installers = installerList,
 
             };
         }
@@ -821,6 +839,27 @@ namespace ProjectLibrary.Services.Repositories
 
                 decimal paymentProgress = paymentReferences.Any() ? (decimal)paid / paymentReferences.Count * 100 : 0;
 
+                var facilitator = await _dataContext.ProjectWorkLog
+                  .Include(i => i.Facilitator)
+                  .FirstOrDefaultAsync(w => w.Project.ProjId == project.ProjId && w.Facilitator != null);
+
+                var installers = await _dataContext.ProjectWorkLog
+                    .Include(i => i.Installer)
+                    .Where(w => w.Project.ProjId == project.ProjId && w.Installer != null)
+                    .OrderBy(p => p.Installer.Position)
+                    .ToListAsync();
+
+                List<InstallerInfo> installerList = new List<InstallerInfo>();
+
+                foreach (var installer in installers)
+                {
+                    installerList.Add(new InstallerInfo
+                    {
+                        Name = installer.Installer.Name, // Adjust based on your model properties
+                        Position = installer.Installer.Position // Adjust based on your model properties
+                    });
+                }
+
                 // Add to the result list
                 clientProjectInfos.Add(new ClientProjectInfoDTO
                 {
@@ -840,7 +879,10 @@ namespace ProjectLibrary.Services.Repositories
                     isMale = project.isMale,
                     ProjectProgress = averageProgress, // Include average progress
                     PaymentProgress = paymentProgress, // Include payment progress
-                    Status=project.status
+                    Status = project.status,
+                    Installers = installerList,
+                    FacilitatorEmail= facilitator.Facilitator.AdminEmail,
+                    FacilitatorName=$"{facilitator.Facilitator.FirstName} {facilitator.Facilitator.LastName}"
                 });
             }
 

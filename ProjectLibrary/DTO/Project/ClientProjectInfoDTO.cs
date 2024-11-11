@@ -19,5 +19,14 @@
         public decimal? PaymentProgress { get; set; }
         public decimal? ProjectProgress { get; set; }
         public string? Status { get; set; }
+        public List<InstallerInfo> Installers { get; set; }
+        public string? FacilitatorName { get; set; }
+        public string? FacilitatorEmail { get; set; }
+    }
+
+    public class InstallerInfo
+    {
+        public required string Name { get; set; }
+        public required string Position { get; set; }
     }
 }

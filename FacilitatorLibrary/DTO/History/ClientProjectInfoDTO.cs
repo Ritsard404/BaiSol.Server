@@ -24,5 +24,12 @@ namespace FacilitatorLibrary.DTO.History
         public required bool isMale { get; set; }
         public decimal? ProjectProgress { get; set; }
         public string? Status { get; set; }
+        public required List<InstallerInfo> Installers { get; set; }
+    }
+
+    public class InstallerInfo
+    {
+        public required string Name { get; set; }
+        public required string Position { get; set; }
     }
 }

@@ -98,14 +98,42 @@ namespace AuthLibrary.Services.Repositories
                         CreatedAt = user.CreatedAt.ToString("MMM dd, yyyy HH:mm:ss"),
                     };
 
+                    if (role == UserRoles.Facilitator)
+                    {
+                        var currentProject = await _dataContext.ProjectWorkLog
+                            .Include(p => p.Project)
+                            .FirstOrDefaultAsync(c => c.Facilitator == user && c.Project.Status != "Finished");
+
+                        var handledProjects = await _dataContext.ProjectWorkLog
+                            .Include(p => p.Project)
+                            .OrderBy(s => s.Project.Status)
+                            .Where(c => c.Facilitator == user)
+                            .Select(s => new ProjectInfo { ProjId = s.Project.ProjId })
+                            .ToListAsync();
+
+
+                        userDto.CurrentProjId = currentProject.Project.ProjId;
+                        userDto.ClientProjects = handledProjects;
+
+                    }
+
                     if (role == UserRoles.Client)
                     {
                         var project = await _dataContext.Project
-                            .FirstOrDefaultAsync(c => c.Client == user);
+                            .FirstOrDefaultAsync(c => c.Client == user && c.Status != "Finished");
+
+                        var projects = await _dataContext.Project
+                            .Where(c => c.Client == user)
+                            .OrderBy(s => s.Status)
+                            .Select(s => new ProjectInfo { ProjId = s.ProjId })
+                            .ToListAsync();
+
                         userDto.ClientContactNum = user.Client?.ClientContactNum;
                         userDto.ClientAddress = user.Client?.ClientAddress;
                         userDto.Sex = user.Client.IsMale ? "Male" : "Female";
                         userDto.kWCapacity = project?.kWCapacity;
+                        userDto.CurrentProjId = project.ProjId;
+                        userDto.ClientProjects = projects;
                     }
 
                     userList.Add(userDto);

@@ -23,6 +23,11 @@ namespace AuthLibrary.DTO
         public string? Sex { get; set; }
         public decimal? kWCapacity { get; set; }
 
-
+        public string? CurrentProjId { get; set; }
+        public List<ProjectInfo>? ClientProjects { get; set; }
+    }
+    public class ProjectInfo
+    {
+        public required string ProjId { get; set; }
     }
 }

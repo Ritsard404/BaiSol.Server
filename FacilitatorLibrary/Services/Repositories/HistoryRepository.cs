@@ -66,6 +66,23 @@ namespace FacilitatorLibrary.Services.Repositories
                 // Calculate the average progress
                 decimal averageProgress = taskCount > 0 ? tasksProgress / taskCount : 0;
 
+                var installers = await _dataContext.ProjectWorkLog
+                   .Include(i => i.Installer)
+                   .Where(w => w.Project.ProjId == projectData.ProjId && w.Installer != null)
+                   .OrderBy(p => p.Installer.Position)
+                   .ToListAsync();
+
+                List<InstallerInfo> installerList = new List<InstallerInfo>();
+
+                foreach (var installer in installers)
+                {
+                    installerList.Add(new InstallerInfo
+                    {
+                        Name = installer.Installer.Name, // Adjust based on your model properties
+                        Position = installer.Installer.Position // Adjust based on your model properties
+                    });
+                }
+
                 // Add project info to the list
                 clientProjectInfoList.Add(new ClientProjectInfoDTO
                 {
@@ -85,6 +102,7 @@ namespace FacilitatorLibrary.Services.Repositories
                     isMale = projectData.boolSex,
                     Status = projectData.Status,
                     ProjectProgress = averageProgress,
+                    Installers= installerList
                 });
             }
 

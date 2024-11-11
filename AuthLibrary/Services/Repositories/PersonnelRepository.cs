@@ -254,6 +254,17 @@ namespace AuthLibrary.Services.Repositories
 
             foreach (var installer in installers)
             {
+                var currentProj = await _dataContext.ProjectWorkLog
+                    .Include(p => p.Project)
+                    .FirstOrDefaultAsync(i => i.Installer == installer && i.Project.Status != "Finished");
+
+                var assignedProjs = await _dataContext.ProjectWorkLog
+                    .Include(p => p.Project)
+                    .OrderBy(s => s.Project.Status)
+                    .Where(i => i.Installer == installer)
+                    .Select(i => new ProjectInfo { ProjId = i.Project.ProjId })
+                    .ToListAsync();
+
                 installerList.Add(new GetInstallerDto
                 {
                     InstallerId = installer.InstallerId,
@@ -263,6 +274,8 @@ namespace AuthLibrary.Services.Repositories
                     AdminEmail = installer.Admin?.Email,
                     UpdatedAt = installer.UpdatedAt.ToString("MMM dd, yyyy HH:mm:ss"),
                     CreatedAt = installer.CreatedAt.ToString("MMM dd, yyyy HH:mm:ss"),
+                    AssignedProj = currentProj?.Project?.ProjId, // Null-safe navigation
+                    AssignedProjects = assignedProjs
 
                 });
             }
@@ -348,7 +361,10 @@ namespace AuthLibrary.Services.Repositories
         public async Task<bool> UpdateInstallerStatus(int id, string status)
         {
             var installer = await _dataContext.Installer.FirstOrDefaultAsync(i => i.InstallerId == id);
-            if (installer == null)
+            var isWork = await _dataContext.ProjectWorkLog
+                .AnyAsync(s => s.Project.Status != "Finished" && s.Installer == installer);
+
+            if (installer == null || isWork)
             {
                 // Installer not found
                 return false;
