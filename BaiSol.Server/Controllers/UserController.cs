@@ -145,17 +145,6 @@ namespace BaiSol.Server.Controllers
         {
             var users = await _userAccount.GetUsersByRole(role);
 
-            //if (!ModelState.IsValid)
-            //{
-            //    return BadRequest(ModelState);
-
-            //}
-
-            //if (users == null || !users.Any())
-            //{
-            //    return StatusCode(400, "Empty Users");
-            //}
-
             return Ok(users);
         }
 

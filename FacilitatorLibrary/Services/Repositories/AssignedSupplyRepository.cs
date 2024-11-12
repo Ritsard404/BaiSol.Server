@@ -139,15 +139,34 @@ namespace FacilitatorLibrary.Services.Repositories
             var project = await _dataContext.Project
                 .FirstOrDefaultAsync(s => s.ProjId == assignedFacilitatorProjId);
 
-            if (assignedFacilitatorProjId == null || project == null) return 
+            if (assignedFacilitatorProjId == null || project == null) return
                     (false, "No Project Yet!");
 
             // Check User Existence
             var user = await _userManager.FindByEmailAsync(userEmail);
-            if (user == null) 
+            if (user == null)
                 return (false, "Invalid User!");
 
             var userRole = await _userManager.GetRolesAsync(user);
+
+            var assignedFacilitator = await _dataContext.ProjectWorkLog
+                .Include(f => f.Facilitator)
+                .Where(e => e.Facilitator.Email == userEmail && e.Project.Status == "Finished" && e.Project.isDemobilization)
+                .FirstOrDefaultAsync();
+
+            assignedFacilitator.Facilitator.Status = "Active";
+            assignedFacilitator.Facilitator.UpdatedAt = DateTimeOffset.UtcNow;
+
+            var assignedInstallers = await _dataContext.ProjectWorkLog
+                .Include(i => i.Installer)
+                .Where(i => i.Project.ProjId == assignedFacilitatorProjId && i.Installer != null)
+                .ToListAsync();
+
+            foreach (var installer in assignedInstallers)
+            {
+                installer.Installer.Status = "Active";
+                installer.Installer.UpdatedAt = DateTimeOffset.UtcNow;
+            }
 
             if (returnSupply == null || returnSupply.Length == 0)
             {
@@ -214,11 +233,12 @@ namespace FacilitatorLibrary.Services.Repositories
 
 
                 }
-                await _dataContext.SaveChangesAsync();
+                //await _dataContext.SaveChangesAsync();
 
             }
             project.isDemobilization = false;
             project.UpdatedAt = DateTimeOffset.UtcNow;
+
 
             await _dataContext.SaveChangesAsync();
 

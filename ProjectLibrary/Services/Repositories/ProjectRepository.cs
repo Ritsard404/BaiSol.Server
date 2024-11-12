@@ -881,7 +881,7 @@ namespace ProjectLibrary.Services.Repositories
                     PaymentProgress = paymentProgress, // Include payment progress
                     Status = project.status,
                     Installers = installerList,
-                    FacilitatorEmail= facilitator?.Facilitator?.AdminEmail,
+                    FacilitatorEmail= facilitator?.Facilitator?.Email,
                     FacilitatorName=$"{facilitator?.Facilitator?.FirstName} {facilitator?.Facilitator?.LastName}"
                 });
             }

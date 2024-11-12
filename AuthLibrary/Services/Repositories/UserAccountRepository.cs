@@ -74,8 +74,8 @@ namespace AuthLibrary.Services.Repositories
 
             var users = await _dataContext.Users
                 .Include(user => user.Client)
-                //.Where(user => user.EmailConfirmed || user.Email != ownerEmail) // Consider re-enabling if needed
-                .Where(u => u.Email != ownerEmail)
+                .Where(user => user.EmailConfirmed && user.Email != ownerEmail) // Consider re-enabling if needed
+//.Where(u => u.Email != ownerEmail)
                 .ToListAsync();
 
             var userList = new List<UsersDto>();
@@ -102,7 +102,7 @@ namespace AuthLibrary.Services.Repositories
                     {
                         var currentProject = await _dataContext.ProjectWorkLog
                             .Include(p => p.Project)
-                            .FirstOrDefaultAsync(c => c.Facilitator == user && c.Project.Status != "Finished" );
+                            .FirstOrDefaultAsync(c => c.Facilitator == user && c.Project.Status != "Finished");
 
                         var handledProjects = await _dataContext.ProjectWorkLog
                             .Include(p => p.Project)
@@ -120,7 +120,10 @@ namespace AuthLibrary.Services.Repositories
                     if (role == UserRoles.Client)
                     {
                         var project = await _dataContext.Project
-                            .FirstOrDefaultAsync(c => c.Client == user && c.Status != "Finished");
+                            .FirstOrDefaultAsync(c => c.Client == user);
+
+                        var currentProj = await _dataContext.Project
+                            .FirstOrDefaultAsync(c => c.Client == user&&c.Status!="Finished");
 
                         var projects = await _dataContext.Project
                             .Where(c => c.Client == user)
@@ -130,9 +133,9 @@ namespace AuthLibrary.Services.Repositories
 
                         userDto.ClientContactNum = user.Client?.ClientContactNum;
                         userDto.ClientAddress = user.Client?.ClientAddress;
-                        userDto.Sex = user.Client.IsMale ? "Male" : "Female";
+                        userDto.Sex = user.Client?.IsMale == true ? "Male" : "Female";
                         userDto.kWCapacity = project?.kWCapacity;
-                        userDto.CurrentProjId = project.ProjId;
+                        userDto.CurrentProjId = project?.ProjId;
                         userDto.ClientProjects = projects;
                     }
 
