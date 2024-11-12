@@ -266,7 +266,8 @@ namespace BaiSol.Server.Migrations
                     ProfitRate = table.Column<decimal>(type: "numeric", nullable: false),
                     SystemType = table.Column<string>(type: "text", nullable: false),
                     kWCapacity = table.Column<decimal>(type: "numeric", nullable: false),
-                    ClientId = table.Column<string>(type: "text", nullable: true)
+                    ClientId = table.Column<string>(type: "text", nullable: true),
+                    isDemobilization = table.Column<bool>(type: "boolean", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -354,6 +355,29 @@ namespace BaiSol.Server.Migrations
                     table.PrimaryKey("PK_Labor", x => x.LaborId);
                     table.ForeignKey(
                         name: "FK_Labor_Project_ProjectProjId",
+                        column: x => x.ProjectProjId,
+                        principalTable: "Project",
+                        principalColumn: "ProjId");
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Notification",
+                columns: table => new
+                {
+                    NotifId = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Title = table.Column<string>(type: "text", nullable: false),
+                    Message = table.Column<string>(type: "text", nullable: false),
+                    Type = table.Column<string>(type: "text", nullable: false),
+                    CreatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    isRead = table.Column<bool>(type: "boolean", nullable: false),
+                    ProjectProjId = table.Column<string>(type: "text", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Notification", x => x.NotifId);
+                    table.ForeignKey(
+                        name: "FK_Notification_Project_ProjectProjId",
                         column: x => x.ProjectProjId,
                         principalTable: "Project",
                         principalColumn: "ProjId");
@@ -576,6 +600,11 @@ namespace BaiSol.Server.Migrations
                 column: "ProjectProjId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_Notification_ProjectProjId",
+                table: "Notification",
+                column: "ProjectProjId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Payment_AcknowledgedById",
                 table: "Payment",
                 column: "AcknowledgedById");
@@ -671,6 +700,9 @@ namespace BaiSol.Server.Migrations
 
             migrationBuilder.DropTable(
                 name: "Labor");
+
+            migrationBuilder.DropTable(
+                name: "Notification");
 
             migrationBuilder.DropTable(
                 name: "Payment");

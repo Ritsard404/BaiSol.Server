@@ -1,5 +1,6 @@
 ﻿using DataLibrary.Data;
 using FacilitatorLibrary.DTO.History;
+using FacilitatorLibrary.DTO.Supply;
 using FacilitatorLibrary.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using System;
@@ -12,6 +13,57 @@ namespace FacilitatorLibrary.Services.Repositories
 {
     public class HistoryRepository(DataContext _dataContext, IAssignedSupply _assignedProject) : IHistoryRepository
     {
+        public async Task<ICollection<AllAssignedEquipmentDTO>> GetAllAssignedEquipment(string userEmail)
+        {
+            // Retrieve the assigned facilitator's project information based on the user email
+            var assignedFacilitatorProjId = await _dataContext.ProjectWorkLog
+                .Where(e => e.Facilitator.Email == userEmail && e.Project.Status != "Finished")
+                .Select(e => e.Project.ProjId)
+                .FirstOrDefaultAsync();
+
+            if (assignedFacilitatorProjId == null)
+                return new List<AllAssignedEquipmentDTO>();
+
+
+            //var equipmentSupply = await _dataContext.Supply
+            //    .Where(p => p.Project != null && p.Project.ProjId == assignedFacilitatorProjId)
+            //    .Include(i => i.Equipment)
+            //    .Where(e => e.Equipment != null) // Ensure Equipment is not null
+            //    .ToListAsync();
+
+            var requestsEquipment = await _dataContext.Requisition
+                .Where(p => p.RequestSupply.Project != null && p.RequestSupply.Project.ProjId == assignedFacilitatorProjId)
+                .Include(s => s.RequestSupply)
+                .Include(s => s.RequestSupply.Equipment)
+                .Include(s => s.RequestSupply.Project)
+                .ToListAsync();
+
+            var category = requestsEquipment
+               .GroupBy(c => c.RequestSupply.Equipment?.EQPTCategory) // Group by category, allowing null categories
+               .Select(s => new AllAssignedEquipmentDTO
+               {
+                   EqptCategory = s.Key ?? "Unknown", // Handle null categories
+                   Details = s
+                       .Where(e => e.RequestSupply.Equipment != null) // Check if Equipment is not null
+                       .Select(e => new AllEquipmentSupplies
+                       {
+
+                           EqptCode = e.RequestSupply.Equipment.EQPTCode,
+                           EqptDescript = e.RequestSupply.Equipment.EQPTDescript,
+                           EqptUnit = e.RequestSupply.Equipment.EQPTUnit,
+                           Quantity = e.RequestSupply.EQPTQuantity + e.QuantityRequested ?? 0,
+
+                       })
+                       .OrderBy(n => n.EqptDescript)
+                       .ThenBy(o => o.EqptUnit)
+                       .ToList()
+               })
+               .OrderBy(c => c.EqptCategory)
+               .ToList();
+
+            return category;
+        }
+
         public async Task<ICollection<ClientProjectInfoDTO>> GetProjectHistories(string userEmail)
         {
             List<ClientProjectInfoDTO> clientProjectInfoList = new List<ClientProjectInfoDTO>();
@@ -102,7 +154,7 @@ namespace FacilitatorLibrary.Services.Repositories
                     isMale = projectData.boolSex,
                     Status = projectData.Status,
                     ProjectProgress = averageProgress,
-                    Installers= installerList
+                    Installers = installerList
                 });
             }
 

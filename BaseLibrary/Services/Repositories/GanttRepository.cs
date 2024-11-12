@@ -185,7 +185,9 @@ namespace BaseLibrary.Services.Repositories
             if (!string.IsNullOrEmpty(lastTask.EndDate))
             {
                 project.Status = "Finished";
+                project.isDemobilization = true;
                 project.UpdatedAt = DateTimeOffset.UtcNow;
+
 
                 await _dataContext.SaveChangesAsync();
 

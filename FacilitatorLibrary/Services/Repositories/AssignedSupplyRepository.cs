@@ -23,11 +23,11 @@ namespace FacilitatorLibrary.Services.Repositories
                 .FirstOrDefaultAsync();
 
             // If no assigned facilitator is found, return an empty list
-            if (assignedFacilitatorProjId  == null)
+            if (assignedFacilitatorProjId == null)
                 return new List<AssignedEquipmentDTO>();
 
             var equipmentSupply = await _dataContext.Supply
-                .Where(p => p.Project != null && p.Project.ProjId == assignedFacilitatorProjId )
+                .Where(p => p.Project != null && p.Project.ProjId == assignedFacilitatorProjId)
                 .Include(i => i.Equipment)
                 .Where(e => e.Equipment != null) // Ensure Equipment is not null
                 .ToListAsync();
@@ -66,12 +66,12 @@ namespace FacilitatorLibrary.Services.Repositories
                 .FirstOrDefaultAsync();
 
             // If no assigned facilitator is found, return an empty list
-            if (assignedFacilitatorProjId  == null)
+            if (assignedFacilitatorProjId == null)
                 return new List<AssignedMaterialsDTO>();
 
             // Fetch the material supply data with the required joins
             var materialSupply = await _dataContext.Supply
-                .Where(p => p.Project.ProjId == assignedFacilitatorProjId )
+                .Where(p => p.Project.ProjId == assignedFacilitatorProjId)
                 .Include(i => i.Material)
                 .ToListAsync();
 
@@ -107,6 +107,129 @@ namespace FacilitatorLibrary.Services.Repositories
                 .Where(e => e.Facilitator.Email == userEmail && e.Project.Status != "Finished")
                 .Select(e => e.Project.ProjId) // Only select the project ID
                 .FirstOrDefaultAsync() ?? ""; // Return an empty string if no match is found
+        }
+
+        public async Task<(bool, string)> IsAssignedProjectOnDemobilization(string? userEmail)
+        {
+            // Retrieve the assigned facilitator's project information based on the user email
+            var project = await _dataContext.ProjectWorkLog
+                .Where(e => e.Facilitator.Email == userEmail && e.Project.Status == "Finished" && e.Project.isDemobilization)
+                .Select(e => e.Project) // Select only the project to avoid pulling unnecessary data
+                .FirstOrDefaultAsync();
+
+            // If a project is found, return true with its name (or another identifying string)
+            if (project != null)
+                return (true, project.ProjId); // assuming Name exists, use an appropriate field here
+
+
+            // If no project is found, return false with an empty string
+            return (false, "");
+        }
+
+        public async Task<(bool, string)> ReturnAssignedEquipment(ReturnSupplyDTO[] returnSupply, string? userEmail)
+        {
+
+            // Retrieve the assigned facilitator's project information based on the user email
+            var assignedFacilitatorProjId = await _dataContext.ProjectWorkLog
+                .Where(e => e.Facilitator.Email == userEmail && e.Project.Status == "Finished" && e.Project.isDemobilization)
+                .Select(e => e.Project.ProjId) // Only select the project ID
+                .FirstOrDefaultAsync();
+
+            if (assignedFacilitatorProjId == null) return (false, "No Project Yet!");
+
+            // Check User Existence
+            var user = await _userManager.FindByEmailAsync(userEmail);
+            if (user == null) return (false, "Invalid User!");
+            var userRole = await _userManager.GetRolesAsync(user);
+
+            foreach (var supply in returnSupply)
+            {
+                var goodEquipment = await _dataContext.Equipment
+                    .FirstOrDefaultAsync(c => c.EQPTCode == supply.EqptCode && c.EQPTStatus == "Good");
+
+                var damagedEquipment = await _dataContext.Equipment
+                    .FirstOrDefaultAsync(c => c.EQPTCode == supply.EqptCode && c.EQPTStatus == "Damaged");
+
+                var equipmentSupply = await _dataContext.Supply
+                    .Where(p => p.Equipment.EQPTCode == supply.EqptCode)
+                    .Include(i => i.Equipment)
+                    .FirstOrDefaultAsync();
+
+                if (damagedEquipment != null && equipmentSupply != null)
+                {
+                    damagedEquipment.EQPTQOH += supply.returnedQuantity;
+
+                    goodEquipment.EQPTQOH += (equipmentSupply.EQPTQuantity - supply.returnedQuantity) ?? 0;
+                    goodEquipment.UpdatedAt = DateTimeOffset.Now;
+                }
+                else if (goodEquipment != null && equipmentSupply != null)
+                {
+
+                    goodEquipment.EQPTQOH += (equipmentSupply.EQPTQuantity - supply.returnedQuantity) ?? 0;
+
+                    var newDamagedEquipment = new Equipment
+                    {
+                        EQPTCode = goodEquipment.EQPTCode,
+                        EQPTDescript = goodEquipment.EQPTDescript,
+                        EQPTPrice = goodEquipment.EQPTPrice,
+                        EQPTQOH = supply.returnedQuantity,
+                        EQPTUnit = goodEquipment.EQPTUnit,
+                        EQPTCategory = goodEquipment.EQPTCategory,
+                        EQPTStatus = "Damaged",
+
+                    };
+                    _dataContext.Equipment.Add(newDamagedEquipment);
+
+
+                }
+               await _dataContext.SaveChangesAsync();
+
+            }
+
+            return (true, "Equipment returned!");
+        }
+
+        public async Task<ICollection<AssignedEquipmentDTO>> ToReturnAssignedEquipment(string? userEmail)
+        {
+            // Retrieve the assigned facilitator's project information based on the user email
+            var assignedFacilitatorProjId = await _dataContext.ProjectWorkLog
+                .Where(e => e.Facilitator.Email == userEmail && e.Project.Status == "Finished" && e.Project.isDemobilization)
+                .Select(e => e.Project.ProjId) // Only select the project ID
+                .FirstOrDefaultAsync();
+
+            // If no assigned facilitator is found, return an empty list
+            if (assignedFacilitatorProjId == null)
+                return new List<AssignedEquipmentDTO>();
+
+            var equipmentSupply = await _dataContext.Supply
+                .Where(p => p.Project != null && p.Project.ProjId == assignedFacilitatorProjId)
+                .Include(i => i.Equipment)
+                .Where(e => e.Equipment != null) // Ensure Equipment is not null
+                .ToListAsync();
+
+            var category = equipmentSupply
+                .GroupBy(c => c.Equipment?.EQPTCategory) // Group by category, allowing null categories
+                .Select(s => new AssignedEquipmentDTO
+                {
+                    EqptCategory = s.Key ?? "Unknown", // Handle null categories
+                    Details = s
+                        .Where(e => e.Equipment != null) // Check if Equipment is not null
+                        .Select(e => new EquipmentDetails
+                        {
+                            SuppId = e.SuppId,
+                            EqptCode = e.Equipment.EQPTCode,
+                            EqptDescript = e.Equipment.EQPTDescript,
+                            EqptUnit = e.Equipment.EQPTUnit,
+                            Quantity = e.EQPTQuantity ?? 0,
+                        })
+                        .OrderBy(n => n.EqptDescript)
+                        .ThenBy(o => o.EqptUnit)
+                        .ToList()
+                })
+                .OrderBy(c => c.EqptCategory)
+                .ToList();
+
+            return category;
         }
     }
 }

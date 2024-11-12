@@ -20,6 +20,7 @@ namespace DataLibrary.Data
         public DbSet<GanttData> GanttData { get; set; }
         public DbSet<TaskProof> TaskProof { get; set; }
         public DbSet<Payment> Payment { get; set; }
+        public DbSet<Notification> Notification { get; set; }
 
 
 

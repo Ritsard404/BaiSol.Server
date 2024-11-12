@@ -21,6 +21,7 @@ namespace DataLibrary.Models
         public AppUsers? Client { get; set; }
         public virtual ICollection<ProjectWorkLog>? Facilitator { get; set; }
         public virtual ICollection<GanttData>? GanttData { get; set; }
+        public bool isDemobilization { get; set; } = false;
 
         public Project()
         {

@@ -12,7 +12,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace BaiSol.Server.Migrations
 {
     [DbContext(typeof(DataContext))]
-    [Migration("20241104162333_BaiSol_Database")]
+    [Migration("20241112032516_BaiSol_Database")]
     partial class BaiSol_Database
     {
         /// <inheritdoc />
@@ -398,6 +398,42 @@ namespace BaiSol.Server.Migrations
                     b.ToTable("Material");
                 });
 
+            modelBuilder.Entity("DataLibrary.Models.Notification", b =>
+                {
+                    b.Property<int>("NotifId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("NotifId"));
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Message")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("ProjectProjId")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<bool>("isRead")
+                        .HasColumnType("boolean");
+
+                    b.HasKey("NotifId");
+
+                    b.HasIndex("ProjectProjId");
+
+                    b.ToTable("Notification");
+                });
+
             modelBuilder.Entity("DataLibrary.Models.Payment", b =>
                 {
                     b.Property<string>("Id")
@@ -476,6 +512,9 @@ namespace BaiSol.Server.Migrations
 
                     b.Property<decimal?>("VatRate")
                         .HasColumnType("numeric");
+
+                    b.Property<bool>("isDemobilization")
+                        .HasColumnType("boolean");
 
                     b.Property<decimal>("kWCapacity")
                         .HasColumnType("numeric");
@@ -827,6 +866,15 @@ namespace BaiSol.Server.Migrations
                 });
 
             modelBuilder.Entity("DataLibrary.Models.Labor", b =>
+                {
+                    b.HasOne("DataLibrary.Models.Project", "Project")
+                        .WithMany()
+                        .HasForeignKey("ProjectProjId");
+
+                    b.Navigation("Project");
+                });
+
+            modelBuilder.Entity("DataLibrary.Models.Notification", b =>
                 {
                     b.HasOne("DataLibrary.Models.Project", "Project")
                         .WithMany()

@@ -1,4 +1,5 @@
 ﻿using FacilitatorLibrary.DTO.Request;
+using FacilitatorLibrary.DTO.Supply;
 using FacilitatorLibrary.Services.Interfaces;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -73,6 +74,34 @@ namespace BaiSol.Server.Controllers.Facilitator
         {
             var requests = await _history.GetProjectHistories(userEmail);
             return Ok(requests);
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> ToReturnAssignedEquipment(string userEmail)
+        {
+            var allSupply = await _assignedSupply.ToReturnAssignedEquipment(userEmail);
+            return Ok(allSupply);
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> IsAssignedProjectOnDemobilization(string userEmail)
+        {
+            var allSupply = await _assignedSupply.IsAssignedProjectOnDemobilization(userEmail);
+            return Ok(new
+            {
+                isDemobilization = allSupply.Item1,
+                projId = allSupply.Item2
+            });
+        }
+
+        [HttpPut]
+        public async Task<IActionResult> ReturnAssignedEquipment(ReturnSupplyDTO[] returnSupply, string? userEmail)
+        {
+            var (isSuccess, Message) = await _assignedSupply.ReturnAssignedEquipment(returnSupply, userEmail);
+            if (!isSuccess)
+                return BadRequest(Message);
+
+            return Ok(Message);
         }
     }
 }
