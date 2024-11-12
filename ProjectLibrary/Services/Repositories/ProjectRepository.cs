@@ -468,7 +468,7 @@ namespace ProjectLibrary.Services.Repositories
             return await saved > 0 ? true : false;
         }
 
-        public async Task<(bool, string)> UpdateClientProject(ClientProjectInfoDTO updateProject)
+        public async Task<(bool, string)> UpdateClientProject(UpdateClientProjectInfoDTO updateProject)
         {
             // Retrieve the project entity
             var project = await _dataContext.Project
@@ -881,8 +881,8 @@ namespace ProjectLibrary.Services.Repositories
                     PaymentProgress = paymentProgress, // Include payment progress
                     Status = project.status,
                     Installers = installerList,
-                    FacilitatorEmail= facilitator.Facilitator.AdminEmail,
-                    FacilitatorName=$"{facilitator.Facilitator.FirstName} {facilitator.Facilitator.LastName}"
+                    FacilitatorEmail= facilitator?.Facilitator?.AdminEmail,
+                    FacilitatorName=$"{facilitator?.Facilitator?.FirstName} {facilitator?.Facilitator?.LastName}"
                 });
             }
 

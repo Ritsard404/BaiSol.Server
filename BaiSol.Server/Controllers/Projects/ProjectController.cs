@@ -100,7 +100,7 @@ namespace BaiSol.Server.Controllers.Projects
         }
 
         [HttpPut("Update-Client-Project")]
-        public async Task<IActionResult> UpdateClientProject(ClientProjectInfoDTO updateProject)
+        public async Task<IActionResult> UpdateClientProject(UpdateClientProjectInfoDTO updateProject)
         {
             if (updateProject == null) return BadRequest(ModelState);
 

@@ -8,7 +8,7 @@ namespace FacilitatorLibrary.DTO.Supply
 {
     public class ReturnSupplyDTO
     {
-        public required string EqptCode { get; set; }
-        public required int returnedQuantity { get; set; }
+        public string? EqptCode { get; set; }
+        public int? returnedQuantity { get; set; }
     }
 }

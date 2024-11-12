@@ -182,7 +182,7 @@ namespace BaseLibrary.Services.Repositories
                 ";
 
 
-            if (!string.IsNullOrEmpty(lastTask.EndDate))
+            if (!string.IsNullOrEmpty(lastTask.StartDate))
             {
                 project.Status = "Finished";
                 project.isDemobilization = true;
@@ -315,10 +315,12 @@ namespace BaseLibrary.Services.Repositories
         public async Task<ICollection<TasksToDoDTO>> TasksToDo(string projId)
         {
 
-            //var assignedFacilitatorProjId = await _dataContext.ProjectWorkLog
-            //    .Where(e => e.Facilitator.Email == userEmail && e.Project.Status != "Finished")
-            //    .Select(e => e.Project.ProjId) // Only select the project ID
-            //    .FirstOrDefaultAsync();
+            var isProjectOnWork = await _dataContext.Project
+                .AnyAsync(i => i.ProjId == projId && i.Status == "OnWork");
+
+            // If the project is not "OnWork," return an empty list
+            if (!isProjectOnWork)
+                return new List<TasksToDoDTO>();
 
             var tasks = await _dataContext.GanttData
                 .Where(p => p.ProjId == projId)
@@ -424,7 +426,7 @@ namespace BaseLibrary.Services.Repositories
             int createdAt = 0;
 
 
-                var options = new RestClientOptions($"{_config["Payment:API"]}/{paymentReference.Id}");
+            var options = new RestClientOptions($"{_config["Payment:API"]}/{paymentReference.Id}");
             var client = new RestClient(options);
             var request = new RestRequest("");
 
@@ -445,7 +447,7 @@ namespace BaseLibrary.Services.Repositories
 
                 status = currentStatus;
                 payRef = paymentReference.Id;
-                
+
             }
 
 

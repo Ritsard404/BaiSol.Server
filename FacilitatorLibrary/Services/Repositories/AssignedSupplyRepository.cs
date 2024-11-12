@@ -18,7 +18,7 @@ namespace FacilitatorLibrary.Services.Repositories
         {
             // Retrieve the assigned facilitator's project information based on the user email
             var assignedFacilitatorProjId = await _dataContext.ProjectWorkLog
-                .Where(e => e.Facilitator.Email == userEmail && e.Project.Status != "Finished")
+                .Where(e => e.Facilitator.Email == userEmail && e.Project.Status != "Finished" || e.Project.isDemobilization)
                 .Select(e => e.Project.ProjId) // Only select the project ID
                 .FirstOrDefaultAsync();
 
@@ -135,12 +135,44 @@ namespace FacilitatorLibrary.Services.Repositories
                 .Select(e => e.Project.ProjId) // Only select the project ID
                 .FirstOrDefaultAsync();
 
-            if (assignedFacilitatorProjId == null) return (false, "No Project Yet!");
+
+            var project = await _dataContext.Project
+                .FirstOrDefaultAsync(s => s.ProjId == assignedFacilitatorProjId);
+
+            if (assignedFacilitatorProjId == null || project == null) return 
+                    (false, "No Project Yet!");
 
             // Check User Existence
             var user = await _userManager.FindByEmailAsync(userEmail);
-            if (user == null) return (false, "Invalid User!");
+            if (user == null) 
+                return (false, "Invalid User!");
+
             var userRole = await _userManager.GetRolesAsync(user);
+
+            if (returnSupply == null || returnSupply.Length == 0)
+            {
+
+                var equipmentSupplies = await _dataContext.Supply
+                    .Where(p => p.Project.ProjId == assignedFacilitatorProjId && p.Equipment != null)
+                    .Include(i => i.Equipment)
+                    .ToListAsync();
+
+                foreach (var equipment in equipmentSupplies)
+                {
+                    var goodEquipment = await _dataContext.Equipment
+                        .FirstOrDefaultAsync(c => c.EQPTId == equipment.Equipment.EQPTId);
+
+                    goodEquipment.EQPTQOH += equipment.EQPTQuantity ?? 0;
+                    goodEquipment.UpdatedAt = DateTimeOffset.UtcNow;
+
+                }
+                project.isDemobilization = false;
+                project.UpdatedAt = DateTimeOffset.UtcNow;
+
+                await _dataContext.SaveChangesAsync();
+
+                return (true, "Equipment successfully returned!");
+            }
 
             foreach (var supply in returnSupply)
             {
@@ -157,22 +189,22 @@ namespace FacilitatorLibrary.Services.Repositories
 
                 if (damagedEquipment != null && equipmentSupply != null)
                 {
-                    damagedEquipment.EQPTQOH += supply.returnedQuantity;
+                    damagedEquipment.EQPTQOH += supply.returnedQuantity ?? 0;
 
-                    goodEquipment.EQPTQOH += (equipmentSupply.EQPTQuantity - supply.returnedQuantity) ?? 0;
-                    goodEquipment.UpdatedAt = DateTimeOffset.Now;
+                    goodEquipment.EQPTQOH += (equipmentSupply.EQPTQuantity - supply.returnedQuantity ?? 0);
+                    goodEquipment.UpdatedAt = DateTimeOffset.UtcNow;
                 }
                 else if (goodEquipment != null && equipmentSupply != null)
                 {
 
-                    goodEquipment.EQPTQOH += (equipmentSupply.EQPTQuantity - supply.returnedQuantity) ?? 0;
+                    goodEquipment.EQPTQOH += (equipmentSupply.EQPTQuantity - supply.returnedQuantity ?? 0);
 
                     var newDamagedEquipment = new Equipment
                     {
                         EQPTCode = goodEquipment.EQPTCode,
                         EQPTDescript = goodEquipment.EQPTDescript,
                         EQPTPrice = goodEquipment.EQPTPrice,
-                        EQPTQOH = supply.returnedQuantity,
+                        EQPTQOH = supply.returnedQuantity ?? 0,
                         EQPTUnit = goodEquipment.EQPTUnit,
                         EQPTCategory = goodEquipment.EQPTCategory,
                         EQPTStatus = "Damaged",
@@ -182,11 +214,15 @@ namespace FacilitatorLibrary.Services.Repositories
 
 
                 }
-               await _dataContext.SaveChangesAsync();
+                await _dataContext.SaveChangesAsync();
 
             }
+            project.isDemobilization = false;
+            project.UpdatedAt = DateTimeOffset.UtcNow;
 
-            return (true, "Equipment returned!");
+            await _dataContext.SaveChangesAsync();
+
+            return (true, "Equipment successfully returned!");
         }
 
         public async Task<ICollection<AssignedEquipmentDTO>> ToReturnAssignedEquipment(string? userEmail)

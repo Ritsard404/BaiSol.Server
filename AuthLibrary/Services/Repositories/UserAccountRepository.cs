@@ -102,7 +102,7 @@ namespace AuthLibrary.Services.Repositories
                     {
                         var currentProject = await _dataContext.ProjectWorkLog
                             .Include(p => p.Project)
-                            .FirstOrDefaultAsync(c => c.Facilitator == user && c.Project.Status != "Finished");
+                            .FirstOrDefaultAsync(c => c.Facilitator == user && c.Project.Status != "Finished" );
 
                         var handledProjects = await _dataContext.ProjectWorkLog
                             .Include(p => p.Project)
@@ -112,7 +112,7 @@ namespace AuthLibrary.Services.Repositories
                             .ToListAsync();
 
 
-                        userDto.CurrentProjId = currentProject.Project.ProjId;
+                        userDto.CurrentProjId = currentProject?.Project?.ProjId;
                         userDto.ClientProjects = handledProjects;
 
                     }

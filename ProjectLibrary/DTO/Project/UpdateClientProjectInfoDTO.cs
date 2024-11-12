@@ -1,6 +1,12 @@
-﻿namespace ProjectLibrary.DTO.Project
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace ProjectLibrary.DTO.Project
 {
-    public class ClientProjectInfoDTO
+    public class UpdateClientProjectInfoDTO
     {
         public required string ProjId { get; set; }
         public required string ProjName { get; set; }
@@ -19,15 +25,5 @@
         public decimal? PaymentProgress { get; set; }
         public decimal? ProjectProgress { get; set; }
         public string? Status { get; set; }
-
-        public List<InstallerInfo>? Installers { get; set; }
-        public string? FacilitatorName { get; set; }
-        public string? FacilitatorEmail { get; set; }
-    }
-
-    public class InstallerInfo
-    {
-        public string? Name { get; set; }
-        public string? Position { get; set; }
     }
 }
