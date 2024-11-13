@@ -2,6 +2,7 @@
 using BaseLibrary.DTO.Gantt;
 using BaseLibrary.Services.Interfaces;
 using DataLibrary.Data;
+using DataLibrary.Models;
 using DataLibrary.Models.Gantt;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
@@ -92,16 +93,23 @@ namespace BaseLibrary.Services.Repositories
                 return (false, "Project not exist!");
 
 
-
             // Update task based on whether it's starting or finishing
             if (isStarting)
             {
                 task.ActualStartDate = DateTime.UtcNow;
+
+                string notifMessage = $"Dear {project.Client.FirstName}, the task '{task.TaskName}' for your project '{project.ProjName}' has started on {task.ActualStartDate:MMMM dd, yyyy}. We’re excited to begin this phase!";
+                await AddNotification($"Your Task Has Started: {task.TaskName}", notifMessage, "Task Progress Update", project);
+
             }
             else
             {
                 task.Progress = 100;
                 task.ActualEndDate = DateTime.UtcNow;
+
+                string notifMessage = $"Dear {project.Client.FirstName}, we are happy to inform you that the task '{task.TaskName}' for your project '{project.ProjName}' has been successfully completed on {task.ActualEndDate:MMMM dd, yyyy}. Thank you for your continued trust!";
+                await AddNotification($"Your Task is Complete: {task.TaskName}", notifMessage, "Task Progress Update", project);
+
             }
 
             // Save proof image
@@ -190,6 +198,14 @@ namespace BaseLibrary.Services.Repositories
 
 
                 await _dataContext.SaveChangesAsync();
+
+                string notifMessage = $"Dear {project.Client.FirstName}, we are thrilled to inform you that your project '{project.ProjName}' has been successfully completed as of {project.UpdatedAt:MMMM dd, yyyy}. We truly appreciate your trust in us and look forward to working with you again in the future!";
+                await AddNotification(
+                        "Project Finished: " + project.ProjName,  // Title of the notification
+                        notifMessage,                               // Message content
+                        "Project Update",                           // Type of notification
+                        project
+                    );
 
                 message = new EmailMessage(
                     new string[] { project.Client.Email },
@@ -602,5 +618,19 @@ namespace BaseLibrary.Services.Repositories
             };
         }
 
+        private async Task AddNotification(string title, string message, string type, Project project)
+        {
+            var notification = new Notification
+            {
+                Title = title,
+                Message = message,
+                Type = type,
+                CreatedAt = DateTimeOffset.Now,
+                Project = project
+            };
+
+            _dataContext.Notification.Add(notification);
+            await _dataContext.SaveChangesAsync();
+        }
     }
 }

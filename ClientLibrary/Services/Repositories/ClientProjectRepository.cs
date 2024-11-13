@@ -16,10 +16,11 @@ using BaseLibrary.Services.Interfaces;
 using System.Globalization;
 using Microsoft.IdentityModel.Tokens;
 using BaseLibrary.DTO.Gantt;
+using ClientLibrary.DTO.Notification;
 
 namespace ClientLibrary.Services.Repositories
 {
-    public class ClientProjectRepository(DataContext _dataContext, UserManager<AppUsers> _userManager, IConfiguration _config, IGanttRepository _gantt) : IClientProject
+    public class ClientProjectRepository(DataContext _dataContext, IConfiguration _config) : IClientProject
     {
         public async Task<ProjectId> GetClientProject(string userEmail)
         {
@@ -162,7 +163,76 @@ namespace ClientLibrary.Services.Repositories
             return projectHistory;
         }
 
-        public async Task<ICollection<TasksToDoDTO>> TasksToDo(string projId)
+        public async Task<NotificationDTO> NotificationMessage(string userEmail)
+        {
+            var notification = await _dataContext.Notification
+                .Include(p => p.Project)
+                .FirstOrDefaultAsync(u => u.Project.Client.Email == userEmail && u.Project != null);
+
+            var facilitator = await _dataContext.ProjectWorkLog
+                   .Include(f => f.Facilitator)
+                   .FirstOrDefaultAsync(p => p.Project == notification.Project && p.Facilitator != null);
+
+            return new NotificationDTO
+            {
+                NotifId = notification.NotifId,
+                Title = notification.Title,
+                Message = notification.Message,
+                Type = notification.Type,
+                CreatedAt = notification.CreatedAt.ToString("MMM dd, yyyy"),
+                isRead = notification.isRead,
+                FacilitatorEmail = facilitator?.Facilitator?.Email,
+                FacilitatorName = $"{facilitator?.Facilitator?.FirstName} {facilitator?.Facilitator?.LastName}"
+            };
+        }
+
+        public async Task<ICollection<NotificationDTO>> NotificationMessages(string userEmail)
+        {
+            var notifications = await _dataContext.Notification
+                .Include(p => p.Project)
+                .Where(u => u.Project.Client.Email == userEmail && u.Project != null)
+                .OrderByDescending(c => c.CreatedAt)
+                .ThenByDescending(p => p.Project.CreatedAt)
+                .ToListAsync();
+
+            var notifs = new List<NotificationDTO>();
+
+            foreach (var notification in notifications)
+            {
+                var facilitator = await _dataContext.ProjectWorkLog
+                    .Include(f => f.Facilitator)
+                    .FirstOrDefaultAsync(p => p.Project == notification.Project && p.Facilitator != null);
+
+                notifs.Add(new NotificationDTO
+                {
+                    NotifId = notification.NotifId,
+                    Title = notification.Title,
+                    Message = notification.Message,
+                    Type = notification.Type,
+                    CreatedAt = notification.CreatedAt.ToString("MMM dd, yyyy"),
+                    isRead = notification.isRead,
+                    FacilitatorEmail = facilitator?.Facilitator?.Email,
+                    FacilitatorName = $"{facilitator?.Facilitator?.FirstName} {facilitator?.Facilitator?.LastName}"
+                });
+            }
+
+            return notifs;
+        }
+
+        public async Task ReadNotif(int notifId)
+        {
+
+            var notification = await _dataContext.Notification
+                .FirstOrDefaultAsync(u => u.NotifId == notifId);
+
+            if (notification != null)
+            {
+                notification.isRead = true;
+                await _dataContext.SaveChangesAsync();
+            }
+        }
+
+        private async Task<ICollection<TasksToDoDTO>> TasksToDo(string projId)
         {
 
             var isProjectOnWork = await _dataContext.Project
