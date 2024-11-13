@@ -14,6 +14,12 @@ namespace BaiSol.Server.Controllers.Client
             var id = await _clientProject.GetClientProject(userEmail);
             return Ok(id);
         }
+        [HttpGet]
+        public async Task<IActionResult> GetClientProjectHistory( string userEmail)
+        {
+            var history = await _clientProject.GetClientProjectHistory(userEmail);
+            return Ok(history);
+        }
 
     }
 }

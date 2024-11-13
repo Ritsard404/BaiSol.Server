@@ -3,10 +3,6 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.10.34928.147
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AuthLibrary", "AuthLibrary\AuthLibrary.csproj", "{B8712182-67CB-4813-B50D-C018E0D5F979}"
-EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DataLibrary", "DataLibrary\DataLibrary.csproj", "{195BA8ED-B88E-4F3E-82DF-9F07240F8F42}"
-EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ProjectLibrary", "ProjectLibrary\ProjectLibrary.csproj", "{6AEA499C-4832-4ECB-B848-294CA56C7AB5}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ClientLibrary", "ClientLibrary\ClientLibrary.csproj", "{7B4A78B7-10C3-4F4C-AE38-01F1251F4F24}"
@@ -23,14 +19,6 @@ Global
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{B8712182-67CB-4813-B50D-C018E0D5F979}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{B8712182-67CB-4813-B50D-C018E0D5F979}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{B8712182-67CB-4813-B50D-C018E0D5F979}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{B8712182-67CB-4813-B50D-C018E0D5F979}.Release|Any CPU.Build.0 = Release|Any CPU
-		{195BA8ED-B88E-4F3E-82DF-9F07240F8F42}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{195BA8ED-B88E-4F3E-82DF-9F07240F8F42}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{195BA8ED-B88E-4F3E-82DF-9F07240F8F42}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{195BA8ED-B88E-4F3E-82DF-9F07240F8F42}.Release|Any CPU.Build.0 = Release|Any CPU
 		{6AEA499C-4832-4ECB-B848-294CA56C7AB5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{6AEA499C-4832-4ECB-B848-294CA56C7AB5}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{6AEA499C-4832-4ECB-B848-294CA56C7AB5}.Release|Any CPU.ActiveCfg = Release|Any CPU

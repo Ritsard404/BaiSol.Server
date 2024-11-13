@@ -10,5 +10,7 @@ namespace ClientLibrary.Services.Interfaces
     public interface IClientProject
     {
         Task<ProjectId> GetClientProject(string userEmail);
+
+        Task<ICollection<ClientProjectHistoryDTO>> GetClientProjectHistory(string userEmail);
     }
 }
