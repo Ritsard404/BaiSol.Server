@@ -10,6 +10,6 @@ namespace ProjectLibrary.DTO.Project
         public required string SystemType { get; set; }
         public required decimal kWCapacity { get; set; }
         [JsonIgnore]
-        public required string ipAddress { get; set; }
+        public string? ipAddress { get; set; }
     }
 }

@@ -110,6 +110,7 @@ namespace BaiSol.Server.Controllers.Projects
 
             return Ok(message);
         }
+
         [HttpPut("Update-Profit-Rate")]
         public async Task<IActionResult> UpdateProfit(UpdateProfitRate updateProfit)
         {

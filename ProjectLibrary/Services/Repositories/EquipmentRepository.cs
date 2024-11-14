@@ -174,7 +174,7 @@ namespace ProjectLibrary.Services.Repositories
                 });
             }
 
-            return equipmentList.OrderBy(o => o.EQPTCtgry).ThenBy(c => c.CreatedAt).ToList();
+            return equipmentList.OrderBy(o => o.EQPTCtgry).ThenByDescending(s=>s.EQPTStatus).ThenBy(c => c.CreatedAt).ToList();
 
         }
 

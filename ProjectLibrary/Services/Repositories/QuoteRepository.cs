@@ -302,10 +302,6 @@ namespace ProjectLibrary.Services.Repositories
                 .Where(p => p.Project.ProjId == projectID)
                 .ToListAsync();
 
-            //var quoteMaterialSupply = await _dataContext.Labor
-            //    .Where(p => p.Project.ProjId == null)
-            //    .ToListAsync();
-
             var laborCostList = quoteMaterialSupply
                 .Select(l => new LaborCostDto
                 {
@@ -319,9 +315,24 @@ namespace ProjectLibrary.Services.Repositories
                 })
                 .ToList();
 
+            // Define the custom order for sorting
+            var orderedDescriptions = new List<string>
+                {
+                    "Manpower",
+                    "Project Manager - Electrical Engr.",
+                    "Mobilization/Demob",
+                    "Tools & Equipment"
+                };
+
+            // Sort with the custom order at the top and "Other Incidental Costs" at the end
+            laborCostList = laborCostList
+                .OrderBy(l => orderedDescriptions.Contains(l.Description) ? orderedDescriptions.IndexOf(l.Description) : int.MaxValue)
+                .ThenBy(l => l.Description == "Other Incidental Costs" ? int.MaxValue : 0)
+                .ToList();
 
             return laborCostList;
         }
+
 
         public async Task<ICollection<AllMaterialCategoriesExpense>> GetMaterialCategoryCostQuote(string? projectID)
         {
@@ -407,7 +418,7 @@ namespace ProjectLibrary.Services.Repositories
                             Category = material.Material?.MTLCategory ?? "Unknown", // Handle null categories
                             UnitCost = material.Material?.MTLPrice ?? 0, // Handle null prices
                             TotalUnitCost = (decimal)((material.MTLQuantity ?? 0) * (material.Material?.MTLPrice ?? 0)),
-                            BuildUpCost = (decimal)((material.MTLQuantity ?? 0) * (material.Material?.MTLPrice ?? 0) * (1+material.Project.ProfitRate)),
+                            BuildUpCost = (decimal)((material.MTLQuantity ?? 0) * (material.Material?.MTLPrice ?? 0) * (1 + material.Project.ProfitRate)),
                             CreatedAt = DateTime.UtcNow.ToString("MMM dd, yyyy"),
                             UpdatedAt = DateTime.UtcNow.ToString("MMM dd, yyyy"),
                         })

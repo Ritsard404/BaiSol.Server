@@ -21,10 +21,10 @@ namespace ProjectLibrary.Services.Repositories
     {
         public async Task<string> AddNewClientProject(ProjectDto projectDto)
         {
-            if (projectDto == null)
-            {
-                throw new ArgumentNullException(nameof(projectDto));
-            }
+            //if (projectDto == null)
+            //{
+            //    throw new ArgumentNullException(nameof(projectDto));
+            //}
 
             // Check if the client exists
             var client = await _userManager.FindByIdAsync(projectDto.ClientId);
@@ -78,10 +78,12 @@ namespace ProjectLibrary.Services.Repositories
                 }
             }
 
-            await _userLogs.LogUserActionAsync(client.Email, "Create", "Project", newProject.ProjId, $"New project created", projectDto.ipAddress);
 
             // Save changes to the database
             var saveResult = await Save();
+
+            await _userLogs.LogUserActionAsync(client.Email, "Create", "Project", newProject.ProjId, $"New project created", projectDto.ipAddress);
+
 
             return saveResult ? null : "Something went wrong while saving";
         }
@@ -483,32 +485,47 @@ namespace ProjectLibrary.Services.Repositories
 
             if (client == null) return (false, "Client not found");
 
-            var labor = await _dataContext.Labor
+            var laborManpower = await _dataContext.Labor
                 .Include(p => p.Project)
                 .FirstOrDefaultAsync(i => i.Project.ProjId == project.ProjId && i.LaborDescript == "Manpower");
 
+            var laborFacilitator = await _dataContext.Labor
+                .Include(p => p.Project)
+                .FirstOrDefaultAsync(i => i.Project.ProjId == project.ProjId && i.LaborDescript == "Project Manager - Electrical Engr.");
 
-            // Update labor quantity based on kW capacity, if there's a change
-            if (project.kWCapacity != updateProject.kWCapacity && labor != null)
+            // Update laborManpower quantity based on kW capacity, if there's a change
+            if (project.kWCapacity != updateProject.kWCapacity && laborManpower != null && laborFacilitator != null)
             {
                 if (updateProject.kWCapacity <= 5)
                 {
-                    labor.LaborQuantity = 5;
+                    laborManpower.LaborQuantity = 5;
+                    laborManpower.LaborNumUnit = 7;
+                    laborFacilitator.LaborNumUnit = 7;
                 }
                 else if (updateProject.kWCapacity > 5 && updateProject.kWCapacity <= 10)
                 {
-                    labor.LaborQuantity = 7;
+                    laborManpower.LaborQuantity = 7;
+                    laborManpower.LaborNumUnit = 15;
+                    laborFacilitator.LaborNumUnit = 15;
                 }
                 else if (updateProject.kWCapacity > 10 && updateProject.kWCapacity <= 15)
                 {
-                    labor.LaborQuantity = 10;
+                    laborManpower.LaborQuantity = 10;
+                    laborManpower.LaborNumUnit = 25;
+                    laborFacilitator.LaborNumUnit = 25;
                 }
                 else
                 {
-                    labor.LaborQuantity = 12;
+                    laborManpower.LaborQuantity = 12;
+                    laborManpower.LaborNumUnit = 35;
+                    laborFacilitator.LaborNumUnit = 35;
                 }
 
-                labor.UpdatedAt = DateTimeOffset.UtcNow;
+                laborManpower.UpdatedAt = DateTimeOffset.UtcNow;
+                laborFacilitator.UpdatedAt = DateTimeOffset.UtcNow;
+
+                _dataContext.Labor.Update(laborManpower);
+                _dataContext.Labor.Update(laborFacilitator);
             }
 
             // Update project properties
@@ -530,7 +547,6 @@ namespace ProjectLibrary.Services.Repositories
 
             // Update the project entity in the context
             _dataContext.Project.Update(project);
-            _dataContext.Labor.Update(labor);
 
 
             // Update the client entity
@@ -785,6 +801,7 @@ namespace ProjectLibrary.Services.Repositories
                     isMale = d.Client.Client.IsMale,
                     status = d.Status
                 })
+                .OrderByDescending(s => s.status)
                 .ToListAsync(); // Fetch all projects first
 
             // Step 2: Calculate the average progress and payment progress for each project
@@ -881,8 +898,8 @@ namespace ProjectLibrary.Services.Repositories
                     PaymentProgress = paymentProgress, // Include payment progress
                     Status = project.status,
                     Installers = installerList,
-                    FacilitatorEmail= facilitator?.Facilitator?.Email,
-                    FacilitatorName=$"{facilitator?.Facilitator?.FirstName} {facilitator?.Facilitator?.LastName}"
+                    FacilitatorEmail = facilitator?.Facilitator?.Email,
+                    FacilitatorName = $"{facilitator?.Facilitator?.FirstName} {facilitator?.Facilitator?.LastName}"
                 });
             }
 

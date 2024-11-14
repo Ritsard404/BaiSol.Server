@@ -194,7 +194,7 @@ namespace BaseLibrary.Services.Repositories
             {
                 project.Status = "Finished";
                 project.isDemobilization = true;
-                project.UpdatedAt = DateTimeOffset.UtcNow;
+                project.UpdatedAt = DateTimeOffset.UtcNow.UtcDateTime;
 
 
                 await _dataContext.SaveChangesAsync();
@@ -625,7 +625,7 @@ namespace BaseLibrary.Services.Repositories
                 Title = title,
                 Message = message,
                 Type = type,
-                CreatedAt = DateTimeOffset.Now,
+                CreatedAt = DateTimeOffset.UtcNow,
                 Project = project
             };
 

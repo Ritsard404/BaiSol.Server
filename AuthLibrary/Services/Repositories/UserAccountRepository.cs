@@ -74,8 +74,8 @@ namespace AuthLibrary.Services.Repositories
 
             var users = await _dataContext.Users
                 .Include(user => user.Client)
-                .Where(user => user.EmailConfirmed && user.Email != ownerEmail) // Consider re-enabling if needed
-//.Where(u => u.Email != ownerEmail)
+                .Where(user => user.Email != ownerEmail) // Consider re-enabling if needed
+                                                         //.Where(u => u.Email != ownerEmail)
                 .ToListAsync();
 
             var userList = new List<UsersDto>();
@@ -123,7 +123,7 @@ namespace AuthLibrary.Services.Repositories
                             .FirstOrDefaultAsync(c => c.Client == user);
 
                         var currentProj = await _dataContext.Project
-                            .FirstOrDefaultAsync(c => c.Client == user&&c.Status!="Finished");
+                            .FirstOrDefaultAsync(c => c.Client == user && c.Status != "Finished");
 
                         var projects = await _dataContext.Project
                             .Where(c => c.Client == user)
@@ -135,7 +135,7 @@ namespace AuthLibrary.Services.Repositories
                         userDto.ClientAddress = user.Client?.ClientAddress;
                         userDto.Sex = user.Client?.IsMale == true ? "Male" : "Female";
                         userDto.kWCapacity = project?.kWCapacity;
-                        userDto.CurrentProjId = project?.ProjId;
+                        userDto.CurrentProjId = project?.SystemType + " " + project?.kWCapacity + "kW";
                         userDto.ClientProjects = projects;
                     }
 
@@ -394,29 +394,34 @@ namespace AuthLibrary.Services.Repositories
                 _dataContext.Project.Add(newProject);
 
                 var manPowerQTY = 0;
+                var estimationDate = 0;
 
                 if (clientDto.kWCapacity <= 5)
                 {
                     manPowerQTY = 5;
+                    estimationDate = 7;
                 }
                 else if (clientDto.kWCapacity > 5 && clientDto.kWCapacity <= 10)
                 {
                     manPowerQTY = 7;
+                    estimationDate = 15;
                 }
                 else if (clientDto.kWCapacity > 10 && clientDto.kWCapacity <= 15)
                 {
                     manPowerQTY = 10;
+                    estimationDate = 25;
                 }
                 else
                 {
                     manPowerQTY = 12;
+                    estimationDate = 35;
                 }
 
 
                 var predefinedCosts = new[]
                 {
-                new Labor { LaborDescript = "Manpower", LaborQuantity = manPowerQTY, LaborUnit = "Days", Project = newProject },
-                new Labor { LaborDescript = "Project Manager - Electrical Engr.", LaborQuantity = 1, LaborUnit = "Days", Project = newProject },
+                new Labor { LaborDescript = "Manpower", LaborQuantity = manPowerQTY, LaborUnit = "Days", LaborNumUnit=estimationDate, Project = newProject },
+                new Labor { LaborDescript = "Project Manager - Electrical Engr.", LaborQuantity = 1, LaborUnit = "Days", LaborNumUnit=estimationDate, Project = newProject },
                 new Labor { LaborDescript = "Mobilization/Demob", LaborUnit = "Lot", Project = newProject },
                 new Labor { LaborDescript = "Tools & Equipment", LaborUnit = "Lot", Project = newProject },
                 new Labor { LaborDescript = "Other Incidental Costs", LaborUnit = "Lot", Project = newProject }
@@ -453,11 +458,10 @@ namespace AuthLibrary.Services.Repositories
         public async Task<ICollection<AvailableClients>> GetAvailableClients()
         {
             var clients = await _dataContext.Project
-                .Include(p => p.Client) // Ensure Client is included
-                .Where(p => p.Status == "Finished")
-                //.Where(p => p.Status == "Finished" && p.Client.EmailConfirmed)
-                .GroupBy(p => p.Client) // Group by ClientId to ensure distinctness
-                .Select(g => g.FirstOrDefault()) // Select the first Project from each group
+                .Include(p => p.Client) // Include Client to ensure client details are loaded
+                .GroupBy(p => p.Client) // Group projects by each Client
+                .Where(g => g.All(p => p.Status == "Finished" && p.Client.EmailConfirmed)) // Only include clients whose all projects are finished
+                .Select(g => g.Key) // Select the client from each group
                 .ToListAsync();
 
             var clientList = new List<AvailableClients>();
@@ -470,8 +474,8 @@ namespace AuthLibrary.Services.Repositories
                 //{
                 clientList.Add(new AvailableClients
                 {
-                    ClientId = client.Client.Id,
-                    ClientEmail = client.Client.NormalizedEmail
+                    ClientId = client.Id,
+                    ClientEmail = client.NormalizedEmail
                 });
                 //}
             }
