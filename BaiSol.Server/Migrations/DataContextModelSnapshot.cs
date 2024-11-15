@@ -248,7 +248,10 @@ namespace BaiSol.Server.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("id"));
 
-                    b.Property<DateTimeOffset>("CreatedAt")
+                    b.Property<DateTimeOffset?>("ActualStart")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset>("EstimationStart")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<bool>("IsFinish")
@@ -258,6 +261,9 @@ namespace BaiSol.Server.Migrations
                         .HasColumnType("text");
 
                     b.Property<int?>("TaskId")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("TaskProgress")
                         .HasColumnType("integer");
 
                     b.HasKey("id");
@@ -280,9 +286,6 @@ namespace BaiSol.Server.Migrations
 
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
-
-                    b.Property<int>("MyProperty")
-                        .HasColumnType("integer");
 
                     b.Property<string>("Name")
                         .IsRequired()

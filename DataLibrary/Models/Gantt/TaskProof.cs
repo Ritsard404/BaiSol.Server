@@ -14,7 +14,9 @@ namespace DataLibrary.Models.Gantt
         public int id { get; set; }
         public string? ProofImage { get; set; }
         public bool IsFinish { get; set; } = false;
-        public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
+        public DateTimeOffset? ActualStart { get; set; }
+        public DateTimeOffset EstimationStart { get; set; } = DateTimeOffset.UtcNow;
+        public int? TaskProgress { get; set; }
         public GanttData? Task { get; set; }
     }
 }

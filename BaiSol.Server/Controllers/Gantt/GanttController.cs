@@ -95,10 +95,19 @@ namespace BaiSol.Server.Controllers.Gantt
 
             return Ok(tasks);
         }
+
         [HttpGet("[action]")]
         public async Task<IActionResult> TasksToDo(string projId)
         {
             var tasks = await _gantt.TasksToDo(projId);
+
+            return Ok(tasks);
+        }
+
+        [HttpGet("[action]")]
+        public async Task<IActionResult> TaskToDo(string projId)
+        {
+            var tasks = await _gantt.TaskToDo(projId);
 
             return Ok(tasks);
         }
@@ -204,6 +213,16 @@ namespace BaiSol.Server.Controllers.Gantt
         public async Task<IActionResult> StartTask(UploadTaskDTO finishTask)
         {
             var (isSuccess, Message) = await _gantt.HandleTask(finishTask, true);
+            if (!isSuccess)
+                return BadRequest(Message);
+
+            return Ok(Message);
+        }
+
+        [HttpPost("[action]")]
+        public async Task<IActionResult> SubmitTaskReport(UploadTaskDTO finishTask)
+        {
+            var (isSuccess, Message) = await _gantt.SubmitTaskReport(finishTask);
             if (!isSuccess)
                 return BadRequest(Message);
 

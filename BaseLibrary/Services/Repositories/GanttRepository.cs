@@ -221,6 +221,112 @@ namespace BaseLibrary.Services.Repositories
                 : (true, "Task finished! Your report submitted to the admin.");
         }
 
+        public async Task<(bool, string)> SubmitTaskReport(UploadTaskDTO taskDto)
+        {
+
+            var task = await _dataContext.TaskProof
+                .Include(g => g.Task)
+                .FirstOrDefaultAsync(i => i.id == taskDto.id);
+            if (task == null)
+                return (false, "Task not exist!");
+
+            var project = await _dataContext.Project
+                .Include(c => c.Client)
+                .Include(c => c.Client.Client)
+                .FirstOrDefaultAsync(i => i.ProjId == task.Task.ProjId);
+            if (project == null)
+                return (false, "Project not exist!");
+
+            // Save proof image
+            string[] allowedFileExtentions = { ".jpg", ".jpeg", ".png" };
+            string createdImageName = await SaveFileAsync(taskDto.ProofImage, allowedFileExtentions);
+
+            task.ProofImage = createdImageName;
+            task.IsFinish = true;
+            task.ActualStart = DateTimeOffset.UtcNow;
+
+            // Update gantt task
+            task.Task.Progress = task.TaskProgress;
+            if (!task.Task.ActualStartDate.HasValue)
+            {
+                task.Task.ActualStartDate = DateTime.UtcNow;
+            }
+
+            if (task.TaskProgress == 100)
+            {
+                task.Task.ActualEndDate = DateTime.UtcNow;
+            }
+
+            await _dataContext.SaveChangesAsync();
+
+            // If task has a parent, update the parent's actual dates based on all child levels
+            if (task.Task.ParentId.HasValue)
+            {
+                await UpdateParentDatesRecursive(task.Task.ParentId.Value);
+            }
+
+            EmailMessage message;
+
+            string greeting = $"<p>Hello {(project.Client.Client.IsMale ? "Mr." : "Ms.")} {project.Client.LastName},</p>";
+
+            string messageContent = $@"
+                <p>We are excited to inform you that the task <strong>{task.Task.TaskName}</strong> for your solar installation project <strong>{project.ProjName}</strong> is now at <strong>{task.TaskProgress}%</strong> completion!</p>
+                <p>The latest update was made on <strong>{task.ActualStart:MMMM dd, yyyy}</strong>. We are making great progress, and your project is moving forward as planned!</p>
+                <p>Please log in to your account on our site to monitor the ongoing progress and get the latest updates on your project.</p>
+            ";
+
+            string footer = @"
+                <p>Best regards,<br>The BaiSol Team</p>
+                <p>If you have any questions, feel free to reach out to us.</p>
+            ";
+
+            message = new EmailMessage(
+                   new string[] { project.Client.Email },
+                   "Project Progress Update: " + task.Task.TaskName,
+                   $"{greeting}{messageContent}{footer}"
+               );
+
+            _email.SendEmail(message);
+
+
+            var allTask = await TaskToDo(project.ProjId);
+            var lastTask = allTask.Last().TaskList.Last();
+
+            string finishProjectMessage = $@"
+                    <p>We’re delighted to inform you that your project <strong>{project.ProjName}</strong> has been successfully completed!</p>
+                    <p>Completion Date: <strong>{project.UpdatedAt:MMMM dd, yyyy}</strong></p>
+                    <p>Thank you for trusting us with your project. We hope you’re satisfied with the results!</p>
+                    <p>Feel free to review all project details on our website.</p>
+                ";
+
+            if (lastTask!=null && lastTask.TaskProgress == 100)
+            {
+                project.Status = "Finished";
+                project.isDemobilization = true;
+                project.UpdatedAt = DateTimeOffset.UtcNow.UtcDateTime;
+
+
+                await _dataContext.SaveChangesAsync();
+
+                string notifMessage = $"Dear {project.Client.FirstName}, we are thrilled to inform you that your project '{project.ProjName}' has been successfully completed as of {project.UpdatedAt:MMMM dd, yyyy}. We truly appreciate your trust in us and look forward to working with you again in the future!";
+                await AddNotification(
+                        "Project Finished: " + project.ProjName,  // Title of the notification
+                        notifMessage,                               // Message content
+                        "Project Update",                           // Type of notification
+                        project
+                    );
+
+                message = new EmailMessage(
+                    new string[] { project.Client.Email },
+                    "Project Finished",
+                    $"{greeting}{finishProjectMessage}{footer}");
+
+                return (true, "All the tasks complete! The project is Finished.");
+            }
+
+            return (true, "Task finished! Your report submitted to the admin.");
+        }
+
         public async Task<string> SaveFileAsync(IFormFile imageFile, string[] allowedFileExtensions)
         {
             // Validate the input file
@@ -386,6 +492,104 @@ namespace BaseLibrary.Services.Repositories
 
             return toDoList;
         }
+        public async Task<ICollection<TaskToDoDTO>> TaskToDo(string projId)
+        {
+
+            var isProjectOnWork = await _dataContext.Project
+                .AnyAsync(i => i.ProjId == projId && i.Status == "OnWork");
+
+            // If the project is not "OnWork," return an empty list
+            if (!isProjectOnWork)
+                return new List<TaskToDoDTO>();
+
+            var tasks = await _dataContext.GanttData
+                .Where(p => p.ProjId == projId)
+                .Include(t => t.TaskProofs)
+                .OrderBy(s => s.PlannedStartDate)
+                .ToListAsync();
+
+            // Find tasks that are referenced as ParentId (tasks with subtasks)
+            var taskIdsWithSubtasks = tasks
+                .Where(t => tasks.Any(sub => sub.ParentId == t.TaskId))
+                .Select(t => t.TaskId)
+                .ToHashSet();
+
+            var toDoList = new List<TaskToDoDTO>();
+            bool previousTaskCompleted = true;
+
+            foreach (var task in tasks)
+            {
+                // Skip tasks that have subtasks
+                if (taskIdsWithSubtasks.Contains(task.TaskId))
+                    continue;
+
+                // Set IsEnable to true if the previous task is completed, otherwise false
+                bool isEnable = previousTaskCompleted;
+
+                var taskToDo = await _dataContext.TaskProof
+                    .Where(t => t.Task == task)
+                    .OrderBy(s => s.EstimationStart)
+                    .ToListAsync();
+
+                var tasksList = new List<TaskDTO>();
+                var isPrevTaskComplete = false;
+
+                foreach (var taskItem in taskToDo)
+                {
+                    bool isEnableTask = isPrevTaskComplete;
+                    var daysLate = 0;
+
+                    // Calculate days late only if ActualStart and EstimationStart are not null
+                    if (taskItem.ActualStart.HasValue)
+                    {
+                        daysLate = (taskItem.ActualStart.Value - taskItem.EstimationStart).Days;
+                    }
+
+                    tasksList.Add(new TaskDTO
+                    {
+                        id = taskItem.id,
+                        ProofImage = taskItem.ProofImage,
+                        ActualStart = taskItem.ActualStart?.ToString("MMM dd, yyyy") ?? "",
+                        EstimationStart = taskItem.EstimationStart.ToString("MMM dd, yyyy") ?? "",
+                        TaskProgress = taskItem.TaskProgress ?? 0,
+                        IsFinish = taskItem.IsFinish,
+                        IsEnable = isEnableTask,
+                        IsLate = taskItem.EstimationStart < taskItem.ActualStart,
+                        DaysLate = daysLate
+
+
+                    });
+                    isPrevTaskComplete = taskItem.IsFinish;
+
+                }
+
+                // Create the DTO object
+                var toDo = new TaskToDoDTO
+                {
+                    Id = task.Id,
+                    TaskName = task.TaskName,
+                    PlannedStartDate = task.PlannedStartDate?.ToString("MMM dd, yyyy") ?? "",
+                    PlannedEndDate = task.PlannedEndDate?.ToString("MMM dd, yyyy") ?? "",
+                    StartDate = task.ActualStartDate?.ToString("MMM dd, yyyy") ?? "",
+                    EndDate = task.ActualEndDate?.ToString("MMM dd, yyyy") ?? "",
+                    IsEnable = isEnable || (task.PlannedStartDate.HasValue && (task.PlannedStartDate.Value - DateTime.Today).Days <= 2),
+                    IsFinished = task.Progress == 100,
+                    IsStarting = task.ActualStartDate != null,
+                    DaysLate = task.ActualStartDate.HasValue && task.PlannedStartDate.HasValue
+                        ? (task.ActualStartDate.Value - task.PlannedStartDate.Value).Days
+                        : 0,
+                    TaskList = tasksList
+                };
+
+                // Add to the final list
+                toDoList.Add(toDo);
+
+                // Update previousTaskCompleted based on the current task's progress
+                previousTaskCompleted = task.Progress == 100;
+            }
+
+            return toDoList;
+        }
 
         private List<Subtask> GetNestedSubtasks(int parentId, Dictionary<int, FacilitatorTasksDTO> taskMap, List<GanttData> tasks)
         {
@@ -432,15 +636,14 @@ namespace BaseLibrary.Services.Repositories
                 return null;
 
             var paymentReferences = await _dataContext.Payment
-             .Where(p => p.Project == project)
-             .ToListAsync();
+                .Where(p => p.Project == project)
+                .ToListAsync();
 
             var totalAmount = await _payment.GetTotalProjectExpense(projId: projId);
 
             string payRef = string.Empty;
             string status = string.Empty;
             int createdAt = 0;
-
 
             var options = new RestClientOptions($"{_config["Payment:API"]}/{paymentReference.Id}");
             var client = new RestClient(options);
@@ -463,79 +666,64 @@ namespace BaseLibrary.Services.Repositories
 
                 status = currentStatus;
                 payRef = paymentReference.Id;
-
             }
-
-
-            //foreach (var reference in paymentReferences)
-            //{
-            //    var options = new RestClientOptions($"{_config["Payment:API"]}/{reference.Id}");
-            //    var client = new RestClient(options);
-            //    var request = new RestRequest("");
-
-            //    request.AddHeader("accept", "application/json");
-            //    request.AddHeader("authorization", $"Basic {_config["Payment:Key"]}");
-
-            //    var response = await client.GetAsync(request);
-
-            //    if (response.IsSuccessStatusCode)
-            //    {
-            //        var responseData = JsonDocument.Parse(response.Content);
-            //        var data = responseData.RootElement.GetProperty("data");
-            //        var attributes = data.GetProperty("attributes");
-
-            //        decimal amount = attributes.GetProperty("amount").GetDecimal() / 100m;
-            //        string currentStatus = attributes.GetProperty("status").GetString();
-            //        createdAt = attributes.GetProperty("created_at").GetInt32();
-
-            //        // Update largest amount and status if a larger amount is found
-            //        if (amount == (totalAmount * 0.6m))
-            //        {
-            //            status = currentStatus;
-            //            payRef = reference.Id;
-            //        }
-            //    }
-            //}
-
-            //var payment = await _dataContext.Payment
-            //    .FirstOrDefaultAsync(i => i.Id == payRef);
-            //if (payment == null)
-            //    return null;
-
-            //if (status != "paid" && !payment.IsCashPayed)
-            //    return null;
 
             int estimatedDaysToEnd = project.kWCapacity <= 5 ? 7
                    : project.kWCapacity >= 6 && project.kWCapacity <= 10 ? 15
                    : project.kWCapacity >= 11 && project.kWCapacity <= 15 ? 25
                    : 35;
 
+            DateTimeOffset CalculateEndDateExcludingWeekends(DateTimeOffset startDate, int daysToAdd)
+            {
+                DateTimeOffset endDate = startDate;
+                int daysAdded = 0;
+
+                while (daysAdded < daysToAdd)
+                {
+                    endDate = endDate.AddDays(1);
+                    if (endDate.DayOfWeek != DayOfWeek.Saturday && endDate.DayOfWeek != DayOfWeek.Sunday)
+                    {
+                        daysAdded++;
+                    }
+                }
+
+                return endDate;
+            }
+
             ProjectDateInfo info;
 
             if (paymentReference.IsCashPayed)
             {
+                DateTimeOffset startDate = paymentReference.CashPaidAt ?? DateTimeOffset.UtcNow;
+                DateTimeOffset endDate = CalculateEndDateExcludingWeekends(startDate, estimatedDaysToEnd);
+
                 info = new ProjectDateInfo
                 {
                     AssignedFacilitator = facilitator.Facilitator.Email ?? "No Facilitator Assigned",
-                    StartDate = paymentReference.CashPaidAt?.ToString("yyyy-MM-dd"),
-                    EstimatedStartDate = paymentReference.CashPaidAt?.AddDays(2).ToString("MMMM dd, yyyy"),
-                    EstimatedEndDate = paymentReference.CashPaidAt?.AddDays(estimatedDaysToEnd + 2).ToString("MMMM dd, yyyy")
+                    StartDate = startDate.ToString("yyyy-MM-dd"),
+                    EndDate = endDate.ToString("yyyy-MM-dd"),
+                    EstimatedStartDate = startDate.ToString("MMMM dd, yyyy"),
+                    EstimatedEndDate = endDate.ToString("MMMM dd, yyyy"),
+                    EstimatedProjectDays = estimatedDaysToEnd.ToString()
                 };
             }
             else
             {
+                DateTimeOffset startDate = DateTimeOffset.FromUnixTimeSeconds(createdAt).UtcDateTime;
+                DateTimeOffset endDate = CalculateEndDateExcludingWeekends(startDate, estimatedDaysToEnd);
+
                 info = new ProjectDateInfo
                 {
                     AssignedFacilitator = facilitator.Facilitator.Email ?? "No Facilitator Assigned",
-                    StartDate = DateTimeOffset.FromUnixTimeSeconds(createdAt).UtcDateTime.ToString("yyyy-MM-dd"),
-                    EstimatedStartDate = DateTimeOffset.FromUnixTimeSeconds(createdAt).AddDays(2).UtcDateTime.ToString("MMMM dd, yyyy"),
-                    EstimatedEndDate = project.CreatedAt.AddDays(9).AddDays(estimatedDaysToEnd + 2).UtcDateTime.ToString("MMMM dd, yyyy")
+                    StartDate = startDate.ToString("yyyy-MM-dd"),
+                    EndDate = endDate.ToString("yyyy-MM-dd"),
+                    EstimatedStartDate = startDate.ToString("MMMM dd, yyyy"),
+                    EstimatedEndDate = endDate.ToString("MMMM dd, yyyy"),
+                    EstimatedProjectDays = estimatedDaysToEnd.ToString()
                 };
             }
 
-
             return info;
-
         }
 
         public async Task<ProjProgressDTO> ProjectProgress(string projId)
@@ -632,5 +820,6 @@ namespace BaseLibrary.Services.Repositories
             _dataContext.Notification.Add(notification);
             await _dataContext.SaveChangesAsync();
         }
+
     }
 }

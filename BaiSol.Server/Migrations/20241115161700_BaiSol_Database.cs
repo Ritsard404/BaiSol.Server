@@ -236,7 +236,6 @@ namespace BaiSol.Server.Migrations
                     Name = table.Column<string>(type: "text", nullable: false),
                     Position = table.Column<string>(type: "text", nullable: false),
                     Status = table.Column<string>(type: "text", nullable: false),
-                    MyProperty = table.Column<int>(type: "integer", nullable: false),
                     UpdatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
                     CreatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
                     AdminId = table.Column<string>(type: "text", nullable: true)
@@ -494,7 +493,9 @@ namespace BaiSol.Server.Migrations
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     ProofImage = table.Column<string>(type: "text", nullable: true),
                     IsFinish = table.Column<bool>(type: "boolean", nullable: false),
-                    CreatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    ActualStart = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
+                    EstimationStart = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    TaskProgress = table.Column<int>(type: "integer", nullable: true),
                     TaskId = table.Column<int>(type: "integer", nullable: true)
                 },
                 constraints: table =>

@@ -4,6 +4,7 @@ using AutoMapper.Configuration.Annotations;
 using BaseLibrary.Services.Interfaces;
 using DataLibrary.Data;
 using DataLibrary.Models;
+using DataLibrary.Models.Gantt;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -197,7 +198,8 @@ namespace ProjectLibrary.Services.Repositories
                 .Include(p => p.Client) // Include related Client data
                 .Include(p => p.Client.Client)
                 .Where(c => c.Client.EmailConfirmed == true)
-                .OrderBy(p => p.CreatedAt) // Order by CreatedAt first
+                .OrderByDescending(f => f.Status)
+                .ThenByDescending(p => p.CreatedAt) // Order by CreatedAt first
                 .ToListAsync(); // Fetch the data
 
             // Map to DTO after fetching data
@@ -637,6 +639,63 @@ namespace ProjectLibrary.Services.Repositories
 
             project.Status = "OnWork";
             project.UpdatedAt = DateTimeOffset.UtcNow;
+
+            var tasks = await _dataContext.GanttData
+                .Where(p => p.ProjId == project.ProjId)
+                .Include(t => t.TaskProofs)
+                .OrderBy(s => s.PlannedStartDate)
+                .ToListAsync();
+
+            // Find tasks that are referenced as ParentId (tasks with subtasks)
+            var taskIdsWithSubtasks = tasks
+                .Where(t => tasks.Any(sub => sub.ParentId == t.TaskId))
+                .Select(t => t.TaskId)
+                .ToHashSet();
+
+            if (tasks == null)
+                return (false, "Empty Tasks");
+
+            int? CalculateWorkDays(DateTime? startDate, DateTime? endDate)
+            {
+                if (!startDate.HasValue || !endDate.HasValue)
+                    return null;
+
+                DateTime start = startDate.Value;
+                DateTime end = endDate.Value;
+                int workDays = 0;
+
+                while (start <= end)
+                {
+                    if (start.DayOfWeek != DayOfWeek.Saturday && start.DayOfWeek != DayOfWeek.Sunday)
+                    {
+                        workDays++;
+                    }
+                    start = start.AddDays(1);
+                }
+
+                return workDays;
+            }
+
+            foreach (var task in tasks)
+            {
+                // Skip tasks that have subtasks
+                if (taskIdsWithSubtasks.Contains(task.TaskId) || !task.PlannedStartDate.HasValue)
+                    continue;
+
+                int? taskWorkDays = CalculateWorkDays(task.PlannedStartDate, task.PlannedEndDate);
+
+                for (int i = 0; i < taskWorkDays; i++)
+                {
+                    var taskToDo = new TaskProof
+                    {
+                        EstimationStart = task.PlannedStartDate.Value.AddDays(i),
+                        TaskProgress = (int)((double)(i + 1) / taskWorkDays.Value * 100),
+                        Task = task
+                    };
+
+                    await _dataContext.TaskProof.AddAsync(taskToDo);
+                }
+            }
 
             _dataContext.Project.Update(project);
             await _dataContext.SaveChangesAsync();
