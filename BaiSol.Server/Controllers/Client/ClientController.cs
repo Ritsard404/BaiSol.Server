@@ -36,9 +36,9 @@ namespace BaiSol.Server.Controllers.Client
         }
 
         [HttpGet]
-        public async Task<IActionResult> NotificationMessage(string userEmail)
+        public async Task<IActionResult> NotificationMessage(int notifId)
         {
-            var notifs = await _clientProject.NotificationMessage(userEmail);
+            var notifs = await _clientProject.NotificationMessage(notifId);
             return Ok(notifs);
         }
         [HttpPut]

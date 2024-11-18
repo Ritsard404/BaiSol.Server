@@ -289,15 +289,19 @@ namespace BaseLibrary.Services.Repositories
             _email.SendEmail(message);
 
 
-            var allTask = await TaskToDo(project.ProjId);
+            //var allTask = await TaskToDo(project.ProjId);
 
-            var lastTaskGroup = allTask.LastOrDefault();
-            if (lastTaskGroup == null || lastTaskGroup.TaskList == null || !lastTaskGroup.TaskList.Any())
-            {
-                return (true, "Task finished! Your report submitted to the admin.");
-            }
+            //var lastTaskGroup = allTask.LastOrDefault();
+            //if (lastTaskGroup == null || lastTaskGroup.TaskList == null || !lastTaskGroup.TaskList.Any())
+            //{
+            //    return (true, "Task finished! Your report submitted to the admin.");
+            //}
 
-            var lastTask = lastTaskGroup.TaskList.LastOrDefault();
+            //var lastTask = lastTaskGroup.TaskList.LastOrDefault();
+
+            var allFinished = await _dataContext.TaskProof
+               .Where(t => t.Task.ProjId == project.ProjId)
+               .AllAsync(t => t.IsFinish);
 
             string finishProjectMessage = $@"
                     <p>We’re delighted to inform you that your project <strong>{project.ProjName}</strong> has been successfully completed!</p>
@@ -306,7 +310,7 @@ namespace BaseLibrary.Services.Repositories
                     <p>Feel free to review all project details on our website.</p>
                 ";
 
-            if (lastTask != null && lastTask.TaskProgress == 100 && lastTask.IsFinish)
+            if (allFinished)
             {
                 project.Status = "Finished";
                 project.isDemobilization = true;
@@ -503,7 +507,8 @@ namespace BaseLibrary.Services.Repositories
         {
 
             var isProjectOnWork = await _dataContext.Project
-                .AnyAsync(i => i.ProjId == projId && i.Status == "OnWork");
+                //.AnyAsync(i => i.ProjId == projId && i.Status == "OnWork");
+                .AnyAsync(i => i.ProjId == projId);
 
             // If the project is not "OnWork," return an empty list
             if (!isProjectOnWork)

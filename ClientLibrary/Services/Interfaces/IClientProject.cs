@@ -15,7 +15,7 @@ namespace ClientLibrary.Services.Interfaces
         Task<ICollection<ClientProjectHistoryDTO>> GetClientProjectHistory(string userEmail);
 
         Task<ICollection<NotificationDTO>> NotificationMessages(string userEmail);
-        Task<NotificationDTO> NotificationMessage(string userEmail);
+        Task<NotificationDTO> NotificationMessage(int notifId);
         Task ReadNotif(int notifId);
     }
 }

@@ -163,11 +163,11 @@ namespace ClientLibrary.Services.Repositories
             return projectHistory;
         }
 
-        public async Task<NotificationDTO> NotificationMessage(string userEmail)
+        public async Task<NotificationDTO> NotificationMessage(int notifId)
         {
             var notification = await _dataContext.Notification
                 .Include(p => p.Project)
-                .FirstOrDefaultAsync(u => u.Project.Client.Email == userEmail && u.Project != null);
+                .FirstOrDefaultAsync(u => u.NotifId == notifId && u.Project != null);
 
             var facilitator = await _dataContext.ProjectWorkLog
                    .Include(f => f.Facilitator)
