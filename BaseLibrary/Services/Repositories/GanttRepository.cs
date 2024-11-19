@@ -319,10 +319,10 @@ namespace BaseLibrary.Services.Repositories
 
                 await _dataContext.SaveChangesAsync();
 
-                string notifMessage = $"Dear {project.Client.FirstName}, we are thrilled to inform you that your project '{project.ProjName}' has been successfully completed as of {project.UpdatedAt:MMMM dd, yyyy}. We truly appreciate your trust in us and look forward to working with you again in the future!";
+                string notifMessageFinish = $"Dear {project.Client.FirstName}, we are thrilled to inform you that your project '{project.SystemType} {project.kWCapacity}' has been successfully completed as of {project.UpdatedAt:MMMM dd, yyyy}. We truly appreciate your trust in us and look forward to working with you again in the future!";
                 await AddNotification(
                         "Project Finished: " + project.ProjName,  // Title of the notification
-                        notifMessage,                               // Message content
+                        notifMessageFinish,                               // Message content
                         "Project Update",                           // Type of notification
                         project
                     );
@@ -334,6 +334,9 @@ namespace BaseLibrary.Services.Repositories
 
                 return (true, "All the tasks complete! The project is Finished.");
             }
+
+            string notifMessage = $"Dear {project.Client.FirstName}, we are pleased to inform you that the task '{task.Task.TaskName}' for your project '{project.SystemType} {project.kWCapacity} kW' is now {task.TaskProgress}% complete as of {task.ActualStart:MMMM dd, yyyy}. We deeply value your trust and partnership. Thank you!";
+            await AddNotification($"Project Update: {task.Task.TaskName}", notifMessage, "Task Progress Update", project);
 
             return (true, "Task finished! Your report submitted to the admin.");
         }
