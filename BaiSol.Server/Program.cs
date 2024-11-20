@@ -124,7 +124,7 @@ namespace BaiSol.Server
             // Add Authentication to Swagger UI
             builder.Services.AddSwaggerGen(options =>
             {
-                options.SwaggerDoc("v1", new OpenApiInfo { Title = "Auth API", Version = "v1" });
+                options.SwaggerDoc("v1", new OpenApiInfo { Title = "BaiSol API", Version = "v1" });
                 options.AddSecurityDefinition("oauth2", new OpenApiSecurityScheme
                 {
                     In = ParameterLocation.Header,

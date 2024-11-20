@@ -869,18 +869,19 @@ namespace ProjectLibrary.Services.Repositories
             foreach (var project in projectData)
             {
                 // Fetch tasks for the current project
-                var tasks = await _dataContext.GanttData
-                    .Where(i => i.ProjId == project.ProjId && i.ParentId == null)
+                var tasksProof = await _dataContext.TaskProof
+                    .Include(t=>t.Task)
+                    .Where(i => i.Task.ProjId == project.ProjId)
                     .ToListAsync();
 
                 // Calculate the total progress
-                var tasksProgress = tasks.Sum(p => p.Progress) ?? 0;
+                var tasksProgress = tasksProof.Where(i => i.IsFinish).Count();
 
                 // Calculate the number of tasks
-                var taskCount = tasks.Count;
+                var taskCount = tasksProof.Count();
 
                 // Calculate the average progress
-                decimal averageProgress = taskCount > 0 ? tasksProgress / taskCount : 0;
+                decimal averageProgress = taskCount > 0 ? (decimal)tasksProgress / taskCount * 100 : 0;
 
                 // Step 3: Calculate payment progress
                 var paymentReferences = await _dataContext.Payment

@@ -290,7 +290,14 @@ namespace BaseLibrary.Services.Repositories
 
 
             var allTask = await TaskToDo(project.ProjId);
-            var lastTask = allTask.Last().TaskList.Last();
+
+            var lastTaskGroup = allTask.LastOrDefault();
+            if (lastTaskGroup == null || lastTaskGroup.TaskList == null || !lastTaskGroup.TaskList.Any())
+            {
+                return (true, "Task finished! Your report submitted to the admin.");
+            }
+
+            var lastTask = lastTaskGroup.TaskList.LastOrDefault();
 
             string finishProjectMessage = $@"
                     <p>We’re delighted to inform you that your project <strong>{project.ProjName}</strong> has been successfully completed!</p>
@@ -299,7 +306,7 @@ namespace BaseLibrary.Services.Repositories
                     <p>Feel free to review all project details on our website.</p>
                 ";
 
-            if (lastTask!=null && lastTask.TaskProgress == 100)
+            if (lastTask != null && lastTask.TaskProgress == 100 && lastTask.IsFinish)
             {
                 project.Status = "Finished";
                 project.isDemobilization = true;
@@ -537,6 +544,12 @@ namespace BaseLibrary.Services.Repositories
                 foreach (var taskItem in taskToDo)
                 {
                     bool isEnableTask = isPrevTaskComplete;
+                    // Ensure the first subtask is enabled if the parent task is enabled
+                    if ((isEnable || task.PlannedStartDate.HasValue && (task.PlannedStartDate.Value - DateTime.Today).Days <= 2) && taskToDo.IndexOf(taskItem) == 0)
+                    {
+                        isEnableTask = true; // Enable the first subtask regardless of its completion
+                    }
+
                     var daysLate = 0;
 
                     // Calculate days late only if ActualStart and EstimationStart are not null
@@ -575,8 +588,8 @@ namespace BaseLibrary.Services.Repositories
                     IsEnable = isEnable || (task.PlannedStartDate.HasValue && (task.PlannedStartDate.Value - DateTime.Today).Days <= 2),
                     IsFinished = task.Progress == 100,
                     IsStarting = task.ActualStartDate != null,
-                    DaysLate = task.ActualStartDate.HasValue && task.PlannedStartDate.HasValue
-                        ? (task.ActualStartDate.Value - task.PlannedStartDate.Value).Days
+                    DaysLate = task.PlannedStartDate.HasValue && task.ActualStartDate.HasValue && task.ActualStartDate > task.PlannedStartDate
+                        ? (task.PlannedStartDate.Value - task.ActualStartDate.Value).Days
                         : 0,
                     TaskList = tasksList
                 };

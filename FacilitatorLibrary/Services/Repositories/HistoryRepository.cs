@@ -1,4 +1,5 @@
 ﻿using DataLibrary.Data;
+using DataLibrary.Models;
 using FacilitatorLibrary.DTO.History;
 using FacilitatorLibrary.DTO.Supply;
 using FacilitatorLibrary.Services.Interfaces;
@@ -106,17 +107,20 @@ namespace FacilitatorLibrary.Services.Repositories
             // Loop through each project data and fetch related task info
             foreach (var projectData in projectDataList)
             {
-                // Fetch tasks related to the current project
-                var tasks = await _dataContext.GanttData
-                    .Where(i => i.ProjId == projectData.ProjId && i.ParentId == null)
+                // Fetch tasks for the current project
+                var tasksProof = await _dataContext.TaskProof
+                .Include(t => t.Task)
+                    .Where(i => i.Task.ProjId == projectData.ProjId)
                     .ToListAsync();
 
-                // Calculate the total progress and number of tasks
-                decimal tasksProgress = tasks.Sum(p => p.Progress) ?? 0;  // Ensure Progress is not null
-                int taskCount = tasks.Count;
+                // Calculate the total progress
+                var tasksProgress = tasksProof.Where(i => i.IsFinish).Count();
+
+                // Calculate the number of tasks
+                var taskCount = tasksProof.Count();
 
                 // Calculate the average progress
-                decimal averageProgress = taskCount > 0 ? tasksProgress / taskCount : 0;
+                decimal averageProgress = taskCount > 0 ? (decimal)tasksProgress / taskCount * 100 : 0;
 
                 var installers = await _dataContext.ProjectWorkLog
                    .Include(i => i.Installer)
