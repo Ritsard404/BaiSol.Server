@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using ProjectLibrary.DTO.Project;
 using System.Text.Json.Serialization;
 
 namespace BaiSol.Server.Controllers.Gantt
@@ -225,6 +226,24 @@ namespace BaiSol.Server.Controllers.Gantt
         public async Task<IActionResult> SubmitTaskReport(UploadTaskDTO finishTask)
         {
             var (isSuccess, Message) = await _gantt.SubmitTaskReport(finishTask);
+            if (!isSuccess)
+                return BadRequest(Message);
+
+            return Ok(Message);
+        }
+
+        [HttpPut("[action]")]
+        public async Task<IActionResult> UpdateTaskProgress(UpdateTaskProgress updateTaskProgress)
+        {
+
+            // Retrieve the client IP address
+            var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
+
+            // Validate IP address
+            if (string.IsNullOrWhiteSpace(ipAddress)) return BadRequest("IP address is required and cannot be empty");
+            updateTaskProgress.ipAddress = ipAddress;
+
+            var (isSuccess, Message) = await _gantt.UpdateTaskProgress(updateTaskProgress);
             if (!isSuccess)
                 return BadRequest(Message);
 
