@@ -744,6 +744,17 @@ namespace ProjectLibrary.Services.Repositories
             if (amount < 1)
                 return (false, "No Quotation Cost Yet!");
 
+            var material = await _dataContext.Supply
+                .AnyAsync(i => i.Project == project && i.Material != null);
+            if (!material)
+                return (false, "No material supply!");
+
+            var equipment = await _dataContext.Supply
+                .AnyAsync(i => i.Project == project && i.Equipment != null);
+            if (!equipment)
+                return (false, "No equipment supply!");
+
+
             project.Status = "OnProcess";
             project.UpdatedAt = DateTimeOffset.UtcNow;
 
@@ -870,7 +881,7 @@ namespace ProjectLibrary.Services.Repositories
             {
                 // Fetch tasks for the current project
                 var tasksProof = await _dataContext.TaskProof
-                    .Include(t=>t.Task)
+                    .Include(t => t.Task)
                     .Where(i => i.Task.ProjId == project.ProjId)
                     .ToListAsync();
 

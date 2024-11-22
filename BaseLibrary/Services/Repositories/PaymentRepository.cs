@@ -597,7 +597,7 @@ namespace BaseLibrary.Services.Repositories
 
             await _dataContext.SaveChangesAsync();
 
-            return (true, "Project payed on cash.");
+            return (true, "Project paid on cash.");
         }
 
         public async Task<decimal> GetTotalProjectExpense(string projId)

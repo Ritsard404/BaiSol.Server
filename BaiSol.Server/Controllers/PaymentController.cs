@@ -1,6 +1,7 @@
 ﻿using BaseLibrary.DTO.Payment;
 using BaseLibrary.Services.Interfaces;
 using DataLibrary.Data;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using RestSharp;
@@ -9,6 +10,7 @@ namespace BaiSol.Server.Controllers
 {
     [Route("api/[controller]/[action]")]
     [ApiController]
+    //[Authorize]
     public class PaymentController(IConfiguration _config, DataContext _dataContext, IPayment _payment) : ControllerBase
     {
 

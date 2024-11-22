@@ -1,5 +1,6 @@
 ﻿using BaiSol.Server.Models.Email;
 using BaseLibrary.DTO.Gantt;
+using BaseLibrary.DTO.Report;
 using BaseLibrary.Services.Interfaces;
 using DataLibrary.Data;
 using DataLibrary.Models;
@@ -13,7 +14,7 @@ using System.Threading.Tasks;
 
 namespace BaseLibrary.Services.Repositories
 {
-    public class GanttRepository(DataContext _dataContext, IPayment _payment, IConfiguration _config, IEmailRepository _email) : IGanttRepository
+    public class GanttRepository(DataContext _dataContext, IPayment _payment, IConfiguration _config, IEmailRepository _email, IUserLogs _logs) : IGanttRepository
     {
         public async Task<ICollection<FacilitatorTasksDTO>> FacilitatorTasks(string projId)
         {
@@ -842,5 +843,148 @@ namespace BaseLibrary.Services.Repositories
             await _dataContext.SaveChangesAsync();
         }
 
+        public async Task<(bool, string)> UpdateTaskProgress(UpdateTaskProgress taskDto)
+        {
+
+            var task = await _dataContext.GanttData
+                .FirstOrDefaultAsync(i => i.Id == taskDto.id);
+            if (task == null)
+                return (false, "Task not exist!");
+
+            var project = await _dataContext.Project
+                .Include(c => c.Client)
+                .Include(c => c.Client.Client)
+                .FirstOrDefaultAsync(i => i.ProjId == task.ProjId);
+            if (project == null)
+                return (false, "Project not exist!");
+
+            if (taskDto.Progress < 0 || taskDto.Progress > 100 || taskDto.Progress < task.Progress)
+                return (false, "Invalid inputted progress!");
+
+            var assignedFacilitator = await _dataContext.ProjectWorkLog
+                .Include(i => i.Facilitator)
+                .FirstOrDefaultAsync(f => f.Project == project && f.Facilitator != null);
+            if (assignedFacilitator == null)
+                return (false, "No facilitator assigned!");
+
+
+            task.Progress = taskDto.Progress;
+            if (!task.ActualStartDate.HasValue)
+            {
+                task.ActualStartDate = DateTime.UtcNow;
+            }
+            task.ActualEndDate = DateTime.UtcNow;
+
+            string[] allowedFileExtentions = { ".jpg", ".jpeg", ".png" };
+            string createdImageName = await SaveFileAsync(taskDto.ProofImage, allowedFileExtentions);
+
+            var taskProof = new TaskProof
+            {
+                ProofImage = createdImageName,
+                TaskProgress = taskDto.Progress,
+                Task = task,
+                IsFinish = true,
+                ActualStart = DateTimeOffset.UtcNow
+            };
+
+            await _dataContext.TaskProof.AddAsync(taskProof);
+
+            await _dataContext.SaveChangesAsync();
+
+
+            EmailMessage message;
+
+            string greeting = $"<p>Hello {(project.Client.Client.IsMale ? "Mr." : "Ms.")} {project.Client.LastName},</p>";
+
+            string messageContent = $@"
+                <p>We are excited to inform you that the task <strong>{task.TaskName}</strong> for your solar installation project <strong>{project.ProjName}</strong> is now at <strong>{task.Progress}%</strong> completion!</p>
+                <p>The latest update was made on <strong>{DateTimeOffset.UtcNow:MMMM dd, yyyy}</strong>. We are making great progress, and your project is moving forward as planned!</p>
+                <p>Please log in to your account on our site to monitor the ongoing progress and get the latest updates on your project.</p>
+            ";
+
+            string footer = @"
+                <p>Best regards,<br>The BaiSol Team</p>
+                <p>If you have any questions, feel free to reach out to us.</p>
+            ";
+
+            message = new EmailMessage(
+                   new string[] { project.Client.Email },
+                   "Project Progress Update: " + task.TaskName,
+                   $"{greeting}{messageContent}{footer}"
+               );
+
+            _email.SendEmail(message);
+
+            var tasks = await _dataContext.GanttData
+              .Where(p => p.ProjId == project.ProjId)
+              .Include(t => t.TaskProofs)
+              .OrderBy(s => s.PlannedStartDate)
+              .ToListAsync();
+
+            // Find tasks that are referenced as ParentId (tasks with subtasks)
+            var taskIdsWithSubtasks = tasks
+                .Where(t => tasks.Any(sub => sub.ParentId == t.TaskId))
+                .Select(t => t.TaskId)
+                .ToHashSet();
+
+            var totalProgress = 0;
+            var taskCount = 0;
+
+            foreach (var taskItem in tasks)
+            {
+                // Skip tasks that have subtasks
+                if (taskIdsWithSubtasks.Contains(taskItem.TaskId) || !taskItem.PlannedStartDate.HasValue)
+                    continue;
+
+                taskCount++;
+                totalProgress += task.Progress ?? 0;
+            }
+
+            var isFinishTask = taskCount > 0 && (totalProgress / taskCount) == 100;
+
+            //var isFinishTask = await _dataContext.GanttData
+            //    .AnyAsync(p => p.Progress == 100);
+
+            string finishProjectMessage = $@"
+                    <p>We’re delighted to inform you that your project <strong>{project.ProjName}</strong> has been successfully completed!</p>
+                    <p>Completion Date: <strong>{project.UpdatedAt:MMMM dd, yyyy}</strong></p>
+                    <p>Thank you for trusting us with your project. We hope you’re satisfied with the results!</p>
+                    <p>Feel free to review all project details on our website.</p>
+                ";
+
+            if (isFinishTask)
+            {
+                project.Status = "Finished";
+                project.isDemobilization = true;
+                project.UpdatedAt = DateTimeOffset.UtcNow.UtcDateTime;
+
+                await _dataContext.SaveChangesAsync();
+
+                string notifMessageFinish = $"Dear {project.Client.FirstName}, we are thrilled to inform you that your project '{project.SystemType} {project.kWCapacity}' has been successfully completed as of {project.UpdatedAt:MMMM dd, yyyy}. We truly appreciate your trust in us and look forward to working with you again in the future!";
+                await AddNotification(
+                        "Project Finished: " + project.ProjName,  // Title of the notification
+                        notifMessageFinish,                               // Message content
+                        "Project Update",                           // Type of notification
+                        project
+                    );
+
+                message = new EmailMessage(
+                    new string[] { project.Client.Email },
+                    "Project Finished",
+                    $"{greeting}{finishProjectMessage}{footer}");
+
+                await _logs.LogUserActionAsync(assignedFacilitator.Facilitator.Email, "Update", "project", task.Id.ToString(), "Finish project", taskDto.ipAddress);
+
+                return (true, "All the tasks complete! The project is Finished.");
+            }
+
+            string notifMessage = $"Dear {project.Client.FirstName}, we are pleased to inform you that the task '{task.TaskName}' for your project '{project.SystemType} {project.kWCapacity} kW' is now {task.Progress}% complete as of {DateTimeOffset.UtcNow:MMMM dd, yyyy}. We deeply value your trust and partnership. Thank you!";
+            await AddNotification($"Project Update: {task.TaskName}", notifMessage, "Task Progress Update", project);
+
+
+
+            await _logs.LogUserActionAsync(assignedFacilitator.Facilitator.Email, "Update", "Task", task.Id.ToString(), "Update project task progress", taskDto.ipAddress);
+            return (true, "Task progress updated! Your report submitted to the admin.");
+        }
     }
 }

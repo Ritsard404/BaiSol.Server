@@ -1,4 +1,5 @@
 ﻿using BaseLibrary.Services.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
@@ -6,6 +7,7 @@ namespace BaiSol.Server.Controllers
 {
     [Route("api/[controller]/[action]")]
     [ApiController]
+    //[Authorize]
     public class LogsController(IUserLogs _userLogs) : ControllerBase
     {
         [HttpGet]

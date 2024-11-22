@@ -27,8 +27,7 @@ namespace BaiSol.Server.Controllers.Projects
 
             if (result != null)
             {
-                ModelState.AddModelError("", result);
-                return StatusCode(500, ModelState);
+                return BadRequest(result);
             }
 
             return Ok("New Equipment Added");

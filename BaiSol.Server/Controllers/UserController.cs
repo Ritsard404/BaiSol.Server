@@ -1,8 +1,10 @@
 ﻿using AuthLibrary.DTO;
+using AuthLibrary.Models;
 using AuthLibrary.Services.Interfaces;
 using BaiSol.Server.Models.Email;
 using BaseLibrary.Services.Interfaces;
 using DataLibrary.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 
@@ -10,6 +12,7 @@ namespace BaiSol.Server.Controllers
 {
     [Route("user/[controller]")]
     [ApiController]
+    //[Authorize(Roles = UserRoles.Admin)]
     public class UserController(IUserAccount _userAccount,
         UserManager<AppUsers> _userManager,
         IEmailRepository _emailRepository,
@@ -78,7 +81,7 @@ namespace BaiSol.Server.Controllers
         }
 
         [HttpPut("Approve-Client-Account")]
-        public async Task<IActionResult> ApproveClientAccount(string clientId,string adminEmail)
+        public async Task<IActionResult> ApproveClientAccount(string clientId, string adminEmail)
         {
             var approveClient = await _userAccount.ApproveClient(clientId, adminEmail);
             if (!approveClient.Flag) return BadRequest("Client does not exist.");

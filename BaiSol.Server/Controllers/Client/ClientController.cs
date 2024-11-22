@@ -1,4 +1,7 @@
-﻿using ClientLibrary.Services.Interfaces;
+﻿using AuthLibrary.DTO;
+using AuthLibrary.Models;
+using ClientLibrary.Services.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
@@ -6,6 +9,7 @@ namespace BaiSol.Server.Controllers.Client
 {
     [Route("api/[controller]/[action]")]
     [ApiController]
+    //[Authorize(Roles = UserRoles.Client)]
     public class ClientController(IClientProject _clientProject) : ControllerBase
     {
         [HttpGet]

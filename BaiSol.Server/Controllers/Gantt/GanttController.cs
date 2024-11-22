@@ -2,6 +2,7 @@
 using BaseLibrary.Services.Interfaces;
 using DataLibrary.Data;
 using DataLibrary.Models.Gantt;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -11,6 +12,7 @@ namespace BaiSol.Server.Controllers.Gantt
 {
     [Route("api/[controller]")]
     [ApiController]
+    //[Authorize]
     public class GanttController(DataContext _dataContext, IGanttRepository _gantt) : ControllerBase
     {
         private class GanttResponse<T>

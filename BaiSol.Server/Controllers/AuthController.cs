@@ -12,6 +12,7 @@ namespace BaiSol.Server.Controllers
 {
     [Route("auth/[controller]")]
     [ApiController]
+    [AllowAnonymous]
     public class AuthController(IAuthAccount _userAccount,
         UserManager<AppUsers> _userManager,
         IEmailRepository _emailRepository,

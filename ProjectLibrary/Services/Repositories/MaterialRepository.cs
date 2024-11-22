@@ -41,27 +41,27 @@ namespace ProjectLibrary.Services.Repositories
             var material = await _dataContext.Material.FirstOrDefaultAsync(i => i.MTLDescript == materialDto.MTLDescript);
             if (material != null)
             {
-                var oldQuantity = material.MTLQOH;
-                material.MTLQOH += materialDto.MTLQOH;
-                material.UpdatedAt = DateTimeOffset.UtcNow;
+                //var oldQuantity = material.MTLQOH;
+                //material.MTLQOH += materialDto.MTLQOH;
+                //material.UpdatedAt = DateTimeOffset.UtcNow;
 
 
-                UserLogs log = new UserLogs
-                {
-                    Action = "Update",
-                    EntityName = "Material",
-                    EntityId = material.MTLId.ToString(),
-                    UserIPAddress = materialDto.UserIpAddress,
-                    Details = $"Updated material '{material.MTLDescript}'. Old Quantity: {oldQuantity}, New Quantity: {material.MTLQOH}.",
-                    UserId = user.Id,
-                    UserName = user.NormalizedUserName,
-                    UserRole = userRole.FirstOrDefault(),
-                    User = user,
-                };
-                _dataContext.UserLogs.Add(log);
-                await Save();
+                //UserLogs log = new UserLogs
+                //{
+                //    Action = "Update",
+                //    EntityName = "Material",
+                //    EntityId = material.MTLId.ToString(),
+                //    UserIPAddress = materialDto.UserIpAddress,
+                //    Details = $"Updated material '{material.MTLDescript}'. Old Quantity: {oldQuantity}, New Quantity: {material.MTLQOH}.",
+                //    UserId = user.Id,
+                //    UserName = user.NormalizedUserName,
+                //    UserRole = userRole.FirstOrDefault(),
+                //    User = user,
+                //};
+                //_dataContext.UserLogs.Add(log);
+                //await Save();
 
-                return null;
+                return "Material already exist!";
             }
 
             // Map DTO to model

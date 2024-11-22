@@ -155,14 +155,22 @@ namespace BaiSol.Server
             // Add CORS to services
             builder.Services.AddCors(options =>
             {
-                //var frontEndUrl = builder.Configuration.GetValue<string>("FrontEnd_Url");
+                var webUrl = builder.Configuration["FrontEnd_Url:Web_Url"];
+                var mobileUrl = builder.Configuration["FrontEnd_Url:Mobile_Url"];
+                var mobileWebUrl = builder.Configuration["FrontEnd_Url:Mobile_Web_Url"];
 
-                var frontEndUrl = builder.Configuration.GetSection("FrontEnd_Url").Get<string[]>();
-                options.AddDefaultPolicy(builder =>
+                //options.AddDefaultPolicy(policy =>
+                //{
+                //    policy.WithOrigins(webUrl, mobileUrl, mobileWebUrl) // Allow both URLs
+                //          .AllowAnyMethod()
+                //          .AllowAnyHeader();
+                //});
+
+                options.AddDefaultPolicy(policy =>
                 {
-                    builder.WithOrigins(frontEndUrl)
-                           .AllowAnyMethod()
-                           .AllowAnyHeader();
+                    policy.AllowAnyOrigin() // Allow any URL
+                          .AllowAnyMethod()
+                          .AllowAnyHeader();
                 });
             });
 

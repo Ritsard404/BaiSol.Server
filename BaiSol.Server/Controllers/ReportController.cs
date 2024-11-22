@@ -1,6 +1,7 @@
 ﻿using BaseLibrary.DTO.Gantt;
 using BaseLibrary.Services.Interfaces;
 using DataLibrary.Data;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -9,6 +10,7 @@ namespace BaiSol.Server.Controllers
 {
     [Route("api/[controller]/[action]")]
     [ApiController]
+    //[Authorize]
     public class ReportController(IReportRepository _report,DataContext _dataContext) : ControllerBase
     {
 
