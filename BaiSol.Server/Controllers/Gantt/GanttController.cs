@@ -78,7 +78,10 @@ namespace BaiSol.Server.Controllers.Gantt
                 Duration = task.Duration,
                 Predecessor = task.Predecessor,
                 ParentId = task.ParentId
-            }).ToList();
+            })
+                .OrderBy(t => t.PlannedStartDate)
+                .ThenBy(t => t.ActualStartDate)
+                .ToList();
 
 
             var response = new GanttResponse<List<GanttData>>
@@ -111,6 +114,14 @@ namespace BaiSol.Server.Controllers.Gantt
         public async Task<IActionResult> TaskToDo(string projId)
         {
             var tasks = await _gantt.TaskToDo(projId);
+
+            return Ok(tasks);
+        }
+
+        [HttpGet("[action]")]
+        public async Task<IActionResult> TaskToUpdateProgress(string projId)
+        {
+            var tasks = await _gantt.TaskToUpdateProgress(projId);
 
             return Ok(tasks);
         }
@@ -159,9 +170,21 @@ namespace BaiSol.Server.Controllers.Gantt
                 var existingData = await _dataContext.GanttData
                     .FirstOrDefaultAsync(i => i.TaskId == updatedData.TaskId && i.ProjId == projId);
 
+                var dateLimit = await _gantt.GetProjectDates(projId);
+
                 if (existingData == null)
                 {
                     return NotFound($"GanttData with TaskId {updatedData.TaskId} not found.");
+                }
+
+                if (updatedData.PlannedStartDate.HasValue && updatedData.PlannedStartDate.Value < dateLimit.StartDate)
+                {
+                    return BadRequest("Planned start date is earlier than the allowed date range.");
+                }
+
+                if (updatedData.PlannedEndDate.HasValue && updatedData.PlannedEndDate.Value > dateLimit.EndDate)
+                {
+                    return BadRequest("Planned end date is later than the allowed date range.");
                 }
 
                 // Update properties
@@ -235,7 +258,6 @@ namespace BaiSol.Server.Controllers.Gantt
         [HttpPut("[action]")]
         public async Task<IActionResult> UpdateTaskProgress(UpdateTaskProgress updateTaskProgress)
         {
-
             // Retrieve the client IP address
             var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
 
@@ -278,6 +300,14 @@ namespace BaiSol.Server.Controllers.Gantt
         public async Task<IActionResult> ProjectStatus(string projId)
         {
             var task = await _gantt.ProjectStatus(projId);
+
+            return Ok(task);
+        }
+
+        [HttpGet("[action]")]
+        public async Task<IActionResult> GetProjectDates(string projId)
+        {
+            var task = await _gantt.GetProjectDates(projId);
 
             return Ok(task);
         }
