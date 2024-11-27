@@ -20,7 +20,7 @@ using ClientLibrary.DTO.Notification;
 
 namespace ClientLibrary.Services.Repositories
 {
-    public class ClientProjectRepository(DataContext _dataContext, IConfiguration _config) : IClientProject
+    public class ClientProjectRepository(DataContext _dataContext, IConfiguration _config,IGanttRepository _gantt) : IClientProject
     {
         public async Task<ProjectId> GetClientProject(string userEmail)
         {
@@ -57,7 +57,8 @@ namespace ClientLibrary.Services.Repositories
                 var taskCount = tasksProof.Count();
 
                 // Calculate the average progress
-                decimal averageProgress = taskCount > 0 ? (decimal)tasksProgress / taskCount * 100 : 0;
+                decimal averageProgress = (decimal)await _gantt.ProjectTaskProgress(project.ProjId);
+                //decimal averageProgress = taskCount > 0 ? (decimal)tasksProgress / taskCount * 100 : 0;
 
                 // Step 3: Calculate payment progress
                 var paymentReferences = await _dataContext.Payment

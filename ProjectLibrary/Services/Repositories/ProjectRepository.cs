@@ -18,7 +18,7 @@ using System.Text.Json;
 
 namespace ProjectLibrary.Services.Repositories
 {
-    public class ProjectRepository(UserManager<AppUsers> _userManager, DataContext _dataContext, IUserLogs _userLogs, IConfiguration _config) : IProject
+    public class ProjectRepository(UserManager<AppUsers> _userManager, DataContext _dataContext, IUserLogs _userLogs, IConfiguration _config,IGanttRepository _gantt) : IProject
     {
         public async Task<string> AddNewClientProject(ProjectDto projectDto)
         {
@@ -885,12 +885,14 @@ namespace ProjectLibrary.Services.Repositories
                     .Where(i => i.Task.ProjId == project.ProjId)
                     .ToListAsync();
 
-                var averageProgress = (await _dataContext.GanttData
-                    .Where(i => i.ProjId == project.ProjId && i.ParentId == null)
-                    .Select(t => (decimal?)t.Progress) // Ensure nullable selection
-                    .ToListAsync()) // Switch to client-side evaluation
-                    .DefaultIfEmpty(0) // Handle empty list
-                    .Average();
+                var averageProgress = await _gantt.ProjectTaskProgress(projId: project.ProjId);
+
+                //var averageProgress = (await _dataContext.GanttData
+                //    .Where(i => i.ProjId == project.ProjId && i.ParentId == null)
+                //    .Select(t => (decimal?)t.Progress) // Ensure nullable selection
+                //    .ToListAsync()) // Switch to client-side evaluation
+                //    .DefaultIfEmpty(0) // Handle empty list
+                //    .Average();
 
                 // Step 3: Calculate payment progress
                 var paymentReferences = await _dataContext.Payment

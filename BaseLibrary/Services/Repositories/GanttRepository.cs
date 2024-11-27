@@ -832,22 +832,24 @@ namespace BaseLibrary.Services.Repositories
 
         public async Task<ProjProgressDTO> ProjectProgress(string projId)
         {
-            // Get the tasks that match the criteria
-            var tasks = await _dataContext.GanttData
-                .Where(i => i.ProjId == projId && i.ParentId == null)
-                .ToListAsync();
+            //// Get the tasks that match the criteria
+            //var tasks = await _dataContext.GanttData
+            //    .Where(i => i.ProjId == projId && i.ParentId == null)
+            //    .ToListAsync();
 
-            // Calculate the total progress
-            var tasksProgress = tasks.Sum(p => p.Progress) ?? 0;
+            //// Calculate the total progress
+            //var tasksProgress = tasks.Sum(p => p.Progress) ?? 0;
 
-            // Calculate the number of tasks
-            var taskCount = tasks.Count;
+            //// Calculate the number of tasks
+            //var taskCount = tasks.Count;
 
-            // Calculate the average progress
-            decimal averageProgress = taskCount > 0 ? tasksProgress / taskCount : 0;
+            //// Calculate the average progress
+            //decimal averageProgress = taskCount > 0 ? tasksProgress / taskCount : 0;
+
+            var progress = await ProjectTaskProgress(projId);
 
             // Return the result
-            return new ProjProgressDTO { progress = averageProgress };
+            return new ProjProgressDTO { progress = progress };
         }
 
         public async Task<ProjectStatusDTO> ProjectStatus(string projId)
@@ -940,7 +942,10 @@ namespace BaseLibrary.Services.Repositories
             if (project == null)
                 return (false, "Project not exist!");
 
+            // If the adviser  want only input the progress and not add
             if (taskDto.Progress < 0 || taskDto.Progress > 100 || taskDto.Progress <= task.Progress)
+
+                //if (taskDto.Progress < 0 || taskDto.Progress > 100 || taskDto.Progress + task.Progress > 100)
                 return (false, "Invalid inputted progress!");
 
             var assignedFacilitator = await _dataContext.ProjectWorkLog
@@ -952,7 +957,10 @@ namespace BaseLibrary.Services.Repositories
             if (DateTime.UtcNow.DayOfWeek == DayOfWeek.Saturday || DateTime.UtcNow.DayOfWeek == DayOfWeek.Sunday)
                 return (false, "Action denied: Tasks cannot be submitted during weekends. Please try again on a weekday.");
 
+            // If the adviser  want only input the progress and not add
             task.Progress = taskDto.Progress;
+
+            //task.Progress += taskDto.Progress;
             if (!task.ActualStartDate.HasValue)
             {
                 task.ActualStartDate = DateTime.UtcNow;
@@ -965,6 +973,7 @@ namespace BaseLibrary.Services.Repositories
             var taskProof = new TaskProof
             {
                 ProofImage = createdImageName,
+                //TaskProgress = task.Progress,
                 TaskProgress = taskDto.Progress,
                 Task = task,
                 IsFinish = true,
@@ -1000,9 +1009,11 @@ namespace BaseLibrary.Services.Repositories
             _email.SendEmail(message);
 
 
-            var isFinishTask = await _dataContext.GanttData
-                .Where(i => i.ProjId == project.ProjId && i.ParentId == null)
-                .AverageAsync(t => t.Progress) == 100;
+            var isFinishTask = await ProjectTaskProgress(project.ProjId) == 100;
+
+            //var isFinishTask = await _dataContext.GanttData
+            //    .Where(i => i.ProjId == project.ProjId && i.ParentId == null)
+            //    .AverageAsync(t => t.Progress) == 100;
 
             //var isFinishTask = await _dataContext.GanttData
             //    .AnyAsync(p => p.Progress == 100);
@@ -1079,7 +1090,7 @@ namespace BaseLibrary.Services.Repositories
                     continue;
 
                 // Set IsEnable to true if the previous task is completed, otherwise false
-                bool isEnable = task.Progress == 100;
+                bool isEnable = task.Progress != 100 && previousTaskCompleted;
 
                 var taskToDo = await _dataContext.TaskProof
                     .Where(t => t.Task == task)
@@ -1134,10 +1145,11 @@ namespace BaseLibrary.Services.Repositories
                     tasksList.Add(new TaskDTO
                     {
                         id = task.Id,
-                        EstimationStart = task.ActualEndDate?.Date >= DateTime.Today.Date
-                            ? task.ActualEndDate?.AddDays(1).ToString("MMM dd, yyyy")
-                            : DateTime.Today.ToString("MMM dd, yyyy"),
-                        IsEnable = task.ActualEndDate?.Date < DateTime.Today.Date,
+                        //EstimationStart = task.ActualEndDate?.Date <= DateTime.Today.Date
+                        //    ? task.ActualEndDate?.AddDays(1).ToString("MMM dd, yyyy")
+                        //    : DateTime.Today.ToString("MMM dd, yyyy"),
+                        EstimationStart = task.ActualEndDate?.AddDays(1).ToString("MMM dd, yyyy"),
+                        IsEnable = task.ActualEndDate?.Date < DateTime.Today.Date || isEnable,
                         IsLate = daysLate > 0,
                         DaysLate = daysLate
 
@@ -1186,9 +1198,41 @@ namespace BaseLibrary.Services.Repositories
                 // Add to the final list
                 toDoList.Add(toDo);
 
+                previousTaskCompleted = task.Progress == 100;
+
             }
 
             return toDoList;
+        }
+        public async Task<int> ProjectTaskProgress(string projId)
+        {
+            var tasks = await _dataContext.GanttData
+                .Where(p => p.ProjId == projId)
+                .Select(t => new
+                {
+                    t.TaskId,
+                    t.ParentId,
+                    t.Progress
+                })
+                .ToListAsync();
+
+            int totalProgress = 0, taskCount = 0;
+
+            var taskIdsWithSubtasks = tasks
+                .Where(t => tasks.Any(sub => sub.ParentId == t.TaskId))
+                .Select(t => t.TaskId)
+                .ToHashSet();
+
+            foreach (var task in tasks)
+            {
+                if (taskIdsWithSubtasks.Contains(task.TaskId))
+                    continue;
+
+                totalProgress += task.Progress ?? 0;
+                taskCount++;
+            }
+
+            return taskCount == 0 ? 0 : totalProgress / taskCount;
         }
     }
 }

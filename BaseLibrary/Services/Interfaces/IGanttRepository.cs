@@ -16,6 +16,7 @@ namespace BaseLibrary.Services.Interfaces
         Task<ProjectDateInfo> ProjectDateInfo(string projId);
         Task<ProjProgressDTO> ProjectProgress(string projId);
         Task<ProjectStatusDTO> ProjectStatus(string projId);
+        Task<int> ProjectTaskProgress(string projId);
 
         Task<(DateTimeOffset StartDate, DateTimeOffset EndDate)> GetProjectDates(string projId);
     }
