@@ -191,7 +191,7 @@ namespace BaiSol.Server
             app.UseStaticFiles(new StaticFileOptions
             {
                 FileProvider = new PhysicalFileProvider(
-                    Path.Combine(@"C:\Users\Acer\Documents\Capstone\Sunvoltage System\Images", "Uploads")),
+                    Path.Combine(@"C:\Users\Angelie Gecole\Desktop\BAISOL_Capstone\Images", "Uploads")),
                 RequestPath = "/uploads"
             });
 
