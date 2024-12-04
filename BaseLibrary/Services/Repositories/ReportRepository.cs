@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace BaseLibrary.Services.Repositories
 {
-    public class ReportRepository(DataContext _dataContext) : IReportRepository
+    public class ReportRepository(DataContext _dataContext, IPayment _payment, IGanttRepository _gantt) : IReportRepository
     {
         public async Task<ICollection<EquipmentReportDTO>> AllEquipmentReport()
         {
@@ -58,6 +58,65 @@ namespace BaseLibrary.Services.Repositories
                 })
                 .OrderBy(c => c.ProjId)
                 .ToListAsync();
+
+            return result;
+        }
+
+        public async Task<ICollection<ProjectsDTO>> AllProjectReport()
+        {
+            var projects = await _dataContext.Project
+                .Include(f => f.Facilitator)
+                .ThenInclude(f => f.Facilitator)
+                .OrderByDescending(s => s.Status)
+                .ToListAsync();
+
+            var result = new List<ProjectsDTO>();
+
+            foreach (var project in projects)
+            {
+                var ganttDates = await _dataContext.GanttData
+                    .Where(i => i.ProjId == project.ProjId)
+                    .Select(g => new
+                    {
+                        g.ActualStartDate,
+                        g.ActualEndDate
+                    })
+                    .ToListAsync();
+
+                var earliestStartDate = ganttDates
+                    .Where(g => g.ActualStartDate.HasValue)
+                    .Min(g => g.ActualStartDate);
+
+                var latestEndDate = ganttDates
+                    .Where(g => g.ActualEndDate.HasValue)
+                    .Max(g => g.ActualEndDate);
+
+
+                var plannedDate = await _gantt.ProjectDateInfo(project.ProjId);
+
+                var cost = await _payment.GetTotalProjectExpense(project.ProjId);
+
+                var projectInfo = new ProjectsDTO
+                {
+                    projId = project.ProjId,
+                    kWCapacity = project.kWCapacity.ToString(),
+                    systemType = project.SystemType,
+                    customer=project.ProjName,
+                    facilitator = project.Facilitator?
+                        .Where(f => f.Facilitator != null)
+                        .Select(f => f.Facilitator!.Email)
+                        .FirstOrDefault() ?? "",
+                    plannedStarted = plannedDate.EstimatedStartDate,
+                    plannedEnded = plannedDate.EstimatedEndDate,
+                    actualStarted = earliestStartDate.HasValue ? earliestStartDate.Value.ToString("MMMM dd, yyyy") : "",
+                    actualEnded = latestEndDate.HasValue && project.Status == "Finished" ? latestEndDate.Value.ToString("MMMM dd, yyyy") : "",
+                    cost = "₱ " + cost.ToString("#,##0.00"),
+                    status = project.Status
+                };
+
+                result.Add(projectInfo);
+
+            }
 
             return result;
         }

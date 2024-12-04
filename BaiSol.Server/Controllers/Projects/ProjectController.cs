@@ -1,4 +1,5 @@
 ﻿using DataLibrary.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ProjectLibrary.DTO.Project;
 using ProjectLibrary.Services.Interfaces;
@@ -7,6 +8,7 @@ namespace BaiSol.Server.Controllers.Projects
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize]
     public class ProjectController(IProject _project) : ControllerBase
     {
 

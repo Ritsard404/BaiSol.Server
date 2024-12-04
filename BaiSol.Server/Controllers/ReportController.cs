@@ -1,4 +1,5 @@
-﻿using BaseLibrary.DTO.Gantt;
+﻿using AuthLibrary.Models;
+using BaseLibrary.DTO.Gantt;
 using BaseLibrary.Services.Interfaces;
 using DataLibrary.Data;
 using Microsoft.AspNetCore.Authorization;
@@ -10,8 +11,8 @@ namespace BaiSol.Server.Controllers
 {
     [Route("api/[controller]/[action]")]
     [ApiController]
-    //[Authorize]
-    public class ReportController(IReportRepository _report,DataContext _dataContext) : ControllerBase
+    //[Authorize(Roles = UserRoles.Admin)]
+    public class ReportController(IReportRepository _report, DataContext _dataContext) : ControllerBase
     {
 
         [HttpGet()]
@@ -34,7 +35,7 @@ namespace BaiSol.Server.Controllers
                 projectCount
             });
         }
-        
+
         [HttpGet()]
         public async Task<IActionResult> AllMaterialReport()
         {
@@ -42,7 +43,7 @@ namespace BaiSol.Server.Controllers
 
             return Ok(materialReport);
         }
-        
+
         [HttpGet()]
         public async Task<IActionResult> AllEquipmentReport()
         {
@@ -50,11 +51,19 @@ namespace BaiSol.Server.Controllers
 
             return Ok(equipmentReport);
         }
-        
+
         [HttpGet()]
         public async Task<IActionResult> DashboardData()
         {
             var dashboard = await _report.DashboardData();
+
+            return Ok(dashboard);
+        }
+
+        [HttpGet()]
+        public async Task<IActionResult> AllProjectReport()
+        {
+            var dashboard = await _report.AllProjectReport();
 
             return Ok(dashboard);
         }

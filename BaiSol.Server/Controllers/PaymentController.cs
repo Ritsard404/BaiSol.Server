@@ -10,7 +10,7 @@ namespace BaiSol.Server.Controllers
 {
     [Route("api/[controller]/[action]")]
     [ApiController]
-    //[Authorize]
+    [Authorize]
     public class PaymentController(IConfiguration _config, DataContext _dataContext, IPayment _payment) : ControllerBase
     {
 

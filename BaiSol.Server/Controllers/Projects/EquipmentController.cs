@@ -1,4 +1,5 @@
 ﻿using DataLibrary.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using ProjectLibrary.DTO.Equipment;
@@ -8,6 +9,7 @@ namespace BaiSol.Server.Controllers.Projects
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize]
     public class EquipmentController(IEquipment _equipment) : ControllerBase
     {
 

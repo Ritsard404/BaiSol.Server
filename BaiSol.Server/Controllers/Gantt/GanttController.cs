@@ -309,7 +309,7 @@ namespace BaiSol.Server.Controllers.Gantt
         {
             var task = await _gantt.GetProjectDates(projId);
 
-            return Ok(task);
+            return Ok(task.StartDate);
         }
     }
 }

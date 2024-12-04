@@ -1,4 +1,5 @@
 ﻿using DataLibrary.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Org.BouncyCastle.Asn1.Ocsp;
@@ -9,6 +10,7 @@ namespace BaiSol.Server.Controllers.Projects
 {
     [Route("material/[controller]")]
     [ApiController]
+    [Authorize]
     public class MaterialController(IMaterial _material) : ControllerBase
     {
 

@@ -108,7 +108,7 @@ namespace ProjectLibrary.Services.Repositories
             var suppliedMaterial = await _dataContext.Supply
                 .FirstOrDefaultAsync(m => m.Material == material);
 
-            if (material.MTLQOH > 0 || suppliedMaterial == null)
+            if (material.MTLQOH > 0 || suppliedMaterial != null)
                 return (false, "Material cannot be deleted!");
 
             // Check if the material is used in any finished project

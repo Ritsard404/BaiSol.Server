@@ -18,5 +18,6 @@ namespace BaseLibrary.Services.Interfaces
 
         Task<ICollection<MaterialReportDTO>> AllMaterialReport();
         Task<ICollection<EquipmentReportDTO>> AllEquipmentReport();
+        Task<ICollection<ProjectsDTO>> AllProjectReport();
     }
 }
