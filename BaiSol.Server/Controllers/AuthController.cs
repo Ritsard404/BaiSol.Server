@@ -12,6 +12,7 @@ namespace BaiSol.Server.Controllers
 {
     [Route("auth/[controller]")]
     [ApiController]
+    [AllowAnonymous]
     public class AuthController(IAuthAccount _userAccount,
         UserManager<AppUsers> _userManager,
         IEmailRepository _emailRepository,
@@ -40,7 +41,7 @@ namespace BaiSol.Server.Controllers
         }
 
         [HttpPost("Login")]
-        public async Task<IActionResult> Login(LoginDto loginDto)
+        public async Task<IActionResult> Login(LoginDto loginDto, bool? isMobile)
         {
             // Retrieve the client IP address
             var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
@@ -49,7 +50,7 @@ namespace BaiSol.Server.Controllers
             if (string.IsNullOrWhiteSpace(ipAddress)) return BadRequest("IP address is required and cannot be empty");
             loginDto.UserIpAddress = ipAddress;
 
-            var response = await _userAccount.LoginAccount(loginDto);
+            var response = await _userAccount.LoginAccount(loginDto, isMobile);
             if (!response.Flag)
             {
                 return BadRequest(response.Message);
@@ -113,7 +114,7 @@ namespace BaiSol.Server.Controllers
             if (user != null && _config["OwnerEmail"] != user.Email)
             {
                 var token = await _userManager.GeneratePasswordResetTokenAsync(user);
-                var reactAppUrl = _config.GetSection("FrontEnd_Url").Get<string[]>()[0];
+                var reactAppUrl = _config["FrontEnd_Url:Web_Url"];
                 var forgotPasswordLink = $"{reactAppUrl}/change-password?token={token}&email={user.Email}";
                 //var forgotPasswordLink = Url.Action(nameof(ResetPassword), "Account", new { token, user.Email }, Request.Scheme);
 

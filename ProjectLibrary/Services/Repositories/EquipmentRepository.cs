@@ -40,31 +40,31 @@ namespace ProjectLibrary.Services.Repositories
             equipment.EQPTDescript = textFormat(equipment.EQPTDescript);
             equipment.EQPTCategory = textFormat(equipment.EQPTCategory);
 
-            // Check if the equpment already exists
+            // Check if the equipment already exists
             var equipmentData = await _dataContext.Equipment.FirstOrDefaultAsync(i => i.EQPTDescript == equipment.EQPTDescript);
             if (equipmentData != null)
             {
-                var oldQuantity = equipmentData.EQPTQOH;
-                equipmentData.EQPTQOH += equipment.EQPTQOH;
-                equipmentData.UpdatedAt = DateTimeOffset.UtcNow;
+                //var oldQuantity = equipmentData.EQPTQOH;
+                //equipmentData.EQPTQOH += equipment.EQPTQOH;
+                //equipmentData.UpdatedAt = DateTimeOffset.UtcNow;
 
 
 
-                _dataContext.UserLogs.Add(new UserLogs
-                {
-                    Action = "Update",
-                    EntityName = "Equipment",
-                    EntityId = equipmentData.EQPTId.ToString(),
-                    UserIPAddress = equipment.UserIpAddress,
-                    Details = $"Updated material '{equipment.EQPTDescript}'. Old Quantity: {oldQuantity}, New Quantity: {equipment.EQPTQOH}.",
-                    UserId = user.Id,
-                    UserName = user.NormalizedUserName,
-                    UserRole = userRole.FirstOrDefault(),
-                    User = user,
-                });
-                await Save();
+                //_dataContext.UserLogs.Add(new UserLogs
+                //{
+                //    Action = "Update",
+                //    EntityName = "Equipment",
+                //    EntityId = equipmentData.EQPTId.ToString(),
+                //    UserIPAddress = equipment.UserIpAddress,
+                //    Details = $"Updated material '{equipment.EQPTDescript}'. Old Quantity: {oldQuantity}, New Quantity: {equipment.EQPTQOH}.",
+                //    UserId = user.Id,
+                //    UserName = user.NormalizedUserName,
+                //    UserRole = userRole.FirstOrDefault(),
+                //    User = user,
+                //});
+                //await Save();
 
-                return null;
+                return "Equipment already exist!";
             }
 
             // Map DTO to model

@@ -1,4 +1,5 @@
 ﻿
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ProjectLibrary.DTO.Project;
 using ProjectLibrary.DTO.Quote;
@@ -8,6 +9,7 @@ namespace BaiSol.Server.Controllers.Projects
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize]
     public class QuotationController(IQuote _quote) : ControllerBase
     {
 

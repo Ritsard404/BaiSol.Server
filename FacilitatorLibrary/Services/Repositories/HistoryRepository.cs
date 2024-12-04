@@ -1,4 +1,5 @@
-﻿using DataLibrary.Data;
+﻿using BaseLibrary.Services.Interfaces;
+using DataLibrary.Data;
 using DataLibrary.Models;
 using FacilitatorLibrary.DTO.History;
 using FacilitatorLibrary.DTO.Supply;
@@ -12,7 +13,7 @@ using System.Threading.Tasks;
 
 namespace FacilitatorLibrary.Services.Repositories
 {
-    public class HistoryRepository(DataContext _dataContext, IAssignedSupply _assignedProject) : IHistoryRepository
+    public class HistoryRepository(DataContext _dataContext, IAssignedSupply _assignedProject,IGanttRepository _gantt) : IHistoryRepository
     {
         public async Task<ICollection<AllAssignedEquipmentDTO>> GetAllAssignedEquipment(string userEmail)
         {
@@ -120,7 +121,8 @@ namespace FacilitatorLibrary.Services.Repositories
                 var taskCount = tasksProof.Count();
 
                 // Calculate the average progress
-                decimal averageProgress = taskCount > 0 ? (decimal)tasksProgress / taskCount * 100 : 0;
+                decimal averageProgress = (decimal)await _gantt.ProjectTaskProgress(projectData.ProjId);
+                //decimal averageProgress = taskCount > 0 ? (decimal)tasksProgress / taskCount * 100 : 0;
 
                 var installers = await _dataContext.ProjectWorkLog
                    .Include(i => i.Installer)

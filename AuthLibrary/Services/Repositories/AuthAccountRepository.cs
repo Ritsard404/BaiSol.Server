@@ -169,13 +169,22 @@ namespace AuthLibrary.Services.Repositories
             // Return unsuccessful login response
             return new LoginResponse(null, null, $"Invalid OTP!");
         }
-        public async Task<GeneralResponse> LoginAccount(LoginDto loginDto)
+        public async Task<GeneralResponse> LoginAccount(LoginDto loginDto, bool? isMobile)
         {
             // Get user from the database
             var user = await _userManager.FindByEmailAsync(loginDto.Email);
             if (user == null)
             {
                 return new GeneralResponse("User not found!", false, false, null, null);
+            }
+
+            if (isMobile != null && isMobile.Value)
+            {
+                var getUserRoles = await _userManager.GetRolesAsync(user);
+                var userRole = getUserRoles.FirstOrDefault();
+
+                if (userRole == UserRoles.Admin)
+                    return new GeneralResponse("User not found!", false, false, null, null);
             }
 
             // Sign out any existing users and sign in with the provided credentials

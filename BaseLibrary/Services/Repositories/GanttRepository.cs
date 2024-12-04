@@ -1,5 +1,6 @@
 ﻿using BaiSol.Server.Models.Email;
 using BaseLibrary.DTO.Gantt;
+using BaseLibrary.DTO.Report;
 using BaseLibrary.Services.Interfaces;
 using DataLibrary.Data;
 using DataLibrary.Models;
@@ -8,12 +9,14 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using RestSharp;
+using System.Globalization;
 using System.Text.Json;
 using System.Threading.Tasks;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace BaseLibrary.Services.Repositories
 {
-    public class GanttRepository(DataContext _dataContext, IPayment _payment, IConfiguration _config, IEmailRepository _email) : IGanttRepository
+    public class GanttRepository(DataContext _dataContext, IPayment _payment, IConfiguration _config, IEmailRepository _email, IUserLogs _logs) : IGanttRepository
     {
         public async Task<ICollection<FacilitatorTasksDTO>> FacilitatorTasks(string projId)
         {
@@ -715,7 +718,7 @@ namespace BaseLibrary.Services.Repositories
 
             if (paymentReference.IsCashPayed)
             {
-                DateTimeOffset startDate = paymentReference.CashPaidAt ?? DateTimeOffset.UtcNow;
+                DateTimeOffset startDate = paymentReference.CashPaidAt?.AddDays(1) ?? DateTimeOffset.UtcNow;
                 DateTimeOffset endDate = CalculateEndDateExcludingWeekends(startDate, estimatedDaysToEnd);
 
                 info = new ProjectDateInfo
@@ -730,7 +733,7 @@ namespace BaseLibrary.Services.Repositories
             }
             else
             {
-                DateTimeOffset startDate = DateTimeOffset.FromUnixTimeSeconds(createdAt).UtcDateTime;
+                DateTimeOffset startDate = DateTimeOffset.FromUnixTimeSeconds(createdAt).UtcDateTime.AddDays(1);
                 DateTimeOffset endDate = CalculateEndDateExcludingWeekends(startDate, estimatedDaysToEnd);
 
                 info = new ProjectDateInfo
@@ -746,25 +749,109 @@ namespace BaseLibrary.Services.Repositories
 
             return info;
         }
+        public async Task<(DateTimeOffset StartDate, DateTimeOffset EndDate)> GetProjectDates(string projId)
+        {
+            var project = await _dataContext.Project
+                .Include(f => f.Facilitator)
+                .FirstOrDefaultAsync(id => id.ProjId == projId);
+
+            var paymentReference = await _dataContext.Payment
+                .OrderBy(p => p.AcknowledgedAt)
+                .FirstOrDefaultAsync(p => p.Project == project && p.AcknowledgedAt != null);
+
+
+            var paymentReferences = await _dataContext.Payment
+                .Where(p => p.Project == project)
+                .ToListAsync();
+
+            var totalAmount = await _payment.GetTotalProjectExpense(projId: projId);
+
+            string payRef = string.Empty;
+            string status = string.Empty;
+            int createdAt = 0;
+
+            var options = new RestClientOptions($"{_config["Payment:API"]}/{paymentReference.Id}");
+            var client = new RestClient(options);
+            var request = new RestRequest("");
+
+            request.AddHeader("accept", "application/json");
+            request.AddHeader("authorization", $"Basic {_config["Payment:Key"]}");
+
+            var response = await client.GetAsync(request);
+
+            if (response.IsSuccessStatusCode)
+            {
+                var responseData = JsonDocument.Parse(response.Content);
+                var data = responseData.RootElement.GetProperty("data");
+                var attributes = data.GetProperty("attributes");
+
+                decimal amount = attributes.GetProperty("amount").GetDecimal() / 100m;
+                string currentStatus = attributes.GetProperty("status").GetString();
+                createdAt = attributes.GetProperty("created_at").GetInt32();
+
+                status = currentStatus;
+                payRef = paymentReference.Id;
+            }
+
+            int estimatedDaysToEnd = project.kWCapacity <= 5 ? 7
+                   : project.kWCapacity >= 6 && project.kWCapacity <= 10 ? 15
+                   : project.kWCapacity >= 11 && project.kWCapacity <= 15 ? 25
+                   : 35;
+
+            DateTimeOffset CalculateEndDateExcludingWeekends(DateTimeOffset startDate, int daysToAdd)
+            {
+                DateTimeOffset endDate = startDate;
+                int daysAdded = 0;
+
+                while (daysAdded < daysToAdd)
+                {
+                    endDate = endDate.AddDays(1);
+                    if (endDate.DayOfWeek != DayOfWeek.Saturday && endDate.DayOfWeek != DayOfWeek.Sunday)
+                    {
+                        daysAdded++;
+                    }
+                }
+
+                return endDate;
+            }
+
+            if (paymentReference.IsCashPayed)
+            {
+                DateTimeOffset startDate = paymentReference.CashPaidAt ?? DateTimeOffset.UtcNow;
+                DateTimeOffset endDate = CalculateEndDateExcludingWeekends(startDate, estimatedDaysToEnd);
+
+                return (startDate, endDate);
+            }
+            else
+            {
+                DateTimeOffset startDate = DateTimeOffset.FromUnixTimeSeconds(createdAt).UtcDateTime;
+                DateTimeOffset endDate = CalculateEndDateExcludingWeekends(startDate, estimatedDaysToEnd);
+
+                return (startDate, endDate);
+            }
+        }
+
 
         public async Task<ProjProgressDTO> ProjectProgress(string projId)
         {
-            // Get the tasks that match the criteria
-            var tasks = await _dataContext.GanttData
-                .Where(i => i.ProjId == projId && i.ParentId == null)
-                .ToListAsync();
+            //// Get the tasks that match the criteria
+            //var tasks = await _dataContext.GanttData
+            //    .Where(i => i.ProjId == projId && i.ParentId == null)
+            //    .ToListAsync();
 
-            // Calculate the total progress
-            var tasksProgress = tasks.Sum(p => p.Progress) ?? 0;
+            //// Calculate the total progress
+            //var tasksProgress = tasks.Sum(p => p.Progress) ?? 0;
 
-            // Calculate the number of tasks
-            var taskCount = tasks.Count;
+            //// Calculate the number of tasks
+            //var taskCount = tasks.Count;
 
-            // Calculate the average progress
-            decimal averageProgress = taskCount > 0 ? tasksProgress / taskCount : 0;
+            //// Calculate the average progress
+            //decimal averageProgress = taskCount > 0 ? tasksProgress / taskCount : 0;
+
+            var progress = await ProjectTaskProgress(projId);
 
             // Return the result
-            return new ProjProgressDTO { progress = averageProgress };
+            return new ProjProgressDTO { progress = progress };
         }
 
         public async Task<ProjectStatusDTO> ProjectStatus(string projId)
@@ -842,5 +929,449 @@ namespace BaseLibrary.Services.Repositories
             await _dataContext.SaveChangesAsync();
         }
 
+        public async Task<(bool, string)> UpdateTaskProgress(UpdateTaskProgress taskDto)
+        {
+
+            var task = await _dataContext.GanttData
+                .FirstOrDefaultAsync(i => i.Id == taskDto.id);
+
+            if (task == null)
+                return (false, "Task not exist!");
+
+            var project = await _dataContext.Project
+                .Include(c => c.Client)
+                .Include(c => c.Client.Client)
+                .FirstOrDefaultAsync(i => i.ProjId == task.ProjId);
+            if (project == null)
+                return (false, "Project not exist!");
+
+            // If the adviser  want only input the progress and not add
+            //if (taskDto.Progress < 0 || taskDto.Progress > 100 || taskDto.Progress <= task.Progress)
+
+            if (taskDto.Progress < 0 || taskDto.Progress > 100 || taskDto.Progress + task.Progress > 100)
+                return (false, "Invalid inputted progress!");
+
+            var assignedFacilitator = await _dataContext.ProjectWorkLog
+                .Include(i => i.Facilitator)
+                .FirstOrDefaultAsync(f => f.Project == project && f.Facilitator != null);
+            if (assignedFacilitator == null)
+                return (false, "No facilitator assigned!");
+
+            if (DateTime.UtcNow.DayOfWeek == DayOfWeek.Saturday || DateTime.UtcNow.DayOfWeek == DayOfWeek.Sunday)
+                return (false, "Action denied: Tasks cannot be submitted during weekends. Please try again on a weekday.");
+
+            var todayUtcDate = DateTimeOffset.UtcNow.Date;
+
+            var isUpdatedToday = await _dataContext.TaskProof
+                .AnyAsync(t =>
+                    t.Task.Id == taskDto.id &&
+                    t.ActualStart.HasValue &&
+                    t.ActualStart.Value.Date == todayUtcDate);
+
+            if (isUpdatedToday)
+                return (false, "Action denied: This task has already been updated today. Please try again tomorrow.");
+
+            string[] allowedFileExtentions = { ".jpg", ".jpeg", ".png" };
+            string createdImageName = await SaveFileAsync(taskDto.ProofImage, allowedFileExtentions);
+
+
+            if (task.Progress == 0 || task.Progress == null)
+            {
+                task.Progress = taskDto.Progress;
+            }
+            else
+            {
+                task.Progress += taskDto.Progress;
+
+            }
+
+            //task.Progress += taskDto.Progress;
+
+            if (!task.ActualStartDate.HasValue)
+            {
+                task.ActualStartDate = DateTime.UtcNow;
+            }
+            task.ActualEndDate = DateTime.UtcNow;
+
+            DateTimeOffset estimationStart = DateTimeOffset
+                .ParseExact(taskDto.EstimationStart, "MMM dd, yyyy", CultureInfo.InvariantCulture)
+                .ToOffset(TimeSpan.Zero).AddDays(1);
+
+            var taskProof = new TaskProof
+            {
+                ProofImage = createdImageName,
+                //TaskProgress = task.Progress,
+                TaskProgress = taskDto.Progress,
+                Task = task,
+                IsFinish = true,
+                //EstimationStart = DateTimeOffset.UtcNow,
+                EstimationStart = estimationStart,
+                ActualStart = DateTimeOffset.UtcNow
+            };
+
+            // If the adviser  want only input the progress and not add
+            //task.Progress = taskDto.Progress;
+
+            await _dataContext.TaskProof.AddAsync(taskProof);
+            _dataContext.GanttData.Update(task);
+
+            await _dataContext.SaveChangesAsync();
+
+            EmailMessage message;
+
+            string greeting = $"<p>Hello {(project.Client.Client.IsMale ? "Mr." : "Ms.")} {project.Client.LastName},</p>";
+
+            string messageContent = $@"
+                <p>We are excited to inform you that the task <strong>{task.TaskName}</strong> for your solar installation project <strong>{project.ProjName}</strong> is now at <strong>{task.Progress}%</strong> completion!</p>
+                <p>The latest update was made on <strong>{DateTimeOffset.UtcNow:MMMM dd, yyyy}</strong>. We are making great progress, and your project is moving forward as planned!</p>
+                <p>Please log in to your account on our site to monitor the ongoing progress and get the latest updates on your project.</p>
+            ";
+
+            string footer = @"
+                <p>Best regards,<br>The BaiSol Team</p>
+                <p>If you have any questions, feel free to reach out to us.</p>
+            ";
+
+            message = new EmailMessage(
+                   new string[] { project.Client.Email },
+                   "Project Progress Update: " + task.TaskName,
+                   $"{greeting}{messageContent}{footer}"
+               );
+
+            _email.SendEmail(message);
+
+
+            var isFinishTask = await ProjectTaskProgress(project.ProjId) == 100;
+
+            //var isFinishTask = await _dataContext.GanttData
+            //    .Where(i => i.ProjId == project.ProjId && i.ParentId == null)
+            //    .AverageAsync(t => t.Progress) == 100;
+
+            //var isFinishTask = await _dataContext.GanttData
+            //    .AnyAsync(p => p.Progress == 100);
+
+            string finishProjectMessage = $@"
+                    <p>We’re delighted to inform you that your project <strong>{project.ProjName}</strong> has been successfully completed!</p>
+                    <p>Completion Date: <strong>{project.UpdatedAt:MMMM dd, yyyy}</strong></p>
+                    <p>Thank you for trusting us with your project. We hope you’re satisfied with the results!</p>
+                    <p>Feel free to review all project details on our website.</p>
+                ";
+
+            if (isFinishTask)
+            {
+                project.Status = "Finished";
+                project.isDemobilization = true;
+                project.UpdatedAt = DateTimeOffset.UtcNow.UtcDateTime;
+
+                await _dataContext.SaveChangesAsync();
+
+                string notifMessageFinish = $"Dear {project.Client.FirstName}, we are thrilled to inform you that your project '{project.SystemType} {project.kWCapacity}' has been successfully completed as of {project.UpdatedAt:MMMM dd, yyyy}. We truly appreciate your trust in us and look forward to working with you again in the future!";
+                await AddNotification(
+                        "Project Finished: " + project.ProjName,  // Title of the notification
+                        notifMessageFinish,                               // Message content
+                        "Project Update",                           // Type of notification
+                        project
+                    );
+
+                message = new EmailMessage(
+                    new string[] { project.Client.Email },
+                    "Project Finished",
+                    $"{greeting}{finishProjectMessage}{footer}");
+
+                await _logs.LogUserActionAsync(assignedFacilitator.Facilitator.Email, "Update", "project", task.Id.ToString(), "Finish project", taskDto.ipAddress);
+
+                return (true, "All the tasks complete! The project is Finished.");
+            }
+
+            string notifMessage = $"Dear {project.Client.FirstName}, we are pleased to inform you that the task '{task.TaskName}' for your project '{project.SystemType} {project.kWCapacity} kW' is now {task.Progress}% complete as of {DateTimeOffset.UtcNow:MMMM dd, yyyy}. We deeply value your trust and partnership. Thank you!";
+            await AddNotification($"Project Update: {task.TaskName}", notifMessage, "Task Progress Update", project);
+
+            await _logs.LogUserActionAsync(assignedFacilitator.Facilitator.Email, "Update", "Task", task.Id.ToString(), "Update project task progress", taskDto.ipAddress);
+            return (true, "Task progress updated! Your report submitted to the admin.");
+        }
+
+        public async Task<ICollection<TaskToDoDTO>> TaskToUpdateProgress(string projId)
+        {
+            var isProjectOnWork = await _dataContext.Project
+                .AnyAsync(i => i.ProjId == projId && i.Status != "OnProcess" && i.Status != "OnGoing");
+            //.AnyAsync(i => i.ProjId == projId);
+
+            // If the project is not "OnProcess," return an empty list
+            if (!isProjectOnWork)
+                return new List<TaskToDoDTO>();
+
+            var tasks = await _dataContext.GanttData
+                .Where(p => p.ProjId == projId)
+                .Include(t => t.TaskProofs)
+                .OrderBy(s => s.PlannedStartDate)
+                .ToListAsync();
+
+            // Find tasks that are referenced as ParentId (tasks with subtasks)
+            var taskIdsWithSubtasks = tasks
+                .Where(t => tasks.Any(sub => sub.ParentId == t.TaskId))
+                .Select(t => t.TaskId)
+                .ToHashSet();
+
+            var toDoList = new List<TaskToDoDTO>();
+            bool previousTaskCompleted = true;
+
+            foreach (var task in tasks)
+            {
+                // Skip tasks that have subtasks
+                if (taskIdsWithSubtasks.Contains(task.TaskId))
+                    continue;
+
+                // Set IsEnable to true if the previous task is completed, otherwise false
+                bool isEnable = task.Progress != 100 && previousTaskCompleted;
+
+                var taskToDo = await _dataContext.TaskProof
+                    .Where(t => t.Task == task)
+                    .OrderByDescending(s => s.ActualStart)
+                    .ToListAsync();
+
+                var tasksList = new List<TaskDTO>();
+
+                if (taskToDo == null || !taskToDo.Any())
+                {
+                    // Calculate days late if PlannedStartDate exists
+                    //int daysLate = task.PlannedEndDate.HasValue && task.PlannedEndDate.Value < DateTime.Today
+                    //    ? (DateTime.UtcNow - task.PlannedEndDate.Value).Days
+                    //    : 0;
+                    int daysLate = CalculateDaysLate(task.PlannedEndDate, DateTime.UtcNow);
+
+                    tasksList.Add(new TaskDTO
+                    {
+                        id = task.Id,
+                        EstimationStart = task.PlannedStartDate?.ToString("MMM dd, yyyy") ?? "",
+                        IsEnable = isEnable || (task.PlannedStartDate.HasValue && CalculateDaysLate(task.PlannedStartDate.Value, DateTime.Today) <= 2),
+                        //IsEnable = isEnable || (task.PlannedStartDate.HasValue && (task.PlannedStartDate.Value - DateTime.Today).Days <= 2),
+                        IsLate = task.PlannedEndDate < DateTime.UtcNow,
+                        DaysLate = daysLate
+
+
+                    });
+                }
+                else if (task.Progress != 100)
+                {
+                    foreach (var taskItem in taskToDo)
+                    {
+                        tasksList.Add(new TaskDTO
+                        {
+                            id = taskItem.id,
+                            ProofImage = taskItem.ProofImage,
+                            ActualStart = taskItem.ActualStart?.ToString("MMM dd, yyyy") ?? "",
+                            EstimationStart = taskItem.EstimationStart.ToString("MMM dd, yyyy") ?? "",
+                            TaskProgress = taskItem.TaskProgress ?? 0,
+                            IsFinish = taskItem.IsFinish,
+                            IsEnable = false
+
+                        });
+
+                    }
+
+                    var lastTaskItem = taskToDo.LastOrDefault();
+
+                    //int daysLate = lastTaskItem?.ActualStart.HasValue == true &&
+                    //               lastTaskItem.ActualStart.Value.UtcDateTime.Date < DateTimeOffset.UtcNow.UtcDateTime.Date
+                    //    ? (DateTimeOffset.UtcNow.UtcDateTime - lastTaskItem.ActualStart.Value.UtcDateTime).Days
+                    //    : 0;
+
+                    int daysLate = CalculateDaysOffsetLate(lastTaskItem?.ActualStart, DateTimeOffset.UtcNow);
+
+
+                    tasksList.Add(new TaskDTO
+                    {
+                        id = task.Id,
+                        //EstimationStart = task.ActualEndDate?.Date <= DateTime.Today.Date
+                        //    ? task.ActualEndDate?.AddDays(1).ToString("MMM dd, yyyy")
+                        //    : DateTime.Today.ToString("MMM dd, yyyy"),
+                        EstimationStart = GetNextWeekdayEstimationStart(task.ActualEndDate),
+                        //task.ActualEndDate?.AddDays(1).ToString("MMM dd, yyyy"),
+                        IsEnable = (IsWeekday(task.ActualEndDate?.Date) && task.ActualEndDate?.Date < DateTime.Today.Date) || isEnable,
+                        IsLate = daysLate > 1,
+                        DaysLate = daysLate - 1
+
+
+                    });
+
+                }
+                else
+                {
+                    foreach (var taskItem in taskToDo)
+                    {
+                        tasksList.Add(new TaskDTO
+                        {
+                            id = taskItem.id,
+                            ProofImage = taskItem.ProofImage,
+                            ActualStart = taskItem.ActualStart?.ToString("MMM dd, yyyy") ?? "",
+                            EstimationStart = taskItem.EstimationStart.ToString("MMM dd, yyyy") ?? "",
+                            TaskProgress = taskItem.TaskProgress ?? 0,
+                            IsFinish = taskItem.IsFinish,
+                            IsEnable = false
+
+                        });
+
+                    }
+                }
+
+
+                // Create the DTO object
+                var toDo = new TaskToDoDTO
+                {
+                    Id = task.Id,
+                    TaskName = task.TaskName,
+                    PlannedStartDate = task.PlannedStartDate?.ToString("MMM dd, yyyy") ?? "",
+                    PlannedEndDate = task.PlannedEndDate?.ToString("MMM dd, yyyy") ?? "",
+                    StartDate = task.ActualStartDate?.ToString("MMM dd, yyyy") ?? "",
+                    EndDate = task.ActualEndDate?.ToString("MMM dd, yyyy") ?? "",
+                    IsEnable = isEnable || (task.PlannedStartDate.HasValue && (task.PlannedStartDate.Value - DateTime.Today).Days <= 2),
+                    IsFinished = task.Progress == 100,
+                    IsStarting = task.ActualStartDate != null,
+                    DaysLate = CalculateDaysParentLate(task.PlannedEndDate, task.Progress),
+                    //DaysLate = task.PlannedEndDate.Value < DateTimeOffset.UtcNow && task.Progress != 100
+                    //    ? (DateTime.UtcNow - task.PlannedEndDate.Value).Days
+                    //    : 0,
+                    TaskList = tasksList
+                };
+
+                // Add to the final list
+                toDoList.Add(toDo);
+
+                previousTaskCompleted = task.Progress == 100;
+
+            }
+
+            return toDoList;
+        }
+        private bool IsWeekday(DateTime? date)
+        {
+            if (!date.HasValue)
+                return false;
+
+            // Check if the date is a weekend (Saturday or Sunday)
+            return date.Value.DayOfWeek != DayOfWeek.Saturday && date.Value.DayOfWeek != DayOfWeek.Sunday;
+        }
+        public int CalculateDaysParentLate(DateTime? plannedEndDate, int? progress)
+        {
+            if (!plannedEndDate.HasValue || progress == 100)
+                return 0;
+
+            // Calculate the difference between now and the PlannedEndDate
+            DateTime plannedEnd = plannedEndDate.Value.Date;
+            DateTime currentDate = DateTime.UtcNow.Date;
+
+            if (plannedEnd < currentDate)
+            {
+                int daysLate = 0;
+
+                // Loop through each day between plannedEnd and currentDate and count weekdays
+                for (DateTime date = plannedEnd; date < currentDate; date = date.AddDays(1))
+                {
+                    // Exclude weekends (Saturday and Sunday)
+                    if (date.DayOfWeek != DayOfWeek.Saturday && date.DayOfWeek != DayOfWeek.Sunday)
+                    {
+                        daysLate++;
+                    }
+                }
+
+                return daysLate;
+            }
+
+            return 0;
+        }
+
+
+        public int CalculateDaysLate(DateTime? startDate, DateTime? endDate)
+        {
+            if (!startDate.HasValue || !endDate.HasValue)
+                return 0;
+
+            DateTime start = startDate.Value.Date;
+            DateTime end = endDate.Value.Date;
+
+            int daysLate = 0;
+
+            // Loop through all days between start and end
+            for (DateTime date = start; date < end; date = date.AddDays(1))
+            {
+                // Exclude weekends (Saturday and Sunday)
+                if (date.DayOfWeek != DayOfWeek.Saturday && date.DayOfWeek != DayOfWeek.Sunday)
+                {
+                    daysLate++;
+                }
+            }
+
+            return daysLate;
+        }
+        public int CalculateDaysOffsetLate(DateTimeOffset? startDate, DateTimeOffset? endDate)
+        {
+            if (!startDate.HasValue || !endDate.HasValue)
+                return 0;
+
+            DateTimeOffset start = startDate.Value.Date;
+            DateTimeOffset end = endDate.Value.Date;
+
+            int daysLate = 0;
+
+            // Loop through all days between start and end
+            for (DateTimeOffset date = start; date < end; date = date.AddDays(1))
+            {
+                // Exclude weekends (Saturday and Sunday)
+                if (date.DayOfWeek != DayOfWeek.Saturday && date.DayOfWeek != DayOfWeek.Sunday)
+                {
+                    daysLate++;
+                }
+            }
+
+            return daysLate;
+        }
+
+        private string GetNextWeekdayEstimationStart(DateTime? actualEndDate)
+        {
+            if (!actualEndDate.HasValue)
+                return string.Empty;
+
+            DateTime nextDay = actualEndDate.Value.AddDays(1);
+
+            // Skip weekends (Saturday and Sunday)
+            while (nextDay.DayOfWeek == DayOfWeek.Saturday || nextDay.DayOfWeek == DayOfWeek.Sunday)
+            {
+                nextDay = nextDay.AddDays(1); // Skip weekends
+            }
+
+            return nextDay.ToString("MMM dd, yyyy");
+        }
+
+
+        public async Task<int> ProjectTaskProgress(string projId)
+        {
+            var tasks = await _dataContext.GanttData
+                .Where(p => p.ProjId == projId)
+                .Select(t => new
+                {
+                    t.TaskId,
+                    t.ParentId,
+                    t.Progress
+                })
+                .ToListAsync();
+
+            int totalProgress = 0, taskCount = 0;
+
+            var taskIdsWithSubtasks = tasks
+                .Where(t => tasks.Any(sub => sub.ParentId == t.TaskId))
+                .Select(t => t.TaskId)
+                .ToHashSet();
+
+            foreach (var task in tasks)
+            {
+                if (taskIdsWithSubtasks.Contains(task.TaskId))
+                    continue;
+
+                totalProgress += task.Progress ?? 0;
+                taskCount++;
+            }
+
+            return taskCount == 0 ? 0 : totalProgress / taskCount;
+        }
     }
 }

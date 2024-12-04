@@ -18,7 +18,7 @@ using System.Text.Json;
 
 namespace ProjectLibrary.Services.Repositories
 {
-    public class ProjectRepository(UserManager<AppUsers> _userManager, DataContext _dataContext, IUserLogs _userLogs, IConfiguration _config) : IProject
+    public class ProjectRepository(UserManager<AppUsers> _userManager, DataContext _dataContext, IUserLogs _userLogs, IConfiguration _config,IGanttRepository _gantt) : IProject
     {
         public async Task<string> AddNewClientProject(ProjectDto projectDto)
         {
@@ -640,62 +640,62 @@ namespace ProjectLibrary.Services.Repositories
             project.Status = "OnWork";
             project.UpdatedAt = DateTimeOffset.UtcNow;
 
-            var tasks = await _dataContext.GanttData
-                .Where(p => p.ProjId == project.ProjId)
-                .Include(t => t.TaskProofs)
-                .OrderBy(s => s.PlannedStartDate)
-                .ToListAsync();
+            //var tasks = await _dataContext.GanttData
+            //    .Where(p => p.ProjId == project.ProjId)
+            //    .Include(t => t.TaskProofs)
+            //    .OrderBy(s => s.PlannedStartDate)
+            //    .ToListAsync();
 
-            // Find tasks that are referenced as ParentId (tasks with subtasks)
-            var taskIdsWithSubtasks = tasks
-                .Where(t => tasks.Any(sub => sub.ParentId == t.TaskId))
-                .Select(t => t.TaskId)
-                .ToHashSet();
+            //// Find tasks that are referenced as ParentId (tasks with subtasks)
+            //var taskIdsWithSubtasks = tasks
+            //    .Where(t => tasks.Any(sub => sub.ParentId == t.TaskId))
+            //    .Select(t => t.TaskId)
+            //    .ToHashSet();
 
-            if (tasks == null)
-                return (false, "Empty Tasks");
+            //if (tasks == null)
+            //    return (false, "Empty Tasks");
 
-            int? CalculateWorkDays(DateTime? startDate, DateTime? endDate)
-            {
-                if (!startDate.HasValue || !endDate.HasValue)
-                    return null;
+            //int? CalculateWorkDays(DateTime? startDate, DateTime? endDate)
+            //{
+            //    if (!startDate.HasValue || !endDate.HasValue)
+            //        return null;
 
-                DateTime start = startDate.Value;
-                DateTime end = endDate.Value;
-                int workDays = 0;
+            //    DateTime start = startDate.Value;
+            //    DateTime end = endDate.Value;
+            //    int workDays = 0;
 
-                while (start <= end)
-                {
-                    if (start.DayOfWeek != DayOfWeek.Saturday && start.DayOfWeek != DayOfWeek.Sunday)
-                    {
-                        workDays++;
-                    }
-                    start = start.AddDays(1);
-                }
+            //    while (start <= end)
+            //    {
+            //        if (start.DayOfWeek != DayOfWeek.Saturday && start.DayOfWeek != DayOfWeek.Sunday)
+            //        {
+            //            workDays++;
+            //        }
+            //        start = start.AddDays(1);
+            //    }
 
-                return workDays;
-            }
+            //    return workDays;
+            //}
 
-            foreach (var task in tasks)
-            {
-                // Skip tasks that have subtasks
-                if (taskIdsWithSubtasks.Contains(task.TaskId) || !task.PlannedStartDate.HasValue)
-                    continue;
+            //foreach (var task in tasks)
+            //{
+            //    // Skip tasks that have subtasks
+            //    if (taskIdsWithSubtasks.Contains(task.TaskId) || !task.PlannedStartDate.HasValue)
+            //        continue;
 
-                int? taskWorkDays = CalculateWorkDays(task.PlannedStartDate, task.PlannedEndDate);
+            //    int? taskWorkDays = CalculateWorkDays(task.PlannedStartDate, task.PlannedEndDate);
 
-                for (int i = 0; i < taskWorkDays; i++)
-                {
-                    var taskToDo = new TaskProof
-                    {
-                        EstimationStart = task.PlannedStartDate.Value.AddDays(i),
-                        TaskProgress = (int)((double)(i + 1) / taskWorkDays.Value * 100),
-                        Task = task
-                    };
+            //    for (int i = 0; i < taskWorkDays; i++)
+            //    {
+            //        var taskToDo = new TaskProof
+            //        {
+            //            EstimationStart = task.PlannedStartDate.Value.AddDays(i),
+            //            TaskProgress = (int)((double)(i + 1) / taskWorkDays.Value * 100),
+            //            Task = task
+            //        };
 
-                    await _dataContext.TaskProof.AddAsync(taskToDo);
-                }
-            }
+            //        await _dataContext.TaskProof.AddAsync(taskToDo);
+            //    }
+            //}
 
             _dataContext.Project.Update(project);
             await _dataContext.SaveChangesAsync();
@@ -743,6 +743,17 @@ namespace ProjectLibrary.Services.Repositories
             var amount = await GetTotalProjectExpense(projId: project.ProjId);
             if (amount < 1)
                 return (false, "No Quotation Cost Yet!");
+
+            var material = await _dataContext.Supply
+                .AnyAsync(i => i.Project == project && i.Material != null);
+            if (!material)
+                return (false, "No material supply!");
+
+            var equipment = await _dataContext.Supply
+                .AnyAsync(i => i.Project == project && i.Equipment != null);
+            if (!equipment)
+                return (false, "No equipment supply!");
+
 
             project.Status = "OnProcess";
             project.UpdatedAt = DateTimeOffset.UtcNow;
@@ -870,18 +881,18 @@ namespace ProjectLibrary.Services.Repositories
             {
                 // Fetch tasks for the current project
                 var tasksProof = await _dataContext.TaskProof
-                    .Include(t=>t.Task)
+                    .Include(t => t.Task)
                     .Where(i => i.Task.ProjId == project.ProjId)
                     .ToListAsync();
 
-                // Calculate the total progress
-                var tasksProgress = tasksProof.Where(i => i.IsFinish).Count();
+                var averageProgress = await _gantt.ProjectTaskProgress(projId: project.ProjId);
 
-                // Calculate the number of tasks
-                var taskCount = tasksProof.Count();
-
-                // Calculate the average progress
-                decimal averageProgress = taskCount > 0 ? (decimal)tasksProgress / taskCount * 100 : 0;
+                //var averageProgress = (await _dataContext.GanttData
+                //    .Where(i => i.ProjId == project.ProjId && i.ParentId == null)
+                //    .Select(t => (decimal?)t.Progress) // Ensure nullable selection
+                //    .ToListAsync()) // Switch to client-side evaluation
+                //    .DefaultIfEmpty(0) // Handle empty list
+                //    .Average();
 
                 // Step 3: Calculate payment progress
                 var paymentReferences = await _dataContext.Payment
@@ -914,7 +925,9 @@ namespace ProjectLibrary.Services.Repositories
                     }
                 }
 
-                decimal paymentProgress = paymentReferences.Any() ? (decimal)paid / paymentReferences.Count * 100 : 0;
+                decimal paymentProgress = paymentReferences.Count > 0
+                    ? (decimal)paid / paymentReferences.Count * 100
+                    : 0;
 
                 var facilitator = await _dataContext.ProjectWorkLog
                   .Include(i => i.Facilitator)
@@ -958,8 +971,8 @@ namespace ProjectLibrary.Services.Repositories
                     PaymentProgress = paymentProgress, // Include payment progress
                     Status = project.status,
                     Installers = installerList,
-                    FacilitatorEmail = facilitator?.Facilitator?.Email,
-                    FacilitatorName = $"{facilitator?.Facilitator?.FirstName} {facilitator?.Facilitator?.LastName}"
+                    FacilitatorEmail = facilitator?.Facilitator?.Email ?? string.Empty,
+                    FacilitatorName = $"{facilitator?.Facilitator?.FirstName ?? ""} {facilitator?.Facilitator?.LastName ?? ""}"
                 });
             }
 

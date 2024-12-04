@@ -597,7 +597,7 @@ namespace BaseLibrary.Services.Repositories
 
             await _dataContext.SaveChangesAsync();
 
-            return (true, "Project payed on cash.");
+            return (true, "Project paid on cash.");
         }
 
         public async Task<decimal> GetTotalProjectExpense(string projId)
@@ -617,7 +617,7 @@ namespace BaseLibrary.Services.Repositories
                 .Sum(m => (m.MTLQuantity ?? 0) * m.Material.MTLPrice);
 
             // Calculate profit and material total
-            var profitRate = materialSupply.Select(p => p.Project.ProfitRate).FirstOrDefault();
+            var profitRate = materialSupply.Select(p => p.Project?.ProfitRate).FirstOrDefault();
             var overallMaterialTotal = totalUnitCost * (1 + profitRate);
 
             // Calculate overall labor cost
@@ -635,7 +635,7 @@ namespace BaseLibrary.Services.Repositories
             var subtotal = overallMaterialTotal + overallLaborTotal - project.Discount;
             var finalTotal = subtotal * (1 + project.VatRate);
 
-            return (finalTotal);
+            return (finalTotal ?? 0);
         }
 
         private async Task<bool> LogUserActionAsync(string userEmail, string action, string entityName, string entityId, string details, string userIpAddress)

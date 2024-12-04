@@ -2,12 +2,14 @@
 using AuthLibrary.DTO.Facilitator;
 using AuthLibrary.DTO.Installer;
 using AuthLibrary.Services.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace BaiSol.Server.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize]
     public class PersonnelController(IPersonnel _personnel) : ControllerBase
     {
         [HttpPost("Add-Installer")]

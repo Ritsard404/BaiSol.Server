@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using ProjectLibrary.DTO.Equipment;
 using ProjectLibrary.DTO.Requisition;
@@ -8,6 +9,7 @@ namespace BaiSol.Server.Controllers.Projects
 {
     [Route("api/[controller]/[action]")]
     [ApiController]
+    [Authorize]
     public class RequisitionController(IRequisition _requisition) : ControllerBase
     {
         [HttpGet]

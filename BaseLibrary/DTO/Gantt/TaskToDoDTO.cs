@@ -27,7 +27,7 @@ namespace BaseLibrary.DTO.Gantt
         public string? ProofImage { get; set; }
         public string? ActualStart { get; set; }
         public required string EstimationStart { get; set; }
-        public required int TaskProgress { get; set; }
+        public int? TaskProgress { get; set; }
         public bool IsFinish { get; set; }
         public bool? IsEnable { get; set; }
         public bool? IsLate { get; set; }

@@ -1,4 +1,5 @@
 ﻿using DataLibrary.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Org.BouncyCastle.Asn1.Ocsp;
@@ -9,6 +10,7 @@ namespace BaiSol.Server.Controllers.Projects
 {
     [Route("material/[controller]")]
     [ApiController]
+    [Authorize]
     public class MaterialController(IMaterial _material) : ControllerBase
     {
 
@@ -29,8 +31,7 @@ namespace BaiSol.Server.Controllers.Projects
 
             if (result != null)
             {
-                ModelState.AddModelError("", result);
-                return StatusCode(500, ModelState);
+               return BadRequest(result);
             }
 
             return Ok("New Material Added");

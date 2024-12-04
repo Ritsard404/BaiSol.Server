@@ -1,8 +1,10 @@
 ﻿using AuthLibrary.DTO;
+using AuthLibrary.Models;
 using AuthLibrary.Services.Interfaces;
 using BaiSol.Server.Models.Email;
 using BaseLibrary.Services.Interfaces;
 using DataLibrary.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 
@@ -10,6 +12,7 @@ namespace BaiSol.Server.Controllers
 {
     [Route("user/[controller]")]
     [ApiController]
+    [Authorize(Roles = UserRoles.Admin)]
     public class UserController(IUserAccount _userAccount,
         UserManager<AppUsers> _userManager,
         IEmailRepository _emailRepository,
@@ -25,7 +28,7 @@ namespace BaiSol.Server.Controllers
             {
                 // Add Token to Verify the email
                 var token = await _userManager.GenerateEmailConfirmationTokenAsync(addAdmin.AppUsers);
-                var reactAppUrl = _config.GetSection("FrontEnd_Url").Get<string[]>()[0];
+                var reactAppUrl = _config["FrontEnd_Url:Web_Url"];
                 var confirmationLink = $"{reactAppUrl}/confirm-email?token={token}&email={addAdmin.AppUsers.Email}";
 
                 var message = new EmailMessage(new string[] { addAdmin.AppUsers.Email! }, "Confirmation email link", $"Please confirm your account by clicking this link: <a href='{confirmationLink}'>Confirmation Link</a>");
@@ -45,7 +48,7 @@ namespace BaiSol.Server.Controllers
             {
                 // Add Token to Verify the email
                 var token = await _userManager.GenerateEmailConfirmationTokenAsync(addFacilitator.AppUsers);
-                var reactAppUrl = _config.GetSection("FrontEnd_Url").Get<string[]>()[0];
+                var reactAppUrl = _config["FrontEnd_Url:Web_Url"];
                 var confirmationLink = $"{reactAppUrl}/confirm-email?token={token}&email={addFacilitator.AppUsers.Email}";
 
                 var message = new EmailMessage(new string[] { addFacilitator.AppUsers.Email! }, "Confirmation email link", $"Please confirm your account by clicking this link: <a href='{confirmationLink}'>Confirmation Link</a>");
@@ -57,6 +60,7 @@ namespace BaiSol.Server.Controllers
         }
 
         [HttpPost("Register-Client")]
+        [AllowAnonymous]
         public async Task<IActionResult> RegisterClient(ClientDto clientDto)
         {
             var addClient = await _userAccount.CreateClientAccount(clientDto);
@@ -78,7 +82,7 @@ namespace BaiSol.Server.Controllers
         }
 
         [HttpPut("Approve-Client-Account")]
-        public async Task<IActionResult> ApproveClientAccount(string clientId,string adminEmail)
+        public async Task<IActionResult> ApproveClientAccount(string clientId, string adminEmail)
         {
             var approveClient = await _userAccount.ApproveClient(clientId, adminEmail);
             if (!approveClient.Flag) return BadRequest("Client does not exist.");
@@ -92,7 +96,7 @@ namespace BaiSol.Server.Controllers
             var encodedEmail = Uri.EscapeDataString(approveClient.ClientUser.Email!);
 
             // Construct the confirmation link
-            var reactAppUrl = _config.GetSection("FrontEnd_Url").Get<string[]>()[0];
+            var reactAppUrl = _config["FrontEnd_Url:Web_Url"];
             var confirmationLink = $"{reactAppUrl}/confirm-email?token={encodedToken}&email={encodedEmail}";
 
             // Create the email message

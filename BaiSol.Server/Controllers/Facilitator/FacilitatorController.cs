@@ -1,6 +1,7 @@
 ﻿using FacilitatorLibrary.DTO.Request;
 using FacilitatorLibrary.DTO.Supply;
 using FacilitatorLibrary.Services.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
@@ -8,6 +9,7 @@ namespace BaiSol.Server.Controllers.Facilitator
 {
     [Route("api/[controller]/[action]")]
     [ApiController]
+    //[Authorize]
     public class FacilitatorController(IRequestSupply _requestSupply, IAssignedSupply _assignedSupply, IHistoryRepository _history) : ControllerBase
     {
         [HttpGet]
