@@ -31,7 +31,7 @@ namespace BaiSol.Server.Controllers.Gantt
 
             [JsonPropertyName("iconClass")]
             //public string? IconClass { get; set; } = "e-btn-icon e-notes-info e-icons e-icon-left e-gantt e-notes-info::before";
-            public string? IconClass { get; set; } 
+            public string? IconClass { get; set; }
 
             [JsonPropertyName("name")]
             public string? Name { get; set; }
@@ -74,67 +74,71 @@ namespace BaiSol.Server.Controllers.Gantt
             public int? ParentId { get; set; }
 
             [JsonPropertyName("Indicators")]
-            public List<Indicator>? Indicators { get; set; }  // Added Indicators property
+            public List<Indicator>? Indicators { get; set; }
 
         }
 
         [HttpGet("{projId}")]
         public async Task<IActionResult> Get(string projId)
-        {var tasks = await _dataContext.GanttData
-    .Where(p => p.ProjId == projId)
-    .ToListAsync();
-
-var mappedData = new List<Gantt>(); // Initialize mappedData outside the loop
-
-foreach (var task in tasks)
-{
-    var taskProofs = await _dataContext.TaskProof
-        .Where(i => i.Task == task)
-        .ToListAsync();
-    
-    var indicators = new List<Indicator>();
-
-    if (taskProofs.Any())
-    {
-        foreach (var proof in taskProofs)
         {
-            var indicator = new Indicator
+            var tasks = await _dataContext.GanttData
+                .Where(p => p.ProjId == projId)
+                .ToListAsync();
+
+            var mappedData = new List<Gantt>(); // Initialize mappedData outside the loop
+
+            foreach (var task in tasks)
             {
-                Date = proof.ActualStart?.ToString("MM/dd/yyyy"),
-                Name = $"<span style=\"color:black; font-size: 10px; font-weight: 600; position: relative; z-index: 10;\">{proof.TaskProgress?.ToString()}%</span>",
-                Tooltip = proof.ActualStart?.ToString("MMMM dd, yyyy")
+                var taskProofs = await _dataContext.TaskProof
+                    .Where(i => i.Task == task)
+                    .ToListAsync();
+
+                var indicators = new List<Indicator>();
+
+                if (taskProofs.Any())
+                {
+                    foreach (var proof in taskProofs)
+                    {
+                        var indicator = new Indicator
+                        {
+                            Date = proof.ActualStart?.ToString("MM/dd/yyyy"),
+                            Name = $"<span style=\"color:black; font-size: 10px; font-weight: 600; position: relative; z-index: 10; background-color: rgb(255, 255, 224);\">{proof.TaskProgress?.ToString()}%</span>",
+                            Tooltip = proof.ActualStart?.ToString("MMMM dd, yyyy")
+                        };
+
+                        indicators.Add(indicator);
+                    }
+                }
+
+                // Add mapped task with indicators to the list
+                mappedData.Add(new Gantt
+                {
+                    TaskId = task.TaskId,
+                    TaskName = task.TaskName,
+                    PlannedStartDate = task.PlannedStartDate,
+                    PlannedEndDate = task.PlannedEndDate,
+                    ActualStartDate = task.ActualStartDate,
+                    ActualEndDate = task.ActualEndDate,
+                    Progress = task.Progress,
+                    Duration = task.Duration,
+                    Predecessor = task.Predecessor,
+                    ParentId = task.ParentId,
+                    Indicators = indicators // Add indicators list here
+                });
+            }
+
+            // Now mappedData contains all the tasks with their indicators
+            mappedData = mappedData
+                .OrderBy(t => t.PlannedStartDate)
+                .ThenBy(i=>i.TaskId)
+                .ToList();
+
+            // Prepare response
+            var response = new GanttResponse<List<Gantt>>
+            {
+                Items = mappedData, // Use mappedData with indicators
+                Count = mappedData.Count
             };
-
-            indicators.Add(indicator);
-        }
-    }
-
-    // Add mapped task with indicators to the list
-    mappedData.Add(new Gantt
-    {
-        TaskId = task.TaskId,
-        TaskName = task.TaskName,
-        PlannedStartDate = task.PlannedStartDate,
-        PlannedEndDate = task.PlannedEndDate,
-        ActualStartDate = task.ActualStartDate,
-        ActualEndDate = task.ActualEndDate,
-        Progress = task.Progress,
-        Duration = task.Duration,
-        Predecessor = task.Predecessor,
-        ParentId = task.ParentId,
-        Indicators = indicators // Add indicators list here
-    });
-}
-
-// Now mappedData contains all the tasks with their indicators
-mappedData = mappedData.OrderBy(t => t.PlannedStartDate).ToList();
-
-// Prepare response
-var response = new GanttResponse<List<Gantt>>
-{
-    Items = mappedData, // Use mappedData with indicators
-    Count = mappedData.Count
-};
 
             // Return the list as a JSON response
             return Ok(response);

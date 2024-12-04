@@ -971,24 +971,31 @@ namespace BaseLibrary.Services.Repositories
             if (isUpdatedToday)
                 return (false, "Action denied: This task has already been updated today. Please try again tomorrow.");
 
+            string[] allowedFileExtentions = { ".jpg", ".jpeg", ".png" };
+            string createdImageName = await SaveFileAsync(taskDto.ProofImage, allowedFileExtentions);
 
-            // If the adviser  want only input the progress and not add
-            //task.Progress = taskDto.Progress;
 
-            task.Progress += taskDto.Progress;
+            if (task.Progress == 0 || task.Progress == null)
+            {
+                task.Progress = taskDto.Progress;
+            }
+            else
+            {
+                task.Progress += taskDto.Progress;
+
+            }
+
+            //task.Progress += taskDto.Progress;
+
             if (!task.ActualStartDate.HasValue)
             {
                 task.ActualStartDate = DateTime.UtcNow;
             }
             task.ActualEndDate = DateTime.UtcNow;
 
-            string[] allowedFileExtentions = { ".jpg", ".jpeg", ".png" };
-            string createdImageName = await SaveFileAsync(taskDto.ProofImage, allowedFileExtentions);
-
-            // Date without time component
-
-            DateTimeOffset estimationStart = DateTimeOffset.ParseExact(taskDto.EstimationStart, "MMM d, yyyy", CultureInfo.InvariantCulture);
-
+            DateTimeOffset estimationStart = DateTimeOffset
+                .ParseExact(taskDto.EstimationStart, "MMM dd, yyyy", CultureInfo.InvariantCulture)
+                .ToOffset(TimeSpan.Zero).AddDays(1);
 
             var taskProof = new TaskProof
             {
@@ -997,14 +1004,18 @@ namespace BaseLibrary.Services.Repositories
                 TaskProgress = taskDto.Progress,
                 Task = task,
                 IsFinish = true,
+                //EstimationStart = DateTimeOffset.UtcNow,
                 EstimationStart = estimationStart,
                 ActualStart = DateTimeOffset.UtcNow
             };
 
+            // If the adviser  want only input the progress and not add
+            //task.Progress = taskDto.Progress;
+
             await _dataContext.TaskProof.AddAsync(taskProof);
+            _dataContext.GanttData.Update(task);
 
             await _dataContext.SaveChangesAsync();
-
 
             EmailMessage message;
 
@@ -1123,15 +1134,17 @@ namespace BaseLibrary.Services.Repositories
                 if (taskToDo == null || !taskToDo.Any())
                 {
                     // Calculate days late if PlannedStartDate exists
-                    int daysLate = task.PlannedEndDate.HasValue && task.PlannedEndDate.Value < DateTime.Today
-                        ? (DateTime.UtcNow - task.PlannedEndDate.Value).Days
-                        : 0;
+                    //int daysLate = task.PlannedEndDate.HasValue && task.PlannedEndDate.Value < DateTime.Today
+                    //    ? (DateTime.UtcNow - task.PlannedEndDate.Value).Days
+                    //    : 0;
+                    int daysLate = CalculateDaysLate(task.PlannedEndDate, DateTime.UtcNow);
 
                     tasksList.Add(new TaskDTO
                     {
                         id = task.Id,
                         EstimationStart = task.PlannedStartDate?.ToString("MMM dd, yyyy") ?? "",
-                        IsEnable = isEnable || (task.PlannedStartDate.HasValue && (task.PlannedStartDate.Value - DateTime.Today).Days <= 2),
+                        IsEnable = isEnable || (task.PlannedStartDate.HasValue && CalculateDaysLate(task.PlannedStartDate.Value, DateTime.Today) <= 2),
+                        //IsEnable = isEnable || (task.PlannedStartDate.HasValue && (task.PlannedStartDate.Value - DateTime.Today).Days <= 2),
                         IsLate = task.PlannedEndDate < DateTime.UtcNow,
                         DaysLate = daysLate
 
@@ -1158,10 +1171,13 @@ namespace BaseLibrary.Services.Repositories
 
                     var lastTaskItem = taskToDo.LastOrDefault();
 
-                    int daysLate = lastTaskItem?.ActualStart.HasValue == true &&
-                                   lastTaskItem.ActualStart.Value < DateTime.UtcNow
-                        ? (DateTime.UtcNow - lastTaskItem.ActualStart.Value).Days
-                        : 0;
+                    //int daysLate = lastTaskItem?.ActualStart.HasValue == true &&
+                    //               lastTaskItem.ActualStart.Value.UtcDateTime.Date < DateTimeOffset.UtcNow.UtcDateTime.Date
+                    //    ? (DateTimeOffset.UtcNow.UtcDateTime - lastTaskItem.ActualStart.Value.UtcDateTime).Days
+                    //    : 0;
+
+                    int daysLate = CalculateDaysOffsetLate(lastTaskItem?.ActualStart, DateTimeOffset.UtcNow);
+
 
                     tasksList.Add(new TaskDTO
                     {
@@ -1169,10 +1185,11 @@ namespace BaseLibrary.Services.Repositories
                         //EstimationStart = task.ActualEndDate?.Date <= DateTime.Today.Date
                         //    ? task.ActualEndDate?.AddDays(1).ToString("MMM dd, yyyy")
                         //    : DateTime.Today.ToString("MMM dd, yyyy"),
-                        EstimationStart = task.ActualEndDate?.AddDays(1).ToString("MMM dd, yyyy"),
-                        IsEnable = task.ActualEndDate?.Date < DateTime.Today.Date || isEnable,
-                        IsLate = daysLate > 0,
-                        DaysLate = daysLate
+                        EstimationStart = GetNextWeekdayEstimationStart(task.ActualEndDate),
+                        //task.ActualEndDate?.AddDays(1).ToString("MMM dd, yyyy"),
+                        IsEnable = (IsWeekday(task.ActualEndDate?.Date) && task.ActualEndDate?.Date < DateTime.Today.Date) || isEnable,
+                        IsLate = daysLate > 1,
+                        DaysLate = daysLate - 1
 
 
                     });
@@ -1210,9 +1227,10 @@ namespace BaseLibrary.Services.Repositories
                     IsEnable = isEnable || (task.PlannedStartDate.HasValue && (task.PlannedStartDate.Value - DateTime.Today).Days <= 2),
                     IsFinished = task.Progress == 100,
                     IsStarting = task.ActualStartDate != null,
-                    DaysLate = task.PlannedEndDate.Value < DateTimeOffset.UtcNow && task.Progress != 100
-                        ? (DateTime.UtcNow - task.PlannedEndDate.Value).Days
-                        : 0,
+                    DaysLate = CalculateDaysParentLate(task.PlannedEndDate, task.Progress),
+                    //DaysLate = task.PlannedEndDate.Value < DateTimeOffset.UtcNow && task.Progress != 100
+                    //    ? (DateTime.UtcNow - task.PlannedEndDate.Value).Days
+                    //    : 0,
                     TaskList = tasksList
                 };
 
@@ -1225,6 +1243,106 @@ namespace BaseLibrary.Services.Repositories
 
             return toDoList;
         }
+        private bool IsWeekday(DateTime? date)
+        {
+            if (!date.HasValue)
+                return false;
+
+            // Check if the date is a weekend (Saturday or Sunday)
+            return date.Value.DayOfWeek != DayOfWeek.Saturday && date.Value.DayOfWeek != DayOfWeek.Sunday;
+        }
+        public int CalculateDaysParentLate(DateTime? plannedEndDate, int? progress)
+        {
+            if (!plannedEndDate.HasValue || progress == 100)
+                return 0;
+
+            // Calculate the difference between now and the PlannedEndDate
+            DateTime plannedEnd = plannedEndDate.Value.Date;
+            DateTime currentDate = DateTime.UtcNow.Date;
+
+            if (plannedEnd < currentDate)
+            {
+                int daysLate = 0;
+
+                // Loop through each day between plannedEnd and currentDate and count weekdays
+                for (DateTime date = plannedEnd; date < currentDate; date = date.AddDays(1))
+                {
+                    // Exclude weekends (Saturday and Sunday)
+                    if (date.DayOfWeek != DayOfWeek.Saturday && date.DayOfWeek != DayOfWeek.Sunday)
+                    {
+                        daysLate++;
+                    }
+                }
+
+                return daysLate;
+            }
+
+            return 0;
+        }
+
+
+        public int CalculateDaysLate(DateTime? startDate, DateTime? endDate)
+        {
+            if (!startDate.HasValue || !endDate.HasValue)
+                return 0;
+
+            DateTime start = startDate.Value.Date;
+            DateTime end = endDate.Value.Date;
+
+            int daysLate = 0;
+
+            // Loop through all days between start and end
+            for (DateTime date = start; date < end; date = date.AddDays(1))
+            {
+                // Exclude weekends (Saturday and Sunday)
+                if (date.DayOfWeek != DayOfWeek.Saturday && date.DayOfWeek != DayOfWeek.Sunday)
+                {
+                    daysLate++;
+                }
+            }
+
+            return daysLate;
+        }
+        public int CalculateDaysOffsetLate(DateTimeOffset? startDate, DateTimeOffset? endDate)
+        {
+            if (!startDate.HasValue || !endDate.HasValue)
+                return 0;
+
+            DateTimeOffset start = startDate.Value.Date;
+            DateTimeOffset end = endDate.Value.Date;
+
+            int daysLate = 0;
+
+            // Loop through all days between start and end
+            for (DateTimeOffset date = start; date < end; date = date.AddDays(1))
+            {
+                // Exclude weekends (Saturday and Sunday)
+                if (date.DayOfWeek != DayOfWeek.Saturday && date.DayOfWeek != DayOfWeek.Sunday)
+                {
+                    daysLate++;
+                }
+            }
+
+            return daysLate;
+        }
+
+        private string GetNextWeekdayEstimationStart(DateTime? actualEndDate)
+        {
+            if (!actualEndDate.HasValue)
+                return string.Empty;
+
+            DateTime nextDay = actualEndDate.Value.AddDays(1);
+
+            // Skip weekends (Saturday and Sunday)
+            while (nextDay.DayOfWeek == DayOfWeek.Saturday || nextDay.DayOfWeek == DayOfWeek.Sunday)
+            {
+                nextDay = nextDay.AddDays(1); // Skip weekends
+            }
+
+            return nextDay.ToString("MMM dd, yyyy");
+        }
+
+
         public async Task<int> ProjectTaskProgress(string projId)
         {
             var tasks = await _dataContext.GanttData
