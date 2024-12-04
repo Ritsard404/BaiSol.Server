@@ -8,7 +8,7 @@ namespace BaiSol.Server.Controllers.Projects
 {
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize]
+    //[Authorize]
     public class ProjectController(IProject _project) : ControllerBase
     {
 

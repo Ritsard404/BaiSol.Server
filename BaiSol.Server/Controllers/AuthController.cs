@@ -41,7 +41,7 @@ namespace BaiSol.Server.Controllers
         }
 
         [HttpPost("Login")]
-        public async Task<IActionResult> Login(LoginDto loginDto)
+        public async Task<IActionResult> Login(LoginDto loginDto, bool? isMobile)
         {
             // Retrieve the client IP address
             var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
@@ -50,7 +50,7 @@ namespace BaiSol.Server.Controllers
             if (string.IsNullOrWhiteSpace(ipAddress)) return BadRequest("IP address is required and cannot be empty");
             loginDto.UserIpAddress = ipAddress;
 
-            var response = await _userAccount.LoginAccount(loginDto);
+            var response = await _userAccount.LoginAccount(loginDto, isMobile);
             if (!response.Flag)
             {
                 return BadRequest(response.Message);

@@ -9,8 +9,10 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using RestSharp;
+using System.Globalization;
 using System.Text.Json;
 using System.Threading.Tasks;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace BaseLibrary.Services.Repositories
 {
@@ -716,7 +718,7 @@ namespace BaseLibrary.Services.Repositories
 
             if (paymentReference.IsCashPayed)
             {
-                DateTimeOffset startDate = paymentReference.CashPaidAt ?? DateTimeOffset.UtcNow;
+                DateTimeOffset startDate = paymentReference.CashPaidAt?.AddDays(1) ?? DateTimeOffset.UtcNow;
                 DateTimeOffset endDate = CalculateEndDateExcludingWeekends(startDate, estimatedDaysToEnd);
 
                 info = new ProjectDateInfo
@@ -731,7 +733,7 @@ namespace BaseLibrary.Services.Repositories
             }
             else
             {
-                DateTimeOffset startDate = DateTimeOffset.FromUnixTimeSeconds(createdAt).UtcDateTime;
+                DateTimeOffset startDate = DateTimeOffset.FromUnixTimeSeconds(createdAt).UtcDateTime.AddDays(1);
                 DateTimeOffset endDate = CalculateEndDateExcludingWeekends(startDate, estimatedDaysToEnd);
 
                 info = new ProjectDateInfo
@@ -932,6 +934,7 @@ namespace BaseLibrary.Services.Repositories
 
             var task = await _dataContext.GanttData
                 .FirstOrDefaultAsync(i => i.Id == taskDto.id);
+
             if (task == null)
                 return (false, "Task not exist!");
 
@@ -943,9 +946,9 @@ namespace BaseLibrary.Services.Repositories
                 return (false, "Project not exist!");
 
             // If the adviser  want only input the progress and not add
-            if (taskDto.Progress < 0 || taskDto.Progress > 100 || taskDto.Progress <= task.Progress)
+            //if (taskDto.Progress < 0 || taskDto.Progress > 100 || taskDto.Progress <= task.Progress)
 
-                //if (taskDto.Progress < 0 || taskDto.Progress > 100 || taskDto.Progress + task.Progress > 100)
+            if (taskDto.Progress < 0 || taskDto.Progress > 100 || taskDto.Progress + task.Progress > 100)
                 return (false, "Invalid inputted progress!");
 
             var assignedFacilitator = await _dataContext.ProjectWorkLog
@@ -957,10 +960,22 @@ namespace BaseLibrary.Services.Repositories
             if (DateTime.UtcNow.DayOfWeek == DayOfWeek.Saturday || DateTime.UtcNow.DayOfWeek == DayOfWeek.Sunday)
                 return (false, "Action denied: Tasks cannot be submitted during weekends. Please try again on a weekday.");
 
-            // If the adviser  want only input the progress and not add
-            task.Progress = taskDto.Progress;
+            var todayUtcDate = DateTimeOffset.UtcNow.Date;
 
-            //task.Progress += taskDto.Progress;
+            var isUpdatedToday = await _dataContext.TaskProof
+                .AnyAsync(t =>
+                    t.Task.Id == taskDto.id &&
+                    t.ActualStart.HasValue &&
+                    t.ActualStart.Value.Date == todayUtcDate);
+
+            if (isUpdatedToday)
+                return (false, "Action denied: This task has already been updated today. Please try again tomorrow.");
+
+
+            // If the adviser  want only input the progress and not add
+            //task.Progress = taskDto.Progress;
+
+            task.Progress += taskDto.Progress;
             if (!task.ActualStartDate.HasValue)
             {
                 task.ActualStartDate = DateTime.UtcNow;
@@ -970,6 +985,11 @@ namespace BaseLibrary.Services.Repositories
             string[] allowedFileExtentions = { ".jpg", ".jpeg", ".png" };
             string createdImageName = await SaveFileAsync(taskDto.ProofImage, allowedFileExtentions);
 
+            // Date without time component
+
+            DateTimeOffset estimationStart = DateTimeOffset.ParseExact(taskDto.EstimationStart, "MMM d, yyyy", CultureInfo.InvariantCulture);
+
+
             var taskProof = new TaskProof
             {
                 ProofImage = createdImageName,
@@ -977,6 +997,7 @@ namespace BaseLibrary.Services.Repositories
                 TaskProgress = taskDto.Progress,
                 Task = task,
                 IsFinish = true,
+                EstimationStart = estimationStart,
                 ActualStart = DateTimeOffset.UtcNow
             };
 

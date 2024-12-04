@@ -4,6 +4,7 @@ namespace BaseLibrary.Services.Interfaces
 {
     public interface IPayment
     {
+
         Task<ICollection<GetClientPaymentDTO>> GetClientPayments(string projId);
         Task<ICollection<GetClientPaymentDTO>> GetAllPayments();
         Task<ICollection<AllPaymentsDTO>> GetAllPayment();

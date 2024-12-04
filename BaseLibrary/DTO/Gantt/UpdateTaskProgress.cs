@@ -13,6 +13,7 @@ namespace BaseLibrary.DTO.Gantt
         public int? id { get; set; }
         public IFormFile? ProofImage { get; set; }
         public int Progress { get; set; }
+        public required string EstimationStart { get; set; }
 
         [JsonIgnore]
         public string? ipAddress { get; set; }
