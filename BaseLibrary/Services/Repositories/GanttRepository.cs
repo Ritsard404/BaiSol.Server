@@ -353,7 +353,7 @@ namespace BaseLibrary.Services.Repositories
             }
 
             // Get the content root path from the environment
-            var contentPath = @"C:\Users\Acer\Documents\Capstone\Sunvoltage System\Images";
+            var contentPath = @"C:\Users\Angelie Gecole\Desktop\BAISOL_Capstone\Images";
 
             // Combine the content path with the desired uploads directory
             var uploadsPath = Path.Combine(contentPath, "Uploads");
@@ -966,10 +966,22 @@ namespace BaseLibrary.Services.Repositories
                 .AnyAsync(t =>
                     t.Task.Id == taskDto.id &&
                     t.ActualStart.HasValue &&
-                    t.ActualStart.Value.Date == todayUtcDate);
+                    t.ActualStart.Value.Date >= todayUtcDate);
 
             if (isUpdatedToday)
-                return (false, "Action denied: This task has already been updated today. Please try again tomorrow.");
+                return (false, "Action denied: Invalid date!");
+            //return (false, "Action denied: This task has already been updated today. Please try again tomorrow.");
+
+            // Retrieve the latest record for the task where ActualStart is not null
+            //var latestTaskProof = await _dataContext.TaskProof
+            //    .Where(t => t.Task.Id == taskDto.id && t.ActualStart.HasValue)
+            //    .OrderByDescending(t => t.ActualStart)
+            //    .FirstOrDefaultAsync();
+
+            //if (latestTaskProof != null && todayUtcDate > latestTaskProof.ActualStart.Value.Date)
+            //{
+            //    return (false, "Action denied: Invalid date!");
+            //}
 
             string[] allowedFileExtentions = { ".jpg", ".jpeg", ".png" };
             string createdImageName = await SaveFileAsync(taskDto.ProofImage, allowedFileExtentions);
@@ -995,7 +1007,7 @@ namespace BaseLibrary.Services.Repositories
 
             DateTimeOffset estimationStart = DateTimeOffset
                 .ParseExact(taskDto.EstimationStart, "MMM dd, yyyy", CultureInfo.InvariantCulture)
-                .ToOffset(TimeSpan.Zero).AddDays(1);
+                .ToOffset(TimeSpan.Zero);
 
             var taskProof = new TaskProof
             {
@@ -1135,8 +1147,8 @@ namespace BaseLibrary.Services.Repositories
                 {
                     // Calculate days late if PlannedStartDate exists
                     //int daysLate = task.PlannedEndDate.HasValue && task.PlannedEndDate.Value < DateTime.Today
-                    //    ? (DateTime.UtcNow - task.PlannedEndDate.Value).Days
-                    //    : 0;
+                    //? (DateTime.UtcNow - task.PlannedEndDate.Value).Days
+                    //: 0;
                     int daysLate = CalculateDaysLate(task.PlannedEndDate, DateTime.UtcNow);
 
                     tasksList.Add(new TaskDTO
@@ -1145,8 +1157,8 @@ namespace BaseLibrary.Services.Repositories
                         EstimationStart = task.PlannedStartDate?.ToString("MMM dd, yyyy") ?? "",
                         IsEnable = isEnable || (task.PlannedStartDate.HasValue && CalculateDaysLate(task.PlannedStartDate.Value, DateTime.Today) <= 2),
                         //IsEnable = isEnable || (task.PlannedStartDate.HasValue && (task.PlannedStartDate.Value - DateTime.Today).Days <= 2),
-                        IsLate = task.PlannedEndDate < DateTime.UtcNow,
-                        DaysLate = daysLate
+                        IsLate = task.PlannedEndDate.Value.Date < DateTime.UtcNow.Date,
+                        DaysLate = daysLate 
 
 
                     });
@@ -1159,8 +1171,8 @@ namespace BaseLibrary.Services.Repositories
                         {
                             id = taskItem.id,
                             ProofImage = taskItem.ProofImage,
-                            ActualStart = taskItem.ActualStart?.ToString("MMM dd, yyyy") ?? "",
-                            EstimationStart = taskItem.EstimationStart.ToString("MMM dd, yyyy") ?? "",
+                            ActualStart = taskItem.ActualStart?.AddDays(1).ToString("MMM dd, yyyy") ?? "",
+                            EstimationStart = taskItem.EstimationStart.AddDays(1).ToString("MMM dd, yyyy") ?? "",
                             TaskProgress = taskItem.TaskProgress ?? 0,
                             IsFinish = taskItem.IsFinish,
                             IsEnable = false
@@ -1169,7 +1181,7 @@ namespace BaseLibrary.Services.Repositories
 
                     }
 
-                    var lastTaskItem = taskToDo.LastOrDefault();
+                    var lastTaskItem = taskToDo.FirstOrDefault();
 
                     //int daysLate = lastTaskItem?.ActualStart.HasValue == true &&
                     //               lastTaskItem.ActualStart.Value.UtcDateTime.Date < DateTimeOffset.UtcNow.UtcDateTime.Date
@@ -1185,9 +1197,9 @@ namespace BaseLibrary.Services.Repositories
                         //EstimationStart = task.ActualEndDate?.Date <= DateTime.Today.Date
                         //    ? task.ActualEndDate?.AddDays(1).ToString("MMM dd, yyyy")
                         //    : DateTime.Today.ToString("MMM dd, yyyy"),
-                        EstimationStart = GetNextWeekdayEstimationStart(task.ActualEndDate),
+                        EstimationStart = GetNextWeekdayEstimationStart(lastTaskItem?.ActualStart),
                         //task.ActualEndDate?.AddDays(1).ToString("MMM dd, yyyy"),
-                        IsEnable = (IsWeekday(task.ActualEndDate?.Date) && task.ActualEndDate?.Date < DateTime.Today.Date) || isEnable,
+                        IsEnable = (IsWeekday(lastTaskItem?.ActualStart?.Date) && lastTaskItem?.ActualStart?.Date < DateTime.Today.Date) || isEnable,
                         IsLate = daysLate > 1,
                         DaysLate = daysLate - 1
 
@@ -1257,7 +1269,7 @@ namespace BaseLibrary.Services.Repositories
                 return 0;
 
             // Calculate the difference between now and the PlannedEndDate
-            DateTime plannedEnd = plannedEndDate.Value.Date;
+            DateTime plannedEnd = plannedEndDate.Value.Date.AddDays(1);
             DateTime currentDate = DateTime.UtcNow.Date;
 
             if (plannedEnd < currentDate)
@@ -1303,6 +1315,7 @@ namespace BaseLibrary.Services.Repositories
 
             return daysLate;
         }
+
         public int CalculateDaysOffsetLate(DateTimeOffset? startDate, DateTimeOffset? endDate)
         {
             if (!startDate.HasValue || !endDate.HasValue)
@@ -1326,12 +1339,12 @@ namespace BaseLibrary.Services.Repositories
             return daysLate;
         }
 
-        private string GetNextWeekdayEstimationStart(DateTime? actualEndDate)
+        private string GetNextWeekdayEstimationStart(DateTimeOffset? actualEndDate)
         {
             if (!actualEndDate.HasValue)
                 return string.Empty;
 
-            DateTime nextDay = actualEndDate.Value.AddDays(1);
+            DateTimeOffset nextDay = actualEndDate.Value.AddDays(2);
 
             // Skip weekends (Saturday and Sunday)
             while (nextDay.DayOfWeek == DayOfWeek.Saturday || nextDay.DayOfWeek == DayOfWeek.Sunday)
