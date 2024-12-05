@@ -29,5 +29,6 @@ namespace AuthLibrary.DTO
     public class ProjectInfo
     {
         public required string ProjId { get; set; }
+        public string? ProjName { get; set; }
     }
 }

@@ -9,7 +9,7 @@ namespace BaiSol.Server.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize]
+    //[Authorize]
     public class PersonnelController(IPersonnel _personnel) : ControllerBase
     {
         [HttpPost("Add-Installer")]

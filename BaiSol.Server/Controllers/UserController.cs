@@ -12,7 +12,7 @@ namespace BaiSol.Server.Controllers
 {
     [Route("user/[controller]")]
     [ApiController]
-    [Authorize(Roles = UserRoles.Admin)]
+    //[Authorize(Roles = UserRoles.Admin)]
     public class UserController(IUserAccount _userAccount,
         UserManager<AppUsers> _userManager,
         IEmailRepository _emailRepository,

@@ -262,7 +262,7 @@ namespace AuthLibrary.Services.Repositories
                     .Include(p => p.Project)
                     .OrderBy(s => s.Project.Status)
                     .Where(i => i.Installer == installer)
-                    .Select(i => new ProjectInfo { ProjId = i.Project.ProjId })
+                    .Select(i => new ProjectInfo { ProjId = i.Project.ProjId, ProjName=i.Project.ProjName })
                     .ToListAsync();
 
                 installerList.Add(new GetInstallerDto

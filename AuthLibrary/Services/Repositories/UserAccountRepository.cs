@@ -108,7 +108,7 @@ namespace AuthLibrary.Services.Repositories
                             .Include(p => p.Project)
                             .OrderBy(s => s.Project.Status)
                             .Where(c => c.Facilitator == user)
-                            .Select(s => new ProjectInfo { ProjId = s.Project.ProjId })
+                            .Select(s => new ProjectInfo { ProjId = s.Project.ProjId, ProjName = s.Project.ProjName })
                             .ToListAsync();
 
 

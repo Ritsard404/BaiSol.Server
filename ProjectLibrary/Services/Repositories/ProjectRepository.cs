@@ -714,7 +714,7 @@ namespace ProjectLibrary.Services.Repositories
 
             var hasFacilitators = await _dataContext.ProjectWorkLog
                 .Include(f => f.Facilitator)
-                .Where(p => p.Project == project)
+                .Where(p => p.Project == project && p.Facilitator != null)
                 .AnyAsync();
 
             if (!hasFacilitators)

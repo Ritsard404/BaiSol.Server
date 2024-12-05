@@ -1159,7 +1159,7 @@ namespace BaseLibrary.Services.Repositories
                         IsEnable = isEnable || (task.PlannedStartDate.HasValue && CalculateDaysLate(task.PlannedStartDate.Value, DateTime.Today) <= 2),
                         //IsEnable = isEnable || (task.PlannedStartDate.HasValue && (task.PlannedStartDate.Value - DateTime.Today).Days <= 2),
                         IsLate = task.PlannedEndDate.Value.Date < DateTime.UtcNow.Date,
-                        DaysLate = daysLate 
+                        DaysLate = daysLate
 
 
                     });
@@ -1200,7 +1200,7 @@ namespace BaseLibrary.Services.Repositories
                         //    : DateTime.Today.ToString("MMM dd, yyyy"),
                         EstimationStart = GetNextWeekdayEstimationStart(lastTaskItem?.ActualStart),
                         //task.ActualEndDate?.AddDays(1).ToString("MMM dd, yyyy"),
-                        IsEnable = (IsWeekday(lastTaskItem?.ActualStart?.Date) && lastTaskItem?.ActualStart?.Date < DateTime.Today.Date),
+                        IsEnable = (IsWeekday(lastTaskItem?.ActualStart?.Date) && lastTaskItem?.ActualStart?.Date < DateTime.Today.Date) || daysLate > 1,
                         //IsEnable = (IsWeekday(lastTaskItem?.ActualStart?.Date) && lastTaskItem?.ActualStart?.Date < DateTime.Today.Date) || isEnable,
                         IsLate = daysLate > 1,
                         DaysLate = daysLate - 1
