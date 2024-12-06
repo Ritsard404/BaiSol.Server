@@ -353,7 +353,7 @@ namespace BaseLibrary.Services.Repositories
             }
 
             // Get the content root path from the environment
-            var contentPath = @"C:\Users\Angelie Gecole\Desktop\BAISOL_Capstone\Images";
+            var contentPath = @"C:\Users\Acer\Documents\Capstone\Sunvoltage System\Images";
 
             // Combine the content path with the desired uploads directory
             var uploadsPath = Path.Combine(contentPath, "Uploads");
@@ -1007,6 +1007,7 @@ namespace BaseLibrary.Services.Repositories
 
             DateTimeOffset estimationStart = DateTimeOffset
                 .ParseExact(taskDto.EstimationStart, "MMM dd, yyyy", CultureInfo.InvariantCulture)
+                .Add(DateTimeOffset.Now.TimeOfDay) // Add today's time
                 .ToOffset(TimeSpan.Zero);
 
             var taskProof = new TaskProof
@@ -1171,8 +1172,8 @@ namespace BaseLibrary.Services.Repositories
                         {
                             id = taskItem.id,
                             ProofImage = taskItem.ProofImage,
-                            ActualStart = taskItem.ActualStart?.AddDays(1).ToString("MMM dd, yyyy") ?? "",
-                            EstimationStart = taskItem.EstimationStart.AddDays(1).ToString("MMM dd, yyyy") ?? "",
+                            ActualStart = taskItem.ActualStart?.ToString("MMM dd, yyyy") ?? "",
+                            EstimationStart = taskItem.EstimationStart.ToString("MMM dd, yyyy") ?? "",
                             TaskProgress = taskItem.TaskProgress ?? 0,
                             IsFinish = taskItem.IsFinish,
                             IsEnable = false
@@ -1199,7 +1200,8 @@ namespace BaseLibrary.Services.Repositories
                         //    : DateTime.Today.ToString("MMM dd, yyyy"),
                         EstimationStart = GetNextWeekdayEstimationStart(lastTaskItem?.ActualStart),
                         //task.ActualEndDate?.AddDays(1).ToString("MMM dd, yyyy"),
-                        IsEnable = (IsWeekday(lastTaskItem?.ActualStart?.Date) && lastTaskItem?.ActualStart?.Date < DateTime.Today.Date) || isEnable,
+                        IsEnable = (IsWeekday(lastTaskItem?.ActualStart?.Date) && lastTaskItem?.ActualStart?.Date < DateTime.Today.Date),
+                        //IsEnable = (IsWeekday(lastTaskItem?.ActualStart?.Date) && lastTaskItem?.ActualStart?.Date < DateTime.Today.Date) || isEnable,
                         IsLate = daysLate > 1,
                         DaysLate = daysLate - 1
 
@@ -1269,7 +1271,7 @@ namespace BaseLibrary.Services.Repositories
                 return 0;
 
             // Calculate the difference between now and the PlannedEndDate
-            DateTime plannedEnd = plannedEndDate.Value.Date.AddDays(1);
+            DateTime plannedEnd = plannedEndDate.Value.Date;
             DateTime currentDate = DateTime.UtcNow.Date;
 
             if (plannedEnd < currentDate)
@@ -1344,7 +1346,7 @@ namespace BaseLibrary.Services.Repositories
             if (!actualEndDate.HasValue)
                 return string.Empty;
 
-            DateTimeOffset nextDay = actualEndDate.Value.AddDays(2);
+            DateTimeOffset nextDay = actualEndDate.Value.AddDays(1);
 
             // Skip weekends (Saturday and Sunday)
             while (nextDay.DayOfWeek == DayOfWeek.Saturday || nextDay.DayOfWeek == DayOfWeek.Sunday)
