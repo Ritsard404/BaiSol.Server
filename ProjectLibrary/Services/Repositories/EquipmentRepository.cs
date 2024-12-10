@@ -152,7 +152,9 @@ namespace ProjectLibrary.Services.Repositories
 
         public async Task<ICollection<GetEquipmentDTO>> GetAllEquipment()
         {
-            var equipment = await _dataContext.Equipment.ToListAsync();
+            var equipment = await _dataContext.Equipment
+                 .Where(i => !(i.EQPTStatus == "Damaged" && i.EQPTQOH < 1))
+                 .ToListAsync();
 
             var equipmentList = new List<GetEquipmentDTO>();
 

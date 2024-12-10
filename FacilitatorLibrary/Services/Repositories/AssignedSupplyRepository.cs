@@ -206,14 +206,14 @@ namespace FacilitatorLibrary.Services.Repositories
                     .Include(i => i.Equipment)
                     .FirstOrDefaultAsync();
 
-                if (damagedEquipment != null && equipmentSupply != null)
+                if (damagedEquipment != null && equipmentSupply != null && supply.returnedQuantity.HasValue)
                 {
                     damagedEquipment.EQPTQOH += supply.returnedQuantity ?? 0;
 
                     goodEquipment.EQPTQOH += (equipmentSupply.EQPTQuantity - supply.returnedQuantity ?? 0);
                     goodEquipment.UpdatedAt = DateTimeOffset.UtcNow;
                 }
-                else if (goodEquipment != null && equipmentSupply != null)
+                else if (goodEquipment != null && equipmentSupply != null && supply.returnedQuantity.HasValue)
                 {
 
                     goodEquipment.EQPTQOH += (equipmentSupply.EQPTQuantity - supply.returnedQuantity ?? 0);
