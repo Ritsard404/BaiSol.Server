@@ -7,6 +7,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using RestSharp;
 using System.Globalization;
+using System.Net;
 using System.Text.Json;
 
 namespace BaseLibrary.Services.Repositories
@@ -50,10 +51,128 @@ namespace BaseLibrary.Services.Repositories
 
             return (true, "Payment acknowledged successfully.");
         }
+        //public async Task<(bool, string)> CreatePayment(CreatePaymentDTO createPayment)
+        //{
+        //    var options = new RestClientOptions(_config["Payment:Api"]);
+        //    var client = new RestClient(options);
+
+        //    var project = await _dataContext.Project
+        //        .FirstOrDefaultAsync(id => id.ProjId == createPayment.projId);
+        //    if (project == null)
+        //        return (false, "Project not found!");
+
+        //    var payment = await _dataContext.Payment
+        //        .FirstOrDefaultAsync(i => i.Project == project);
+        //    if (payment != null)
+        //        return (false, "Payments have already been created for this project.");
+
+        //    var user = await _userManager.FindByEmailAsync(createPayment.userEmail);
+        //    if (user == null) return (false, "Invalid user!");
+
+        //    var amount = await GetTotalProjectExpense(projId: createPayment.projId);
+        //    if (amount < 1)
+        //        return (false, "No Quotation Cost Yet!");
+
+        //    var payload = new
+        //    {
+        //        data = new
+        //        {
+        //            attributes = new
+        //            {
+        //                amount = (amount * 0.6m) * 100,
+        //                description = $"60% downpayment."
+        //            }
+        //        }
+        //    };
+
+        //    bool allPaymentsSuccessful = true;
+
+        //    // Create a new request instance for the payment creation
+        //    var request = new RestRequest("");
+        //    request.AddHeader("accept", "application/json");
+        //    request.AddHeader("authorization", $"Basic {_config["Payment:Key"]}");
+        //    request.AddJsonBody(payload);
+
+        //    var response = await PostWithRetry(request, client);
+
+        //    if (response.IsSuccessStatusCode)
+        //    {
+        //        var responseData = JsonDocument.Parse(response.Content);
+        //        var data = responseData.RootElement.GetProperty("data");
+        //        var attributes = data.GetProperty("attributes");
+
+        //        var newPayment = new Payment
+        //        {
+        //            Id = attributes.GetProperty("reference_number").GetString(),
+        //            checkoutUrl = attributes.GetProperty("checkout_url").GetString(),
+        //            Project = project,
+        //        };
+
+        //        _dataContext.Payment.Add(newPayment);
+        //        await _dataContext.SaveChangesAsync();
+
+        //        await LogUserActionAsync(
+        //            createPayment.userEmail,
+        //            "Create",
+        //            "Payment",
+        //            newPayment.Id,
+        //            $"Successfully created a payment of  {(attributes.GetProperty("amount").GetDecimal() / 100).ToString("#,##0.00")} for '{payload.data.attributes.description}' associated with project '{project.ProjName}'.",
+        //            createPayment.UserIpAddress
+        //        );
+        //    }
+        //    else
+        //    {
+        //        allPaymentsSuccessful = false;
+        //    }
+
+        //    if (allPaymentsSuccessful)
+        //    {
+        //        project.Status = "OnWork";
+        //        project.UpdatedAt = DateTimeOffset.UtcNow;
+        //        _dataContext.Project.Update(project);
+        //        await _dataContext.SaveChangesAsync();
+
+        //        return (true, "All payments successfully created.");
+        //    }
+
+        //    return (false, "One or more payments were not successfully created.");
+        //}
+
+        //private async Task<RestResponse> PostWithRetry(RestRequest request, RestClient client, int maxRetries = 5)
+        //{
+        //    var retries = 0;
+        //    RestResponse response = null;
+
+        //    while (retries < maxRetries)
+        //    {
+        //        response = await client.PostAsync(request);
+
+        //        if (response.StatusCode != HttpStatusCode.TooManyRequests)
+        //            break;
+
+        //        // Check for the Retry-After header
+        //        var retryAfter = response.Headers.FirstOrDefault(h => h.Name == "Retry-After")?.Value;
+        //        if (retryAfter != null && int.TryParse(retryAfter.ToString(), out var delay))
+        //        {
+        //            // Wait for the specified retry delay (in seconds)
+        //            await Task.Delay(TimeSpan.FromSeconds(delay));
+        //        }
+        //        else
+        //        {
+        //            // If Retry-After is not present, use exponential backoff
+        //            await Task.Delay(TimeSpan.FromSeconds(Math.Pow(2, retries)));
+        //        }
+
+        //        retries++;
+        //    }
+
+        //    return response;
+        //}
+
 
         public async Task<(bool, string)> CreatePayment(CreatePaymentDTO createPayment)
         {
-            var options = new RestClientOptions(_config["Payment:API"]);
+            var options = new RestClientOptions(_config["Payment:Api"]);
             var client = new RestClient(options);
 
             var project = await _dataContext.Project
@@ -206,7 +325,7 @@ namespace BaseLibrary.Services.Repositories
 
                 // Create a new request instance for each API call
 
-                var options = new RestClientOptions($"{_config["Payment:API"]}/{reference.Id}");
+                var options = new RestClientOptions($"{_config["Payment:Api"]}/{reference.Id}");
                 var client = new RestClient(options);
                 var request = new RestRequest("");
 
@@ -313,7 +432,7 @@ namespace BaseLibrary.Services.Repositories
 
                 // Create a new request instance for each API call
 
-                var options = new RestClientOptions($"{_config["Payment:API"]}/{reference.Id}");
+                var options = new RestClientOptions($"{_config["Payment:Api"]}/{reference.Id}");
                 var client = new RestClient(options);
                 var request = new RestRequest("");
 
@@ -417,7 +536,7 @@ namespace BaseLibrary.Services.Repositories
 
                 // Create a new request instance for each API call
 
-                var options = new RestClientOptions($"{_config["Payment:API"]}/{reference.Id}");
+                var options = new RestClientOptions($"{_config["Payment:Api"]}/{reference.Id}");
                 var client = new RestClient(options);
                 var request = new RestRequest("");
 
@@ -513,7 +632,7 @@ namespace BaseLibrary.Services.Repositories
 
             foreach (var reference in paymentReferences)
             {
-                var options = new RestClientOptions($"{_config["Payment:API"]}/{reference.Id}");
+                var options = new RestClientOptions($"{_config["Payment:Api"]}/{reference.Id}");
                 var client = new RestClient(options);
                 var request = new RestRequest("");
 
@@ -547,7 +666,7 @@ namespace BaseLibrary.Services.Repositories
 
         public async Task<(bool, string)> PayOnCash(PayOnCashDTO payOnCash)
         {
-            var options = new RestClientOptions($"{_config["Payment:API"]}/{payOnCash.referenceNumber}");
+            var options = new RestClientOptions($"{_config["Payment:Api"]}/{payOnCash.referenceNumber}");
             var client = new RestClient(options);
             var request = new RestRequest("");
 
@@ -690,7 +809,7 @@ namespace BaseLibrary.Services.Repositories
 
             foreach (var reference in paymentReferences)
             {
-                var options = new RestClientOptions($"{_config["Payment:API"]}/{reference.Id}");
+                var options = new RestClientOptions($"{_config["Payment:Api"]}/{reference.Id}");
                 var client = new RestClient(options);
                 var request = new RestRequest("");
 

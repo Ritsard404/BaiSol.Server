@@ -25,6 +25,14 @@ namespace FacilitatorLibrary.DTO.History
         public decimal? ProjectProgress { get; set; }
         public string? Status { get; set; }
         public required List<InstallerInfo> Installers { get; set; }
+
+
+        public required string plannedStarted { get; set; }
+        public required string plannedEnded { get; set; }
+        public required string plannedWorkingDays { get; set; }
+        public required string actualStarted { get; set; }
+        public required string actualEnded { get; set; }
+        public required string actualdWorkingDays { get; set; }
     }
 
     public class InstallerInfo

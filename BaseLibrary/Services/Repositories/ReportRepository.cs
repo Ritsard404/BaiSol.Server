@@ -101,17 +101,19 @@ namespace BaseLibrary.Services.Repositories
                     projId = project.ProjId,
                     kWCapacity = project.kWCapacity.ToString(),
                     systemType = project.SystemType,
-                    customer=project.ProjName,
+                    customer = project.ProjName,
                     facilitator = project.Facilitator?
                         .Where(f => f.Facilitator != null)
                         .Select(f => f.Facilitator!.Email)
                         .FirstOrDefault() ?? "",
                     plannedStarted = plannedDate.EstimatedStartDate,
                     plannedEnded = plannedDate.EstimatedEndDate,
+                    plannedWorkingDays = plannedDate.EstimatedProjectDays,
                     actualStarted = earliestStartDate.HasValue ? earliestStartDate.Value.ToString("MMMM dd, yyyy") : "",
                     actualEnded = latestEndDate.HasValue && project.Status == "Finished" ? latestEndDate.Value.ToString("MMMM dd, yyyy") : "",
+                    actualdWorkingDays = latestEndDate.HasValue && project.Status == "Finished" ? (latestEndDate.Value - earliestStartDate.Value).Days.ToString() : "",
                     cost = "₱ " + cost.ToString("#,##0.00"),
-                    status = project.Status
+                    status = project.Status,
                 };
 
                 result.Add(projectInfo);

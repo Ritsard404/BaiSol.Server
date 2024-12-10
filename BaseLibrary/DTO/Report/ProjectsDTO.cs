@@ -15,8 +15,10 @@ namespace BaseLibrary.DTO.Report
         public required string facilitator { get; set; }
         public required string plannedStarted { get; set; }
         public required string plannedEnded { get; set; }
+        public required string plannedWorkingDays { get; set; }
         public required string actualStarted { get; set; }
         public required string actualEnded { get; set; }
+        public required string actualdWorkingDays { get; set; }
         public required string cost { get; set; }
         public required string status { get; set; }
     }

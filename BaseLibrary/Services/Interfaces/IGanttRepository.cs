@@ -14,6 +14,7 @@ namespace BaseLibrary.Services.Interfaces
         Task<(bool, string)>UpdateTaskProgress(UpdateTaskProgress taskDto);
         Task<TaskProof> TaskById(int id);
         Task<ProjectDateInfo> ProjectDateInfo(string projId);
+        Task<ProjectActualWorkedDate> ProjectActualWorkedDate(string projId);
         Task<ProjProgressDTO> ProjectProgress(string projId);
         Task<ProjectStatusDTO> ProjectStatus(string projId);
         Task<int> ProjectTaskProgress(string projId);

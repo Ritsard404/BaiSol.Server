@@ -1388,5 +1388,36 @@ namespace BaseLibrary.Services.Repositories
 
             return taskCount == 0 ? 0 : totalProgress / taskCount;
         }
+
+        public async Task<ProjectActualWorkedDate> ProjectActualWorkedDate(string projId)
+        {
+            var project = await _dataContext.Project
+                .FirstOrDefaultAsync(i => i.ProjId == projId);
+
+            var ganttDates = await _dataContext.GanttData
+                .Where(i => i.ProjId == projId)
+                .Select(g => new
+                {
+                    g.ActualStartDate,
+                    g.ActualEndDate
+                })
+                .ToListAsync();
+
+            var earliestStartDate = ganttDates
+                .Where(g => g.ActualStartDate.HasValue)
+                .Min(g => g.ActualStartDate);
+
+            var latestEndDate = ganttDates
+                .Where(g => g.ActualEndDate.HasValue)
+                .Max(g => g.ActualEndDate);
+
+            return new ProjectActualWorkedDate
+            {
+                ActualStartDate = earliestStartDate.HasValue ? earliestStartDate.Value.ToString("MMMM dd, yyyy") : "",
+                ActualEndDate = latestEndDate.HasValue && project != null && project.Status == "Finished" ? latestEndDate.Value.ToString("MMMM dd, yyyy") : "",
+                ActualProjectDays = latestEndDate.HasValue && project != null && project.Status == "Finished" ? (latestEndDate.Value - earliestStartDate.Value).Days.ToString() : "",
+            };
+
+        }
     }
 }

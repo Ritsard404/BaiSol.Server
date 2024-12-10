@@ -13,7 +13,7 @@ using System.Threading.Tasks;
 
 namespace FacilitatorLibrary.Services.Repositories
 {
-    public class HistoryRepository(DataContext _dataContext, IAssignedSupply _assignedProject,IGanttRepository _gantt) : IHistoryRepository
+    public class HistoryRepository(DataContext _dataContext, IAssignedSupply _assignedProject, IGanttRepository _gantt) : IHistoryRepository
     {
         public async Task<ICollection<AllAssignedEquipmentDTO>> GetAllAssignedEquipment(string userEmail)
         {
@@ -141,6 +141,28 @@ namespace FacilitatorLibrary.Services.Repositories
                     });
                 }
 
+
+                var ganttDates = await _dataContext.GanttData
+                    .Where(i => i.ProjId == projectData.ProjId)
+                    .Select(g => new
+                    {
+                        g.ActualStartDate,
+                        g.ActualEndDate
+                    })
+                    .ToListAsync();
+
+                var earliestStartDate = ganttDates
+                    .Where(g => g.ActualStartDate.HasValue)
+                    .Min(g => g.ActualStartDate);
+
+                var latestEndDate = ganttDates
+                    .Where(g => g.ActualEndDate.HasValue)
+                    .Max(g => g.ActualEndDate);
+
+
+                var plannedDate = await _gantt.ProjectDateInfo(projectData.ProjId);
+
+
                 // Add project info to the list
                 clientProjectInfoList.Add(new ClientProjectInfoDTO
                 {
@@ -160,7 +182,14 @@ namespace FacilitatorLibrary.Services.Repositories
                     isMale = projectData.boolSex,
                     Status = projectData.Status,
                     ProjectProgress = averageProgress,
-                    Installers = installerList
+                    Installers = installerList,
+                    plannedStarted = plannedDate.EstimatedStartDate,
+                    plannedEnded = plannedDate.EstimatedEndDate,
+                    plannedWorkingDays = plannedDate.EstimatedProjectDays,
+                    actualStarted = earliestStartDate.HasValue ? earliestStartDate.Value.ToString("MMMM dd, yyyy") : "",
+                    actualEnded = latestEndDate.HasValue && projectData.Status == "Finished" ? latestEndDate.Value.ToString("MMMM dd, yyyy") : "",
+                    actualdWorkingDays = latestEndDate.HasValue && projectData.Status == "Finished" ? (latestEndDate.Value - earliestStartDate.Value).Days.ToString() : "",
+
                 });
             }
 

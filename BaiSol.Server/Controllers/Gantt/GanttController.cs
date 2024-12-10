@@ -361,5 +361,13 @@ namespace BaiSol.Server.Controllers.Gantt
 
             return Ok(task.StartDate);
         }
+
+        [HttpGet("[action]")]
+        public async Task<IActionResult> ProjectActualWorkedDate(string projId)
+        {
+            var task = await _gantt.ProjectActualWorkedDate(projId);
+
+            return Ok(task);
+        }
     }
 }

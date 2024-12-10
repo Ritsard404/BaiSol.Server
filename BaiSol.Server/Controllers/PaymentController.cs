@@ -10,7 +10,7 @@ namespace BaiSol.Server.Controllers
 {
     [Route("api/[controller]/[action]")]
     [ApiController]
-    [Authorize]
+    //[Authorize]
     public class PaymentController(IConfiguration _config, DataContext _dataContext, IPayment _payment) : ControllerBase
     {
 
@@ -121,5 +121,48 @@ namespace BaiSol.Server.Controllers
             return Ok(message);
 
         }
+
+        [HttpPost]
+        public async Task<IActionResult> TestCreate()
+        {
+            var options = new RestClientOptions("https://api.paymongo.com/v1/links");
+            var client = new RestClient(options);
+            var request = new RestRequest("");
+            request.AddHeader("accept", "application/json");
+            request.AddHeader("authorization", "Basic c2tfdGVzdF9CbXllbTJ6cHUxMUhFdmF5Qk0zOXF0WjI6");
+            request.AddJsonBody("{\"data\":{\"attributes\":{\"amount\":500000,\"description\":\"FDBDB\"}}}", false);
+
+            int retryCount = 0;
+            const int maxRetries = 5;
+            TimeSpan delay = TimeSpan.FromSeconds(2);
+
+            while (retryCount < maxRetries)
+            {
+                var response = await client.PostAsync(request);
+
+                if (response.StatusCode == System.Net.HttpStatusCode.TooManyRequests)
+                {
+                    retryCount++;
+                    Console.WriteLine($"Rate limit exceeded. Retrying in {delay.TotalSeconds} seconds...");
+                    await Task.Delay(delay);
+                    delay = delay * 2; // Exponential backoff
+                }
+                else if (response.IsSuccessful)
+                {
+                    Console.WriteLine("{0}", response.Content);
+                    return Ok(response.Content);
+                }
+                else
+                {
+                    // Log or handle other error cases
+                    Console.WriteLine($"Request failed with status code {response.StatusCode}");
+                    break;
+                }
+            }
+
+            return StatusCode(429, "Too many requests. Please try again later.");
+        }
+
+
     }
 }

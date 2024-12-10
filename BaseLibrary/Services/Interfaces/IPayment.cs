@@ -1,4 +1,5 @@
 ﻿using BaseLibrary.DTO.Payment;
+using static BaseLibrary.Services.Repositories.PaymentRepository;
 
 namespace BaseLibrary.Services.Interfaces
 {
