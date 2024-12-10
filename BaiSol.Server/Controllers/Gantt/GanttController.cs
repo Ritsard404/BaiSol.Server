@@ -101,7 +101,7 @@ namespace BaiSol.Server.Controllers.Gantt
                     {
                         var indicator = new Indicator
                         {
-                            Date = proof.ActualStart?.ToString("MM/dd/yyyy"),
+                            Date = proof.ActualStart?.AddDays(1).ToString("MM/dd/yyyy"),
                             Name = $"<span style=\"color:black; font-size: 10px; font-weight: 600; position: relative; z-index: 10; background-color: rgb(255, 255, 224);\">{proof.TaskProgress?.ToString()}%</span>",
                             Tooltip = proof.ActualStart?.ToString("MMMM dd, yyyy")
                         };
