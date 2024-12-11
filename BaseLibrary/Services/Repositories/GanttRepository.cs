@@ -728,7 +728,10 @@ namespace BaseLibrary.Services.Repositories
                     EndDate = endDate.ToString("yyyy-MM-dd"),
                     EstimatedStartDate = startDate.ToString("MMMM dd, yyyy"),
                     EstimatedEndDate = endDate.ToString("MMMM dd, yyyy"),
-                    EstimatedProjectDays = estimatedDaysToEnd.ToString()
+                    EstimatedProjectDays = estimatedDaysToEnd.ToString(),
+                    StartOffsetDate=startDate,
+                    EndOffsetDate=endDate
+
                 };
             }
             else
@@ -743,7 +746,9 @@ namespace BaseLibrary.Services.Repositories
                     EndDate = endDate.ToString("yyyy-MM-dd"),
                     EstimatedStartDate = startDate.ToString("MMMM dd, yyyy"),
                     EstimatedEndDate = endDate.ToString("MMMM dd, yyyy"),
-                    EstimatedProjectDays = estimatedDaysToEnd.ToString()
+                    EstimatedProjectDays = estimatedDaysToEnd.ToString(),
+                    StartOffsetDate = startDate,
+                    EndOffsetDate = endDate
                 };
             }
 
@@ -770,7 +775,7 @@ namespace BaseLibrary.Services.Repositories
             string status = string.Empty;
             int createdAt = 0;
 
-            var options = new RestClientOptions($"{_config["Payment:API"]}/{paymentReference.Id}");
+            var options = new RestClientOptions($"{_config["Payment:Api"]}/{paymentReference.Id}");
             var client = new RestClient(options);
             var request = new RestRequest("");
 
@@ -1156,7 +1161,7 @@ namespace BaseLibrary.Services.Repositories
                     {
                         id = task.Id,
                         EstimationStart = task.PlannedStartDate?.ToString("MMM dd, yyyy") ?? "",
-                        IsEnable = isEnable || (task.PlannedStartDate.HasValue && CalculateDaysLate(task.PlannedStartDate.Value, DateTime.Today) <= 2),
+                        IsEnable = isEnable || (task.PlannedStartDate.HasValue && (task.PlannedStartDate.Value - DateTime.Today).Days <= 2),
                         //IsEnable = isEnable || (task.PlannedStartDate.HasValue && (task.PlannedStartDate.Value - DateTime.Today).Days <= 2),
                         IsLate = task.PlannedEndDate.Value.Date < DateTime.UtcNow.Date,
                         DaysLate = daysLate
@@ -1316,9 +1321,32 @@ namespace BaseLibrary.Services.Repositories
             }
 
             return daysLate;
+        } 
+        
+        public int CalculateDaysOffsetLate(DateTimeOffset? startDate, DateTimeOffset? endDate)
+        {
+            if (!startDate.HasValue || !endDate.HasValue)
+                return 0;
+
+            DateTimeOffset start = startDate.Value.Date;
+            DateTimeOffset end = endDate.Value.Date;
+
+            int daysLate = 0;
+
+            // Loop through all days between start and end
+            for (DateTimeOffset date = start; date < end; date = date.AddDays(1))
+            {
+                // Exclude weekends (Saturday and Sunday)
+                if (date.DayOfWeek != DayOfWeek.Saturday && date.DayOfWeek != DayOfWeek.Sunday)
+                {
+                    daysLate++;
+                }
+            }
+
+            return daysLate;
         }
 
-        public int CalculateDaysOffsetLate(DateTimeOffset? startDate, DateTimeOffset? endDate)
+        public int CalculateDaysOffSetLate(DateTimeOffset? startDate, DateTimeOffset? endDate)
         {
             if (!startDate.HasValue || !endDate.HasValue)
                 return 0;
@@ -1411,12 +1439,34 @@ namespace BaseLibrary.Services.Repositories
                 .Where(g => g.ActualEndDate.HasValue)
                 .Max(g => g.ActualEndDate);
 
+            //var actualWorkDates = await _dataContext.TaskProof
+            //    .Where(i => i.Task.ProjId == projId)
+            //    .OrderBy(a => a.ActualStart)
+            //    .ToListAsync();
+
+            //var startDate = await _dataContext.TaskProof
+            //    .Where(i => i.Task.ProjId == projId && i.ActualStart.HasValue)
+            //    .MinAsync(i => i.ActualStart);
+
+            //var endDate = await _dataContext.TaskProof
+            //    .Where(i => i.Task.ProjId == projId && i.ActualStart.HasValue)
+            //    .MaxAsync(i => i.ActualStart);
+
+
+
             return new ProjectActualWorkedDate
             {
                 ActualStartDate = earliestStartDate.HasValue ? earliestStartDate.Value.ToString("MMMM dd, yyyy") : "",
                 ActualEndDate = latestEndDate.HasValue && project != null && project.Status == "Finished" ? latestEndDate.Value.ToString("MMMM dd, yyyy") : "",
                 ActualProjectDays = latestEndDate.HasValue && project != null && project.Status == "Finished" ? CalculateDaysLate(earliestStartDate.Value, latestEndDate.Value).ToString() : "",
             };
+
+            //return new ProjectActualWorkedDate
+            //{
+            //    ActualStartDate = startDate.HasValue ? startDate.Value.ToString("MMMM dd, yyyy") : "",
+            //    ActualEndDate = endDate.HasValue && project != null && project.Status == "Finished" ? endDate.Value.ToString("MMMM dd, yyyy") : "",
+            //    ActualProjectDays = endDate.HasValue && project != null && project.Status == "Finished" ? CalculateDaysOffsetLate(startDate.Value, endDate.Value).ToString() : "",
+            //};
 
         }
     }

@@ -622,46 +622,54 @@ namespace BaseLibrary.Services.Repositories
             if (project == null)
                 return false;
 
-            var paymentReferences = await _dataContext.Payment
-             .Where(p => p.Project == project)
-             .ToListAsync();
+            //var paymentReferences = await _dataContext.Payment
+            // .Where(p => p.Project == project &&)
+            // .FirstOrDefaultAsync();
 
-            var totalAmount = await GetTotalProjectExpense(projId: projId);
+            var earliestAcknowledgment = await _dataContext.Payment
+                .Where(p => p.Project == project)
+                .OrderBy(p => p.AcknowledgedAt)
+                .FirstOrDefaultAsync();
 
-            string status = string.Empty;
+            if (earliestAcknowledgment.IsAcknowledged)
+                return true;
 
-            foreach (var reference in paymentReferences)
-            {
-                var options = new RestClientOptions($"{_config["Payment:Api"]}/{reference.Id}");
-                var client = new RestClient(options);
-                var request = new RestRequest("");
+            //var totalAmount = await GetTotalProjectExpense(projId: projId);
 
-                request.AddHeader("accept", "application/json");
-                request.AddHeader("authorization", $"Basic {_config["Payment:Key"]}");
+            //string status = string.Empty;
 
-                var response = await client.GetAsync(request);
+            //foreach (var reference in paymentReferences)
+            //{
+            //    var options = new RestClientOptions($"{_config["Payment:Api"]}/{reference.Id}");
+            //    var client = new RestClient(options);
+            //    var request = new RestRequest("");
 
-                if (response.IsSuccessStatusCode)
-                {
-                    var responseData = JsonDocument.Parse(response.Content);
-                    var data = responseData.RootElement.GetProperty("data");
-                    var attributes = data.GetProperty("attributes");
+            //    request.AddHeader("accept", "application/json");
+            //    request.AddHeader("authorization", $"Basic {_config["Payment:Key"]}");
 
-                    decimal amount = attributes.GetProperty("amount").GetDecimal() / 100m;
-                    string currentStatus = attributes.GetProperty("status").GetString();
+            //    var response = await client.GetAsync(request);
 
-                    // Update largest amount and status if a larger amount is found
-                    if (amount == (totalAmount * 0.6m))
-                    {
-                        status = currentStatus;
-                    }
-                }
-            }
+            //    if (response.IsSuccessStatusCode)
+            //    {
+            //        var responseData = JsonDocument.Parse(response.Content);
+            //        var data = responseData.RootElement.GetProperty("data");
+            //        var attributes = data.GetProperty("attributes");
 
-            if (status != "paid")
-                return false;
+            //        decimal amount = attributes.GetProperty("amount").GetDecimal() / 100m;
+            //        string currentStatus = attributes.GetProperty("status").GetString();
 
-            return true;
+            //        // Update largest amount and status if a larger amount is found
+            //        if (amount == (totalAmount * 0.6m) && reference.IsAcknowledged)
+            //        {
+            //            status = "paid";
+            //        }
+            //    }
+            //}
+
+            //if (status != "paid")
+            //    return false;
+
+            return false;
         }
 
         public async Task<(bool, string)> PayOnCash(PayOnCashDTO payOnCash)

@@ -14,5 +14,7 @@ namespace BaseLibrary.DTO.Gantt
         public required string EstimatedEndDate { get; set; }
         public required string EstimatedProjectDays { get; set; }
         public required string AssignedFacilitator { get; set; }
+        public DateTimeOffset? StartOffsetDate { get; set; }
+        public DateTimeOffset? EndOffsetDate { get; set; }
     }
 }

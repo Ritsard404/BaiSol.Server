@@ -351,7 +351,7 @@ namespace ProjectLibrary.Services.Repositories
         public async Task<List<RequestsDTO>> SentRequestByProj(string projId)
         {
             return await _dataContext.Requisition
-                .Where(id => id.RequestSupply.Project.ProjId == projId)
+                .Where(id => id.RequestSupply.Project.ProjId == projId && (id.RequestSupply.Project.Status == "Finished" || id.RequestSupply.Project.Status == "OnWork"))
                 .OrderByDescending(d => d.Status)
                 .ThenBy(d => d.SubmittedAt)
                 .ThenBy(m => m.RequestSupply.Material)

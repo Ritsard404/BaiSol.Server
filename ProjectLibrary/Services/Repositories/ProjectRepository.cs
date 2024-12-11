@@ -387,14 +387,15 @@ namespace ProjectLibrary.Services.Repositories
 
 
             return await _dataContext.Supply
-                .Where(p => p.Project.ProjId == projId)
+                .Where(p => p.Project.ProjId == projId &&
+                            p.MTLQuantity.HasValue && p.MTLQuantity.Value > 0 && // Exclude null or zero MTLQuantity
+                            p.Material.MTLPrice > 0) // Optionally exclude records with zero or negative price
                 .Include(i => i.Material)
                 .GroupBy(c => c.Material.MTLCategory)
                 .Select(g => new ProjectQuotationSupply
                 {
                     description = g.Key,
                     lineTotal = (g.Sum(s => (decimal)(s.MTLQuantity ?? 0) * s.Material.MTLPrice * (s.Project.ProfitRate + 1))).ToString("#,##0.00") // Calculate the total expense
-
                 })
                 .ToListAsync();
 

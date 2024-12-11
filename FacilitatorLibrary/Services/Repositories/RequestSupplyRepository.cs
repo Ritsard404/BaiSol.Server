@@ -147,7 +147,7 @@ namespace FacilitatorLibrary.Services.Repositories
         {
             // Retrieve the assigned facilitator's project information based on the user email
             var assignedFacilitator = await _dataContext.ProjectWorkLog
-                .Where(e => e.Facilitator.Email == userEmail && e.Project.Status == "OnWork")
+                .Where(e => e.Facilitator.Email == userEmail && (e.Project.Status == "OnWork" || e.Project.Status == "Finished"))
                 .Select(e => e.Project.ProjId) // Only select the project ID
                 .FirstOrDefaultAsync();
 
@@ -156,7 +156,7 @@ namespace FacilitatorLibrary.Services.Repositories
                 return new List<RequestsDTO>();
 
             return await _dataContext.Requisition
-                .Where(id => id.RequestSupply.Project.ProjId == assignedFacilitator)
+                .Where(id => id.RequestSupply.Project.ProjId == assignedFacilitator && (id.RequestSupply.Project.Status == "OnWork" || id.RequestSupply.Project.Status == "Finished"))
                 .OrderByDescending(d => d.Status)
                 .ThenBy(d => d.SubmittedAt)
                 .ThenBy(m => m.RequestSupply.Material)

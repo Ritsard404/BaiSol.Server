@@ -68,5 +68,13 @@ namespace BaiSol.Server.Controllers
             return Ok(dashboard);
         }
 
+        [HttpGet()]
+        public async Task<IActionResult> ProjectChartReport()
+        {
+            var dashboard = await _report.ProjectChartReport();
+
+            return Ok(dashboard);
+        }
+
     }
 }

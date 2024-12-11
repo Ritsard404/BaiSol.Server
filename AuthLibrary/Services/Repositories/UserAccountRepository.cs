@@ -126,7 +126,7 @@ namespace AuthLibrary.Services.Repositories
                             .FirstOrDefaultAsync(c => c.Client == user && c.Status != "Finished");
 
                         var projects = await _dataContext.Project
-                            .Where(c => c.Client == user)
+                            .Where(c => c.Client == user && user.EmailConfirmed)
                             .OrderBy(s => s.Status)
                             .Select(s => new ProjectInfo { ProjId = s.ProjId })
                             .ToListAsync();
@@ -354,7 +354,7 @@ namespace AuthLibrary.Services.Repositories
 
                 var newClient = new Client
                 {
-                    ClientContactNum = "+639" + clientDto.ClientContactNum,
+                    ClientContactNum = clientDto.ClientContactNum,
                     IsMale = clientDto.IsMale,
                     ClientAddress = clientDto.ClientAddress,
                 };

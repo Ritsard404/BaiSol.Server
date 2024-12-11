@@ -230,6 +230,41 @@ namespace BaseLibrary.Services.Repositories
             };
         }
 
+        public async Task<ICollection<ProjectReportDTO>> ProjectChartReport()
+        {
+            var projectDetails = new List<ProjectDetail>();
+
+            var projectReport = new List<ProjectReportDTO>();
+
+            var allProject = await _dataContext.Project
+                .ToListAsync();
+
+            foreach (var project in allProject)
+            {
+                var tasks = await _dataContext.TaskProof
+                    .Include(i => i.Task)
+                    .Where(i => i.Task.ProjId == project.ProjId)
+                    .OrderBy(d => d.ActualStart)
+                    .ToListAsync();
+
+                foreach (var task in tasks)
+                {
+                    projectDetails.Add(new ProjectDetail
+                    {
+                        Date = task.ActualStart.Value.ToString("MM-dd-yyyy"),
+                        Progress = task.TaskProgress ?? 0
+                    });
+                }
+
+                projectReport.Add(new ProjectReportDTO
+                {
+                    ProjectName = project.ProjName,
+                    ProjectDetails = projectDetails
+                });
+            }
+
+            return projectReport;
+        }
 
         private string FormatDate(DateTime? date) => date?.ToString("MMM dd, yyyy");
     }

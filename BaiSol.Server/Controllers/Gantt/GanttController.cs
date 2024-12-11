@@ -130,7 +130,7 @@ namespace BaiSol.Server.Controllers.Gantt
             // Now mappedData contains all the tasks with their indicators
             mappedData = mappedData
                 .OrderBy(t => t.PlannedStartDate)
-                .ThenBy(i=>i.TaskId)
+                .ThenBy(i => i.TaskId)
                 .ToList();
 
             // Prepare response
@@ -220,19 +220,19 @@ namespace BaiSol.Server.Controllers.Gantt
                 var existingData = await _dataContext.GanttData
                     .FirstOrDefaultAsync(i => i.TaskId == updatedData.TaskId && i.ProjId == projId);
 
-                var dateLimit = await _gantt.GetProjectDates(projId);
+                var dateLimit = await _gantt.ProjectDateInfo(projId);
 
                 if (existingData == null)
                 {
                     return NotFound($"GanttData with TaskId {updatedData.TaskId} not found.");
                 }
 
-                if (updatedData.PlannedStartDate.HasValue && updatedData.PlannedStartDate.Value < dateLimit.StartDate)
+                if (updatedData.PlannedStartDate.HasValue && updatedData.PlannedStartDate.Value.Date < dateLimit.StartOffsetDate.Value.Date)
                 {
                     return BadRequest("Planned start date is earlier than the allowed date range.");
                 }
 
-                if (updatedData.PlannedEndDate.HasValue && updatedData.PlannedEndDate.Value > dateLimit.EndDate)
+                if (updatedData.PlannedEndDate.HasValue && updatedData.PlannedEndDate.Value.Date > dateLimit.EndOffsetDate.Value.Date)
                 {
                     return BadRequest("Planned end date is later than the allowed date range.");
                 }
