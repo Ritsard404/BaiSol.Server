@@ -139,8 +139,8 @@ namespace FacilitatorLibrary.Services.Repositories
             var project = await _dataContext.Project
                 .FirstOrDefaultAsync(s => s.ProjId == assignedFacilitatorProjId);
 
-            if (assignedFacilitatorProjId == null || project == null) return
-                    (false, "No Project Yet!");
+            if (assignedFacilitatorProjId == null || project == null) 
+                return (false, "No Project Yet!");
 
             // Check User Existence
             var user = await _userManager.FindByEmailAsync(userEmail);
@@ -237,6 +237,7 @@ namespace FacilitatorLibrary.Services.Repositories
 
             }
             project.isDemobilization = false;
+            project.Status = "Finished";
             project.UpdatedAt = DateTimeOffset.UtcNow;
 
 
