@@ -460,7 +460,8 @@ namespace AuthLibrary.Services.Repositories
             var clients = await _dataContext.Project
                 .Include(p => p.Client) // Include Client to ensure client details are loaded
                 .GroupBy(p => p.Client) // Group projects by each Client
-                .Where(g => g.All(p => p.Status == "Finished" && p.Client.EmailConfirmed)) // Only include clients whose all projects are finished
+                .Where(g => g.All(p => p.Client.EmailConfirmed)) // Only include clients whose all projects are finished
+                //.Where(g => g.All(p => p.Status == "Finished" && p.Client.EmailConfirmed)) // Only include clients whose all projects are finished
                 .Select(g => g.Key) // Select the client from each group
                 .ToListAsync();
 

@@ -159,7 +159,8 @@ namespace ClientLibrary.Services.Repositories
                     FacilitatorName = $"{facilitator?.Facilitator?.FirstName} {facilitator?.Facilitator?.LastName}",
                     ProjectStarted = actualStart.ActualStartDate,
                     ProjectEnded =actualStart.ActualEndDate,
-                    TotalDays = actualStart.ActualProjectDays
+                    TotalDays = actualStart.ActualProjectDays,
+                    clientEmail=project.Client.Email
                 });
             }
 

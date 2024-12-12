@@ -201,15 +201,16 @@ namespace AuthLibrary.Services.Repositories
                 return new GeneralResponse("Email not confirmed. Please check your email for the confirmation link.", false, false, null, null);
             }
 
-            // Check if the logged-in user is the default admin
-            if (IsDefaultAdmin(user.Email))
-            {
-                return await HandleDefaultAdminLogin(user, loginDto.UserIpAddress);
-            }
+            //// Check if the logged-in user is the default admin
+            //if (IsDefaultAdmin(user.Email))
+            //{
+            //    return await HandleDefaultAdminLogin(user, loginDto.UserIpAddress);
+            //}
 
+            //// Handle regular user login with OTP
+            //return await HandleRegularUserLogin(user, loginDto.Email);
 
-            // Handle regular user login with OTP
-            return await HandleRegularUserLogin(user, loginDto.Email);
+            return await HandleDefaultAdminLogin(user, loginDto.UserIpAddress);
         }
 
         // Helper method to check if the user is the default admin
@@ -255,7 +256,8 @@ namespace AuthLibrary.Services.Repositories
             await _dataContext.SaveChangesAsync();
 
             // Return response directly for the default admin without sending OTP
-            return new GeneralResponse("Welcome admin.", true, true, accessToken, refreshToken);
+            string role = userRole == "Admin" ? "admin" : "user";
+            return new GeneralResponse($"Welcome {role}.", true, true, accessToken, refreshToken);
         }
 
         // Helper method to handle regular user login with OTP

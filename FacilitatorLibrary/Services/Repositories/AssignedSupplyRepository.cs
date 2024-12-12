@@ -247,7 +247,7 @@ namespace FacilitatorLibrary.Services.Repositories
         }
 
         public async Task<ICollection<AssignedEquipmentDTO>> ToReturnAssignedEquipment(string? userEmail)
-        {
+        {  
             // Retrieve the assigned facilitator's project information based on the user email
             var assignedFacilitatorProjId = await _dataContext.ProjectWorkLog
                 .Where(e => e.Facilitator.Email == userEmail && e.Project.Status == "Finished" && e.Project.isDemobilization)

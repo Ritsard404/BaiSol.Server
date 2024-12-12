@@ -16,6 +16,7 @@ namespace FacilitatorLibrary.DTO.History
         public required string clientId { get; set; }
         public required string clientFName { get; set; }
         public required string clientLName { get; set; }
+        public required string clientEmail { get; set; }
         public required string clientContactNum { get; set; }
         public required string clientAddress { get; set; }
         public required string SystemType { get; set; }

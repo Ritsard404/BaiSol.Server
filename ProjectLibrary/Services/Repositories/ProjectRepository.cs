@@ -18,7 +18,7 @@ using System.Text.Json;
 
 namespace ProjectLibrary.Services.Repositories
 {
-    public class ProjectRepository(UserManager<AppUsers> _userManager, DataContext _dataContext, IUserLogs _userLogs, IConfiguration _config,IGanttRepository _gantt) : IProject
+    public class ProjectRepository(UserManager<AppUsers> _userManager, DataContext _dataContext, IUserLogs _userLogs, IConfiguration _config, IGanttRepository _gantt) : IProject
     {
         public async Task<string> AddNewClientProject(ProjectDto projectDto)
         {
@@ -150,7 +150,8 @@ namespace ProjectLibrary.Services.Repositories
                     clientId = d.Client.Id,
                     clientContactNum = d.Client.Client.ClientContactNum,
                     clientAddress = d.Client.Client.ClientAddress,
-                    kWCapacity = d.kWCapacity
+                    kWCapacity = d.kWCapacity,
+                    clientEmail = d.Client.Email
                 })
                 .FirstOrDefaultAsync();
 
@@ -188,6 +189,7 @@ namespace ProjectLibrary.Services.Repositories
                 SystemType = projectData.SystemType,
                 isMale = projectData.boolSex,
                 Installers = installerList,
+                clientEmail = projectData.clientEmail
 
             };
         }
@@ -639,7 +641,7 @@ namespace ProjectLibrary.Services.Repositories
                 return (false, "Invalid Project");
 
             var task = await _dataContext.GanttData
-                .AnyAsync(i=>i.ProjId == project.ProjId);
+                .AnyAsync(i => i.ProjId == project.ProjId);
             if (!task)
                 return (false, "No task made yet!");
 
@@ -869,6 +871,7 @@ namespace ProjectLibrary.Services.Repositories
                     clientId = d.Client.Id,
                     clientFName = d.Client.FirstName,
                     clientLName = d.Client.LastName,
+                    clientEmail = d.Client.Email,
                     clientContactNum = d.Client.Client.ClientContactNum,
                     clientAddress = d.Client.Client.ClientAddress,
                     kWCapacity = d.kWCapacity,
@@ -967,6 +970,7 @@ namespace ProjectLibrary.Services.Repositories
                     clientId = project.clientId,
                     clientFName = project.clientFName,
                     clientLName = project.clientLName,
+                    clientEmail = project.clientEmail,
                     clientContactNum = project.clientContactNum,
                     clientAddress = project.clientAddress,
                     kWCapacity = project.kWCapacity,

@@ -101,7 +101,8 @@ namespace FacilitatorLibrary.Services.Repositories
                     clientId = d.Client.Id,
                     clientContactNum = d.Client.Client.ClientContactNum,
                     clientAddress = d.Client.Client.ClientAddress,
-                    kWCapacity = d.kWCapacity
+                    kWCapacity = d.kWCapacity,
+                    clientEmail = d.Client.Email
                 })
                 .ToListAsync();
 
@@ -189,7 +190,7 @@ namespace FacilitatorLibrary.Services.Repositories
                     actualStarted = earliestStartDate.HasValue ? earliestStartDate.Value.ToString("MMMM dd, yyyy") : "",
                     actualEnded = latestEndDate.HasValue && projectData.Status == "Finished" ? latestEndDate.Value.ToString("MMMM dd, yyyy") : "",
                     actualdWorkingDays = latestEndDate.HasValue && projectData.Status == "Finished" ? CalculateActualWorkingDays(earliestStartDate.Value, latestEndDate.Value).ToString() : "",
-
+                    clientEmail = projectData.clientEmail
                 });
             }
 

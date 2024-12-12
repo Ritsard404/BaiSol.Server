@@ -7,7 +7,7 @@ namespace AuthLibrary.Services.Interfaces
 {
     public interface IAuthAccount
     {
-        Task<GeneralResponse> LoginAccount(LoginDto loginDto,bool? isMobile);
+        Task<GeneralResponse> LoginAccount(LoginDto loginDto, bool? isMobile);
         Task<LoginResponse> Login2FA(string code, string email, string ipAddress);
         Task<(bool,string)> LogOut(string email, string ipAddress);
         Task<LoginResponse> RefreshToken(Token token);
