@@ -96,6 +96,8 @@ namespace BaseLibrary.Services.Repositories
 
                 var cost = await _payment.GetTotalProjectExpense(project.ProjId);
 
+                var actualDate = await _gantt.ProjectActualWorkedDate(project.ProjId);
+
                 var projectInfo = new ProjectsDTO
                 {
                     projId = project.ProjId,
@@ -109,9 +111,9 @@ namespace BaseLibrary.Services.Repositories
                     plannedStarted = plannedDate.EstimatedStartDate,
                     plannedEnded = plannedDate.EstimatedEndDate,
                     plannedWorkingDays = plannedDate.EstimatedProjectDays,
-                    actualStarted = earliestStartDate.HasValue ? earliestStartDate.Value.ToString("MMMM dd, yyyy") : "",
-                    actualEnded = latestEndDate.HasValue && project.Status == "Finished" ? latestEndDate.Value.ToString("MMMM dd, yyyy") : "",
-                    actualdWorkingDays = latestEndDate.HasValue && project.Status == "Finished" ? (latestEndDate.Value - earliestStartDate.Value).Days.ToString() : "",
+                    actualStarted = actualDate.ActualStartDate,
+                    actualEnded = actualDate.ActualEndDate,
+                    actualdWorkingDays = actualDate.ActualProjectDays,
                     cost = "₱ " + cost.ToString("#,##0.00"),
                     status = project.Status,
                 };

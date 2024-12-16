@@ -118,6 +118,8 @@ namespace ClientLibrary.Services.Repositories
                 var startDate = allTask.FirstOrDefault();
                 var endDate = allTask.LastOrDefault();
 
+                var actualStart = await _gantt.ProjectActualWorkedDate(project.ProjId);
+
                 // Parse the strings back to DateTime objects
                 DateTime? startInDate = string.IsNullOrEmpty(startDate.StartDate)
                     ? (DateTime?)null
@@ -155,9 +157,9 @@ namespace ClientLibrary.Services.Repositories
                     Installers = installerList,
                     FacilitatorEmail = facilitator?.Facilitator?.Email,
                     FacilitatorName = $"{facilitator?.Facilitator?.FirstName} {facilitator?.Facilitator?.LastName}",
-                    ProjectStarted = startDate?.StartDate,
-                    ProjectEnded = endDate?.EndDate,
-                    TotalDays = totalDays
+                    ProjectStarted = actualStart.ActualStartDate,
+                    ProjectEnded =actualStart.ActualEndDate,
+                    TotalDays = actualStart.ActualProjectDays
                 });
             }
 

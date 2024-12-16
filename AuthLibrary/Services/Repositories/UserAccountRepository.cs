@@ -354,7 +354,7 @@ namespace AuthLibrary.Services.Repositories
 
                 var newClient = new Client
                 {
-                    ClientContactNum = clientDto.ClientContactNum,
+                    ClientContactNum = "+639" + clientDto.ClientContactNum,
                     IsMale = clientDto.IsMale,
                     ClientAddress = clientDto.ClientAddress,
                 };

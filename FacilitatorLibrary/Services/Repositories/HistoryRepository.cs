@@ -188,12 +188,34 @@ namespace FacilitatorLibrary.Services.Repositories
                     plannedWorkingDays = plannedDate.EstimatedProjectDays,
                     actualStarted = earliestStartDate.HasValue ? earliestStartDate.Value.ToString("MMMM dd, yyyy") : "",
                     actualEnded = latestEndDate.HasValue && projectData.Status == "Finished" ? latestEndDate.Value.ToString("MMMM dd, yyyy") : "",
-                    actualdWorkingDays = latestEndDate.HasValue && projectData.Status == "Finished" ? (latestEndDate.Value - earliestStartDate.Value).Days.ToString() : "",
+                    actualdWorkingDays = latestEndDate.HasValue && projectData.Status == "Finished" ? CalculateActualWorkingDays(earliestStartDate.Value, latestEndDate.Value).ToString() : "",
 
                 });
             }
 
             return clientProjectInfoList;
+        }
+        public int CalculateActualWorkingDays(DateTime? startDate, DateTime? endDate)
+        {
+            if (!startDate.HasValue || !endDate.HasValue)
+                return 0;
+
+            DateTime start = startDate.Value.Date;
+            DateTime end = endDate.Value.Date;
+
+            int daysLate = 0;
+
+            // Loop through all days between start and end
+            for (DateTime date = start; date < end; date = date.AddDays(1))
+            {
+                // Exclude weekends (Saturday and Sunday)
+                if (date.DayOfWeek != DayOfWeek.Saturday && date.DayOfWeek != DayOfWeek.Sunday)
+                {
+                    daysLate++;
+                }
+            }
+
+            return daysLate;
         }
 
     }

@@ -1415,7 +1415,7 @@ namespace BaseLibrary.Services.Repositories
             {
                 ActualStartDate = earliestStartDate.HasValue ? earliestStartDate.Value.ToString("MMMM dd, yyyy") : "",
                 ActualEndDate = latestEndDate.HasValue && project != null && project.Status == "Finished" ? latestEndDate.Value.ToString("MMMM dd, yyyy") : "",
-                ActualProjectDays = latestEndDate.HasValue && project != null && project.Status == "Finished" ? (latestEndDate.Value - earliestStartDate.Value).Days.ToString() : "",
+                ActualProjectDays = latestEndDate.HasValue && project != null && project.Status == "Finished" ? CalculateDaysLate(earliestStartDate.Value, latestEndDate.Value).ToString() : "",
             };
 
         }

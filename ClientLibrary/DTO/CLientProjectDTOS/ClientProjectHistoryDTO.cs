@@ -27,7 +27,7 @@ namespace ClientLibrary.DTO.CLientProjectDTOS
         public string? Status { get; set; }
         public string? ProjectStarted { get; set; }
         public string? ProjectEnded { get; set; }
-        public int? TotalDays { get; set; }
+        public string? TotalDays { get; set; }
 
         public List<InstallerInfo>? Installers { get; set; }
         public string? FacilitatorName { get; set; }

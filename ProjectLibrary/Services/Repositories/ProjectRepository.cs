@@ -637,6 +637,11 @@ namespace ProjectLibrary.Services.Repositories
             if (project == null)
                 return (false, "Invalid Project");
 
+            var task = await _dataContext.GanttData
+                .AnyAsync(i=>i.ProjId == project.ProjId);
+            if (!task)
+                return (false, "No task made yet!");
+
             project.Status = "OnWork";
             project.UpdatedAt = DateTimeOffset.UtcNow;
 
