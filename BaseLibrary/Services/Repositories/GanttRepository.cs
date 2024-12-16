@@ -729,8 +729,8 @@ namespace BaseLibrary.Services.Repositories
                     EstimatedStartDate = startDate.ToString("MMMM dd, yyyy"),
                     EstimatedEndDate = endDate.ToString("MMMM dd, yyyy"),
                     EstimatedProjectDays = estimatedDaysToEnd.ToString(),
-                    StartOffsetDate=startDate,
-                    EndOffsetDate=endDate
+                    StartOffsetDate = startDate,
+                    EndOffsetDate = endDate
 
                 };
             }
@@ -937,6 +937,11 @@ namespace BaseLibrary.Services.Repositories
         public async Task<(bool, string)> UpdateTaskProgress(UpdateTaskProgress taskDto)
         {
 
+            EmailMessage message;
+            string greeting;
+            string messageContent;
+            string footer;
+
             var task = await _dataContext.GanttData
                 .FirstOrDefaultAsync(i => i.Id == taskDto.id);
 
@@ -949,6 +954,44 @@ namespace BaseLibrary.Services.Repositories
                 .FirstOrDefaultAsync(i => i.ProjId == task.ProjId);
             if (project == null)
                 return (false, "Project not exist!");
+
+            var taskProgress = await ProjectTaskProgress(projId: project.ProjId);
+            var paymentProgress = await _payment.GetPaymentProgress(projId: project.ProjId);
+
+            if (paymentProgress < 60 && taskProgress >= 60)
+            {
+
+
+                 greeting = $"<p>Hello {(project.Client.Client.IsMale ? "Mr." : "Ms.")} {project.Client.LastName},</p>";
+
+                 messageContent = $@"
+                        <p>We are excited to inform you that the task <strong>{task.TaskName}</strong> for your solar installation project <strong>{project.ProjName}</strong> is now at <strong>{task.Progress}%</strong> completion!</p>
+                        <p>The latest update was made on <strong>{DateTimeOffset.UtcNow:MMMM dd, yyyy}</strong>. We are making great progress, and your project is moving forward as planned!</p>
+                        <p>To ensure the continuation of your project, please note that a <strong>30% progress payment</strong> is required at this stage. Kindly log in to your account to settle the payment and keep the project on track.</p>
+                        <p>You can also monitor the ongoing progress and get the latest updates on your project through your account.</p>
+                    ";
+
+                footer = @"
+                        <p>Best regards,<br>The BaiSol Team</p>
+                        <p>If you have any questions, feel free to reach out to us.</p>
+                    ";
+
+                message = new EmailMessage(
+                       new string[] { project.Client.Email },
+                       "Action Required: Progress Payment for " + task.TaskName,
+                       $"{greeting}{messageContent}{footer}"
+                   );
+
+                _email.SendEmail(message);
+
+                await AddNotification(
+                    "Action Required: 30% Progress Payment Needed for " + project.ProjName,  // Title of the notification
+                    "Your project task is progressing well, but to proceed further, a 30% progress payment is required. Please log in to your account to complete the payment and keep the project on track.", // Message content
+                    "Payment Reminder",  // Type of notification
+                    project
+                );
+                return (false, "Task cannot proceed because the client has not completed the required progress payment.");
+            }
 
             // If the adviser  want only input the progress and not add
             //if (taskDto.Progress < 0 || taskDto.Progress > 100 || taskDto.Progress <= task.Progress)
@@ -1035,17 +1078,15 @@ namespace BaseLibrary.Services.Repositories
 
             await _dataContext.SaveChangesAsync();
 
-            EmailMessage message;
+             greeting = $"<p>Hello {(project.Client.Client.IsMale ? "Mr." : "Ms.")} {project.Client.LastName},</p>";
 
-            string greeting = $"<p>Hello {(project.Client.Client.IsMale ? "Mr." : "Ms.")} {project.Client.LastName},</p>";
-
-            string messageContent = $@"
+             messageContent = $@"
                 <p>We are excited to inform you that the task <strong>{task.TaskName}</strong> for your solar installation project <strong>{project.ProjName}</strong> is now at <strong>{task.Progress}%</strong> completion!</p>
                 <p>The latest update was made on <strong>{DateTimeOffset.UtcNow:MMMM dd, yyyy}</strong>. We are making great progress, and your project is moving forward as planned!</p>
                 <p>Please log in to your account on our site to monitor the ongoing progress and get the latest updates on your project.</p>
             ";
 
-            string footer = @"
+             footer = @"
                 <p>Best regards,<br>The BaiSol Team</p>
                 <p>If you have any questions, feel free to reach out to us.</p>
             ";
@@ -1096,6 +1137,8 @@ namespace BaseLibrary.Services.Repositories
                     "Project Finished",
                     $"{greeting}{finishProjectMessage}{footer}");
 
+                _email.SendEmail(message);
+
                 await _logs.LogUserActionAsync(assignedFacilitator.Facilitator.Email, "Update", "project", task.Id.ToString(), "Finish project", taskDto.ipAddress);
 
                 return (true, "All the tasks complete! The project is Finished.");
@@ -1133,6 +1176,13 @@ namespace BaseLibrary.Services.Repositories
             var toDoList = new List<TaskToDoDTO>();
             bool previousTaskCompleted = true;
 
+            bool taskCanProceed = true;
+            var taskProgress = await ProjectTaskProgress(projId: projId);
+            var paymentProgress = await _payment.GetPaymentProgress(projId: projId);
+
+            if (paymentProgress < 60 && taskProgress >= 60)
+                taskCanProceed = false;
+
             foreach (var task in tasks)
             {
                 // Skip tasks that have subtasks
@@ -1161,7 +1211,7 @@ namespace BaseLibrary.Services.Repositories
                     {
                         id = task.Id,
                         EstimationStart = task.PlannedStartDate?.ToString("MMM dd, yyyy") ?? "",
-                        IsEnable = isEnable || (task.PlannedStartDate.HasValue && (task.PlannedStartDate.Value - DateTime.Today).Days <= 2),
+                        IsEnable = (isEnable || (task.PlannedStartDate.HasValue && (task.PlannedStartDate.Value - DateTime.Today).Days <= 2)) && taskCanProceed,
                         //IsEnable = isEnable || (task.PlannedStartDate.HasValue && (task.PlannedStartDate.Value - DateTime.Today).Days <= 2),
                         IsLate = task.PlannedEndDate.Value.Date < DateTime.UtcNow.Date,
                         DaysLate = daysLate
@@ -1205,7 +1255,7 @@ namespace BaseLibrary.Services.Repositories
                         //    : DateTime.Today.ToString("MMM dd, yyyy"),
                         EstimationStart = GetNextWeekdayEstimationStart(lastTaskItem?.ActualStart),
                         //task.ActualEndDate?.AddDays(1).ToString("MMM dd, yyyy"),
-                        IsEnable = (IsWeekday(lastTaskItem?.ActualStart?.Date) && lastTaskItem?.ActualStart?.Date < DateTime.Today.Date) || daysLate > 1,
+                        IsEnable = ((IsWeekday(lastTaskItem?.ActualStart?.Date) && lastTaskItem?.ActualStart?.Date < DateTime.Today.Date) || daysLate > 1) && taskCanProceed,
                         //IsEnable = (IsWeekday(lastTaskItem?.ActualStart?.Date) && lastTaskItem?.ActualStart?.Date < DateTime.Today.Date) || isEnable,
                         IsLate = daysLate > 1,
                         DaysLate = daysLate - 1
@@ -1321,8 +1371,8 @@ namespace BaseLibrary.Services.Repositories
             }
 
             return daysLate;
-        } 
-        
+        }
+
         public int CalculateDaysOffsetLate(DateTimeOffset? startDate, DateTimeOffset? endDate)
         {
             if (!startDate.HasValue || !endDate.HasValue)
