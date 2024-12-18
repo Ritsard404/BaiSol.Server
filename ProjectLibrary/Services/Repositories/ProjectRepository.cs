@@ -224,7 +224,7 @@ namespace ProjectLibrary.Services.Repositories
         public async Task<bool> IsProjectOnGoing(string projId)
         {
             var project = await _dataContext.Project
-                .FirstOrDefaultAsync(i => i.ProjId == projId && i.Status == "OnGoing");
+                .FirstOrDefaultAsync(i => i.ProjId == projId && i.Status == "OnGoing"|| i.Status=="Approved");
 
             return project != null; // Returns true if project exists, false otherwise
         }
@@ -719,6 +719,9 @@ namespace ProjectLibrary.Services.Repositories
 
             if (project == null)
                 return (false, "Invalid Project");
+
+            if (project.Status != "Approved")
+                return (false, "The project quotation is pending customer approval. Please follow up with the customer for confirmation.");
 
             var hasFacilitators = await _dataContext.ProjectWorkLog
                 .Include(f => f.Facilitator)

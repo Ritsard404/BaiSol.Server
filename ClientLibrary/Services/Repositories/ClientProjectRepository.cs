@@ -1,27 +1,39 @@
 ﻿using ClientLibrary.DTO.CLientProjectDTOS;
 using ClientLibrary.Services.Interfaces;
 using DataLibrary.Data;
-using DataLibrary.Models;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Text.Json;
-using System.Threading.Tasks;
 using RestSharp;
 using BaseLibrary.Services.Interfaces;
 using System.Globalization;
-using Microsoft.IdentityModel.Tokens;
 using BaseLibrary.DTO.Gantt;
 using ClientLibrary.DTO.Notification;
 
 namespace ClientLibrary.Services.Repositories
 {
-    public class ClientProjectRepository(DataContext _dataContext, IConfiguration _config,IGanttRepository _gantt) : IClientProject
+    public class ClientProjectRepository(DataContext _dataContext, IConfiguration _config, IGanttRepository _gantt) : IClientProject
     {
+        public async Task<(bool, string)> ApproveProjectQuotation(ProjectLibrary.DTO.Project.UpdateProjectStatusDTO approveProjectQuotation)
+        {
+            var project = await _dataContext.Project
+                .FindAsync(approveProjectQuotation.projId);
+
+            if (project == null)
+                return (false, "Invalid Project");
+
+            if (project.Status != "OnGoing")
+                return (false, "The project quotation is already approved!");
+
+            project.Status = "Approved";
+            project.UpdatedAt = DateTimeOffset.UtcNow;
+
+            _dataContext.Project.Update(project);
+            await _dataContext.SaveChangesAsync();
+
+            return (true, "Project quotation approved!");
+        }
+
         public async Task<ProjectId> GetClientProject(string userEmail)
         {
             return await _dataContext.Project
@@ -158,13 +170,22 @@ namespace ClientLibrary.Services.Repositories
                     FacilitatorEmail = facilitator?.Facilitator?.Email,
                     FacilitatorName = $"{facilitator?.Facilitator?.FirstName} {facilitator?.Facilitator?.LastName}",
                     ProjectStarted = actualStart.ActualStartDate,
-                    ProjectEnded =actualStart.ActualEndDate,
+                    ProjectEnded = actualStart.ActualEndDate,
                     TotalDays = actualStart.ActualProjectDays,
-                    clientEmail=project.Client.Email
+                    clientEmail = project.Client.Email
                 });
             }
 
             return projectHistory;
+        }
+
+        public async Task<bool> IsProjectApprovedQuotation(string projId)
+        {
+            var project = await _dataContext.Project
+                .FirstOrDefaultAsync(i => i.ProjId == projId && (i.Status == "Approved" || i.Status == "Finished" || i.Status == "OnWork" || i.Status == "OnProcess"));
+
+
+            return project != null;
         }
 
         public async Task<NotificationDTO> NotificationMessage(int notifId)
