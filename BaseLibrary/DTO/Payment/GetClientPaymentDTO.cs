@@ -22,5 +22,6 @@ namespace BaseLibrary.DTO.Payment
         public bool IsAcknowledged { get; set; }
         public required string AcknowledgedBy { get; set; }
         public required string acknowledgedAt { get; set; }
+        public AllPaymentsDTO? paymentDetail { get; set; }
     }
 }

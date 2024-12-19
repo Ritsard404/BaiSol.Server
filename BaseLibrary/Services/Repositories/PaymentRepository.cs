@@ -582,6 +582,33 @@ namespace BaseLibrary.Services.Repositories
                     }
                 }
 
+                var detail = (await GetAllPayment())
+                    .FirstOrDefault(i => i.referenceNumber == reference.Id);
+
+                var paymentDetail = new AllPaymentsDTO
+                {
+                    referenceNumber = detail.referenceNumber,
+                    checkoutUrl = detail.checkoutUrl,
+                    amount = detail.amount,
+                    netAmount = detail.netAmount,
+                    description = detail.description,
+                    status = detail.status,
+                    sourceType = detail.sourceType,
+                    createdAt = detail.createdAt,
+                    paidAt = detail.paidAt,
+                    paymentFee = detail.paymentFee,
+                    paymentFeePercent = detail.paymentFeePercent,
+                    isAcknowledged = detail.isAcknowledged,
+                    acknowledgedBy = detail.acknowledgedBy,
+                    acknowledgedAt = detail.acknowledgedAt,
+                    projId = detail.projId,
+                    projName = detail.projName,
+                    billingEmail = detail.billingEmail,
+                    billingName = detail.billingName,
+                    billingPhone=detail.billingPhone
+                };
+
+
                 clientPayments.Add(new GetClientPaymentDTO
                 {
                     referenceNumber = reference.Id,
@@ -601,7 +628,7 @@ namespace BaseLibrary.Services.Repositories
                     acknowledgedAt = reference.AcknowledgedAt.HasValue
                             ? reference.AcknowledgedAt.Value.ToString("MMMM dd, yyyy, hh:mm tt")
                             : null,
-
+                    paymentDetail = paymentDetail
                 });
 
             }
